@@ -1,0 +1,33 @@
+﻿@page "/"
+@using ReptileCare.Client.Services
+@using ReptileCare.Shared.Models
+@inject ReptileService ReptileService
+
+<h3>My Reptiles</h3>
+
+@if (reptiles == null)
+{
+    <p><em>Loading...</em></p>
+}
+else if (reptiles.Count == 0)
+{
+    <p>No reptiles found.</p>
+}
+else
+{
+    <ul>
+        @foreach (var reptile in reptiles)
+        {
+            <li><strong>@reptile.Name</strong> - @reptile.Species</li>
+        }
+    </ul>
+}
+
+@code {
+    private List<Reptile> reptiles;
+
+    protected override async Task OnInitializedAsync()
+    {
+        reptiles = await ReptileService.GetReptilesAsync();
+    }
+}
