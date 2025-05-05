@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using ReptileCare.Shared.DTOs;
 using ReptileCare.Shared.Models;
 
 namespace ReptileCare.Client.Services;
@@ -12,17 +13,17 @@ public class ReptileService
         _http = http;
     }
 
-    public async Task<List<Reptile>> GetReptilesAsync()
+    public async Task<List<ReptileDto>> GetReptilesAsync()
     {
         try
         {
-            var reptiles = await _http.GetFromJsonAsync<List<Reptile>>("api/reptile");
-            return reptiles ?? new List<Reptile>();
+            var reptiles = await _http.GetFromJsonAsync<List<ReptileDto>>("api/reptile/dto");
+            return reptiles ?? new List<ReptileDto>();
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Failed to fetch reptiles: {ex.Message}");
-            return new List<Reptile>();
+            return new List<ReptileDto>();
         }
     }
 

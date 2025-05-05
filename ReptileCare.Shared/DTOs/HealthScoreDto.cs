@@ -1,12 +1,12 @@
-namespace ReptileCare.Shared.Models;
+namespace ReptileCare.Shared.DTOs;
 
-public class HealthScore
+public class HealthScoreDto
 {
     public int Id { get; set; }
     public int ReptileId { get; set; }
-    public Reptile? Reptile { get; set; }
+    public string ReptileName { get; set; } = string.Empty;
     public DateTime AssessmentDate { get; set; }
-    public int Score { get; set; } // Scale of 1-10
+    public int Score { get; set; }
     public string Notes { get; set; } = string.Empty;
     public string? AssessedBy { get; set; }
 }

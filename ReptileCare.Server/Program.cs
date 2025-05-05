@@ -12,13 +12,24 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// In-memory DB setup (for now)
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseInMemoryDatabase("ReptileCareDB"));
+    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Dependency Injection
-builder.Services.AddScoped<IReptileService, ReptileService>();
+builder.Services.AddScoped<IMeasurementService, MeasurementService>();
+builder.Services.AddScoped<ISheddingService, SheddingService>();
+builder.Services.AddScoped<IFeedingService, FeedingService>();
 builder.Services.AddScoped<IHealthAnalyticsEngine, HealthAnalyticsEngine>();
+builder.Services.AddScoped<IEnvironmentService, EnvironmentService>();
+builder.Services.AddScoped<IHealthService, HealthService>();
+builder.Services.AddScoped<IScheduledTaskService, ScheduledTaskService>();
+builder.Services.AddScoped<IReptileService, ReptileService>();
+
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+    });
 
 // CORS for Blazor client
 builder.Services.AddCors(options =>

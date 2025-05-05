@@ -1,6 +1,18 @@
 namespace ReptileCare.Shared.Models.Enums;
 
-public class BehaviorType
+public enum BehaviorType
 {
-    
+    Basking,
+    Feeding,
+    Sleeping,
+    Climbing,
+    Swimming,
+    Hiding,
+    Shedding,
+    Breeding,
+    Digging,
+    Exploring,
+    Aggressive,
+    Lethargic,
+    Other
 }

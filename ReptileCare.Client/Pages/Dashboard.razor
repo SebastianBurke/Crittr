@@ -1,9 +1,10 @@
 ﻿@page "/"
 @using ReptileCare.Client.Services
+@using ReptileCare.Shared.DTOs
 @using ReptileCare.Shared.Models
 @inject ReptileService ReptileService
 
-<h3>My Reptiles</h3>
+<h2 class="text-2xl font-bold mb-4">My Reptiles Dashboard</h2>
 
 @if (reptiles == null)
 {
@@ -11,23 +12,32 @@
 }
 else if (reptiles.Count == 0)
 {
-    <p>No reptiles found.</p>
+    <p>No reptiles found. Add a new one to get started!</p>
 }
 else
 {
-    <ul>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         @foreach (var reptile in reptiles)
         {
-            <li><strong>@reptile.Name</strong> - @reptile.Species</li>
+            <div class="bg-white dark:bg-gray-800 shadow-md rounded-xl p-4 border dark:border-gray-700">
+                <h3 class="text-lg font-semibold">@reptile.Name (@reptile.Species)</h3>
+                <p class="text-sm text-gray-500">Acquired: @reptile.DateAcquired.ToShortDateString()</p>
+                <ul class="mt-2 text-sm">
+                    <li><strong>Last Fed:</strong> @(reptile.LastFeedingDate?.ToLocalTime().ToString("g") ?? "N/A")</li>
+                    <li><strong>Weight Date:</strong> @(reptile.LastWeightDate?.ToLocalTime().ToString("g") ?? "N/A")</li>
+                    <li><strong>Health Score:</strong> @(reptile.RecentHealthScore?.ToString() ?? "N/A")</li>
+                    <li><strong>Pending Tasks:</strong> @reptile.PendingTasksCount</li>
+                </ul>
+            </div>
         }
-    </ul>
+    </div>
 }
 
 @code {
-    private List<Reptile> reptiles;
+    private List<ReptileDto> reptiles;
 
     protected override async Task OnInitializedAsync()
     {
-        reptiles = await ReptileService.GetReptilesAsync();
+        reptiles = await ReptileService.GetReptilesAsync(); // Make sure this returns DTOs
     }
 }

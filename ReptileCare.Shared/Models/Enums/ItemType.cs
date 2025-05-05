@@ -1,6 +1,11 @@
 namespace ReptileCare.Shared.Models.Enums;
 
-public class ItemType
+public enum ItemType
 {
-    
+    Insect,
+    Rodent,
+    Vegetable,
+    Fruit,
+    Supplement,
+    Other
 }

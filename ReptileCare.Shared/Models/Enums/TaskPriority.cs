@@ -1,6 +1,9 @@
 namespace ReptileCare.Shared.Models.Enums;
 
-public class TaskPriority
+public enum TaskPriority
 {
-    
+    Low,
+    Medium,
+    High,
+    Urgent
 }
