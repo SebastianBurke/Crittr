@@ -1,7 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using ReptileCare.Shared.Models;
+using static ReptileCare.Shared.Models.Enums.ItemType;
+using static ReptileCare.Shared.Models.Enums.TaskPriority;
 
-namespace ReptileCare.Shared.Data;
+namespace ReptileCare.Server.Data;
 
 public class ApplicationDbContext : DbContext
 {
@@ -55,9 +57,9 @@ public class ApplicationDbContext : DbContext
         );
 
         modelBuilder.Entity<FeedingRecord>().HasData(
-            new FeedingRecord { Id = 1, ReptileId = 1, FeedingDate = new DateTime(2025, 4, 29), FoodItem = "Crickets", Quantity = 12, ItemType = Models.Enums.ItemType.Insect, WasEaten = true },
-            new FeedingRecord { Id = 2, ReptileId = 1, FeedingDate = new DateTime(2025, 4, 25), FoodItem = "Mealworms", Quantity = 15, ItemType = Models.Enums.ItemType.Insect, WasEaten = true },
-            new FeedingRecord { Id = 3, ReptileId = 2, FeedingDate = new DateTime(2025, 4, 22), FoodItem = "Small Rat", Quantity = 1, ItemType = Models.Enums.ItemType.Rodent, WasEaten = true }
+            new FeedingRecord { Id = 1, ReptileId = 1, FeedingDate = new DateTime(2025, 4, 29), FoodItem = "Crickets", Quantity = 12, ItemType = Insect, WasEaten = true },
+            new FeedingRecord { Id = 2, ReptileId = 1, FeedingDate = new DateTime(2025, 4, 25), FoodItem = "Mealworms", Quantity = 15, ItemType = Insect, WasEaten = true },
+            new FeedingRecord { Id = 3, ReptileId = 2, FeedingDate = new DateTime(2025, 4, 22), FoodItem = "Small Rat", Quantity = 1, ItemType = Rodent, WasEaten = true }
         );
 
         modelBuilder.Entity<EnvironmentalReading>().HasData(
@@ -81,8 +83,8 @@ public class ApplicationDbContext : DbContext
         );
 
         modelBuilder.Entity<ScheduledTask>().HasData(
-            new ScheduledTask { Id = 1, ReptileId = 1, Title = "Clean terrarium", Description = "Full substrate change and decoration cleaning", DueDate = new DateTime(2025, 5, 8), IsCompleted = false, Priority = Models.Enums.TaskPriority.Medium },
-            new ScheduledTask { Id = 2, ReptileId = 2, Title = "UVB Bulb Replacement", Description = "Replace the UVB bulb which is nearing end of its effective lifespan", DueDate = new DateTime(2025, 5, 12), IsCompleted = false, Priority = Models.Enums.TaskPriority.High }
+            new ScheduledTask { Id = 1, ReptileId = 1, Title = "Clean terrarium", Description = "Full substrate change and decoration cleaning", DueDate = new DateTime(2025, 5, 8), IsCompleted = false, Priority =Medium },
+            new ScheduledTask { Id = 2, ReptileId = 2, Title = "UVB Bulb Replacement", Description = "Replace the UVB bulb which is nearing end of its effective lifespan", DueDate = new DateTime(2025, 5, 12), IsCompleted = false, Priority = High }
         );
     }
 }

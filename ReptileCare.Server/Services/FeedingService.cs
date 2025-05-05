@@ -1,12 +1,10 @@
-namespace ReptileCare.Server.Services;
-
-
-// ReptileCare.Server/Services/FeedingService.cs
 using Microsoft.EntityFrameworkCore;
+using ReptileCare.Server.Data;
 using ReptileCare.Server.Services.Interfaces;
-using ReptileCare.Shared.Data;
 using ReptileCare.Shared.DTOs;
 using ReptileCare.Shared.Models;
+
+namespace ReptileCare.Server.Services;
 
 public class FeedingService : IFeedingService
 {
