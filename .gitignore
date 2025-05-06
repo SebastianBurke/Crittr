@@ -11,4 +11,3 @@ obj/
 *.sqlite
 .env
 node_modules/
-wwwroot/
