@@ -3,12 +3,17 @@
 @using ReptileCare.Shared.DTOs
 @using ReptileCare.Shared.Models
 @inject ReptileService ReptileService
+@inject Blazored.LocalStorage.ILocalStorageService localStorage
 
 <h2 class="text-2xl font-bold mb-4">My Reptiles Dashboard</h2>
 
-@if (reptiles == null)
+@if (isLoading)
 {
     <p><em>Loading...</em></p>
+}
+else if (!isAuthenticated)
+{
+    <p>Please <a href="/login" class="text-blue-500 underline">log in</a> to view your reptiles.</p>
 }
 else if (reptiles.Count == 0)
 {
@@ -34,10 +39,21 @@ else
 }
 
 @code {
-    private List<ReptileDto> reptiles;
+    private List<ReptileDto> reptiles = new();
+    private bool isLoading = true;
+    private bool isAuthenticated = false;
 
     protected override async Task OnInitializedAsync()
     {
-        reptiles = await ReptileService.GetReptilesAsync(); // Make sure this returns DTOs
+        var token = await localStorage.GetItemAsync<string>("authToken");
+        isAuthenticated = !string.IsNullOrWhiteSpace(token);
+
+        if (isAuthenticated)
+        {
+            reptiles = await ReptileService.GetReptilesAsync();
+        }
+
+        isLoading = false;
     }
 }
+

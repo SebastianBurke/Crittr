@@ -3,16 +3,53 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-#pragma warning disable CA1814 // Prefer jagged arrays over multidimensional
-
 namespace ReptileCare.Server.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialMigration : Migration
+    public partial class InitialCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.CreateTable(
+                name: "AspNetRoles",
+                columns: table => new
+                {
+                    Id = table.Column<string>(type: "TEXT", nullable: false),
+                    Name = table.Column<string>(type: "TEXT", maxLength: 256, nullable: true),
+                    NormalizedName = table.Column<string>(type: "TEXT", maxLength: 256, nullable: true),
+                    ConcurrencyStamp = table.Column<string>(type: "TEXT", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_AspNetRoles", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "AspNetUsers",
+                columns: table => new
+                {
+                    Id = table.Column<string>(type: "TEXT", nullable: false),
+                    UserName = table.Column<string>(type: "TEXT", maxLength: 256, nullable: true),
+                    NormalizedUserName = table.Column<string>(type: "TEXT", maxLength: 256, nullable: true),
+                    Email = table.Column<string>(type: "TEXT", maxLength: 256, nullable: true),
+                    NormalizedEmail = table.Column<string>(type: "TEXT", maxLength: 256, nullable: true),
+                    EmailConfirmed = table.Column<bool>(type: "INTEGER", nullable: false),
+                    PasswordHash = table.Column<string>(type: "TEXT", nullable: true),
+                    SecurityStamp = table.Column<string>(type: "TEXT", nullable: true),
+                    ConcurrencyStamp = table.Column<string>(type: "TEXT", nullable: true),
+                    PhoneNumber = table.Column<string>(type: "TEXT", nullable: true),
+                    PhoneNumberConfirmed = table.Column<bool>(type: "INTEGER", nullable: false),
+                    TwoFactorEnabled = table.Column<bool>(type: "INTEGER", nullable: false),
+                    LockoutEnd = table.Column<DateTimeOffset>(type: "TEXT", nullable: true),
+                    LockoutEnabled = table.Column<bool>(type: "INTEGER", nullable: false),
+                    AccessFailedCount = table.Column<int>(type: "INTEGER", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_AspNetUsers", x => x.Id);
+                });
+
             migrationBuilder.CreateTable(
                 name: "EnclosureProfiles",
                 columns: table => new
@@ -35,11 +72,118 @@ namespace ReptileCare.Server.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "AspNetRoleClaims",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    RoleId = table.Column<string>(type: "TEXT", nullable: false),
+                    ClaimType = table.Column<string>(type: "TEXT", nullable: true),
+                    ClaimValue = table.Column<string>(type: "TEXT", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_AspNetRoleClaims", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_AspNetRoleClaims_AspNetRoles_RoleId",
+                        column: x => x.RoleId,
+                        principalTable: "AspNetRoles",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "AspNetUserClaims",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    UserId = table.Column<string>(type: "TEXT", nullable: false),
+                    ClaimType = table.Column<string>(type: "TEXT", nullable: true),
+                    ClaimValue = table.Column<string>(type: "TEXT", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_AspNetUserClaims", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_AspNetUserClaims_AspNetUsers_UserId",
+                        column: x => x.UserId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "AspNetUserLogins",
+                columns: table => new
+                {
+                    LoginProvider = table.Column<string>(type: "TEXT", nullable: false),
+                    ProviderKey = table.Column<string>(type: "TEXT", nullable: false),
+                    ProviderDisplayName = table.Column<string>(type: "TEXT", nullable: true),
+                    UserId = table.Column<string>(type: "TEXT", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_AspNetUserLogins", x => new { x.LoginProvider, x.ProviderKey });
+                    table.ForeignKey(
+                        name: "FK_AspNetUserLogins_AspNetUsers_UserId",
+                        column: x => x.UserId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "AspNetUserRoles",
+                columns: table => new
+                {
+                    UserId = table.Column<string>(type: "TEXT", nullable: false),
+                    RoleId = table.Column<string>(type: "TEXT", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_AspNetUserRoles", x => new { x.UserId, x.RoleId });
+                    table.ForeignKey(
+                        name: "FK_AspNetUserRoles_AspNetRoles_RoleId",
+                        column: x => x.RoleId,
+                        principalTable: "AspNetRoles",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_AspNetUserRoles_AspNetUsers_UserId",
+                        column: x => x.UserId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "AspNetUserTokens",
+                columns: table => new
+                {
+                    UserId = table.Column<string>(type: "TEXT", nullable: false),
+                    LoginProvider = table.Column<string>(type: "TEXT", nullable: false),
+                    Name = table.Column<string>(type: "TEXT", nullable: false),
+                    Value = table.Column<string>(type: "TEXT", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_AspNetUserTokens", x => new { x.UserId, x.LoginProvider, x.Name });
+                    table.ForeignKey(
+                        name: "FK_AspNetUserTokens_AspNetUsers_UserId",
+                        column: x => x.UserId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Reptiles",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "INTEGER", nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
+                    OwnerId = table.Column<string>(type: "TEXT", nullable: false),
                     Name = table.Column<string>(type: "TEXT", nullable: false),
                     Species = table.Column<string>(type: "TEXT", nullable: false),
                     DateAcquired = table.Column<DateTime>(type: "TEXT", nullable: false),
@@ -53,6 +197,12 @@ namespace ReptileCare.Server.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Reptiles", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Reptiles_AspNetUsers_OwnerId",
+                        column: x => x.OwnerId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_Reptiles_EnclosureProfiles_EnclosureProfileId",
                         column: x => x.EnclosureProfileId,
@@ -253,78 +403,42 @@ namespace ReptileCare.Server.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
-            migrationBuilder.InsertData(
-                table: "EnclosureProfiles",
-                columns: new[] { "Id", "HasHeatingElement", "HasUVBLighting", "Height", "IdealHumidity", "IdealTemperature", "Length", "Name", "SubstrateType", "Width" },
-                values: new object[,]
-                {
-                    { 1, true, true, 60.0, 30.0, 32.0, 120.0, "Desert Terrarium", "Sand/Clay mix", 60.0 },
-                    { 2, true, true, 90.0, 70.0, 28.0, 90.0, "Tropical Vivarium", "Coconut Fiber", 45.0 }
-                });
+            migrationBuilder.CreateIndex(
+                name: "IX_AspNetRoleClaims_RoleId",
+                table: "AspNetRoleClaims",
+                column: "RoleId");
 
-            migrationBuilder.InsertData(
-                table: "Reptiles",
-                columns: new[] { "Id", "DateAcquired", "DateOfBirth", "Description", "EnclosureProfileId", "Length", "Name", "Sex", "Species", "Weight" },
-                values: new object[,]
-                {
-                    { 1, new DateTime(2024, 11, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new DateTime(2023, 5, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "Friendly beardie with orange coloration", 1, 45.0, "Spike", "Male", "Bearded Dragon", 450.0 },
-                    { 2, new DateTime(2023, 5, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new DateTime(2022, 5, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "Normal morph ball python, very docile", 2, 120.0, "Monty", "Male", "Ball Python", 1500.0 }
-                });
+            migrationBuilder.CreateIndex(
+                name: "RoleNameIndex",
+                table: "AspNetRoles",
+                column: "NormalizedName",
+                unique: true);
 
-            migrationBuilder.InsertData(
-                table: "EnvironmentalReadings",
-                columns: new[] { "Id", "Humidity", "IsManualReading", "ReadingDate", "ReptileId", "Source", "Temperature", "UVBIndex" },
-                values: new object[,]
-                {
-                    { 1, 35.0, true, new DateTime(2025, 5, 4, 0, 0, 0, 0, DateTimeKind.Unspecified), 1, "Manual", 33.5, 6.7000000000000002 },
-                    { 2, 65.0, true, new DateTime(2025, 5, 4, 0, 0, 0, 0, DateTimeKind.Unspecified), 2, "Manual", 28.0, null }
-                });
+            migrationBuilder.CreateIndex(
+                name: "IX_AspNetUserClaims_UserId",
+                table: "AspNetUserClaims",
+                column: "UserId");
 
-            migrationBuilder.InsertData(
-                table: "FeedingRecords",
-                columns: new[] { "Id", "FeedingDate", "FoodItem", "ItemType", "Notes", "Quantity", "ReptileId", "WasEaten" },
-                values: new object[,]
-                {
-                    { 1, new DateTime(2025, 4, 29, 0, 0, 0, 0, DateTimeKind.Unspecified), "Crickets", 0, null, 12.0, 1, true },
-                    { 2, new DateTime(2025, 4, 25, 0, 0, 0, 0, DateTimeKind.Unspecified), "Mealworms", 0, null, 15.0, 1, true },
-                    { 3, new DateTime(2025, 4, 22, 0, 0, 0, 0, DateTimeKind.Unspecified), "Small Rat", 1, null, 1.0, 2, true }
-                });
+            migrationBuilder.CreateIndex(
+                name: "IX_AspNetUserLogins_UserId",
+                table: "AspNetUserLogins",
+                column: "UserId");
 
-            migrationBuilder.InsertData(
-                table: "HealthScores",
-                columns: new[] { "Id", "AssessedBy", "AssessmentDate", "Notes", "ReptileId", "Score" },
-                values: new object[,]
-                {
-                    { 1, null, new DateTime(2025, 4, 30, 0, 0, 0, 0, DateTimeKind.Unspecified), "Healthy and active.", 1, 9 },
-                    { 2, null, new DateTime(2025, 4, 30, 0, 0, 0, 0, DateTimeKind.Unspecified), "Slight respiratory noise observed.", 2, 8 }
-                });
+            migrationBuilder.CreateIndex(
+                name: "IX_AspNetUserRoles_RoleId",
+                table: "AspNetUserRoles",
+                column: "RoleId");
 
-            migrationBuilder.InsertData(
-                table: "MeasurementRecords",
-                columns: new[] { "Id", "Length", "MeasurementDate", "Notes", "ReptileId", "Weight" },
-                values: new object[,]
-                {
-                    { 1, 46.0, new DateTime(2025, 4, 15, 0, 0, 0, 0, DateTimeKind.Unspecified), "Gained some weight.", 1, 460.0 },
-                    { 2, 121.0, new DateTime(2025, 4, 18, 0, 0, 0, 0, DateTimeKind.Unspecified), "Normal growth.", 2, 1520.0 }
-                });
+            migrationBuilder.CreateIndex(
+                name: "EmailIndex",
+                table: "AspNetUsers",
+                column: "NormalizedEmail");
 
-            migrationBuilder.InsertData(
-                table: "ScheduledTasks",
-                columns: new[] { "Id", "CompletedDate", "Description", "DueDate", "IsCompleted", "Priority", "ReptileId", "Title" },
-                values: new object[,]
-                {
-                    { 1, null, "Full substrate change and decoration cleaning", new DateTime(2025, 5, 8, 0, 0, 0, 0, DateTimeKind.Unspecified), false, 1, 1, "Clean terrarium" },
-                    { 2, null, "Replace the UVB bulb which is nearing end of its effective lifespan", new DateTime(2025, 5, 12, 0, 0, 0, 0, DateTimeKind.Unspecified), false, 2, 2, "UVB Bulb Replacement" }
-                });
-
-            migrationBuilder.InsertData(
-                table: "SheddingRecords",
-                columns: new[] { "Id", "CompletionDate", "IsComplete", "Notes", "ReptileId", "StartDate", "WasAssisted" },
-                values: new object[,]
-                {
-                    { 1, new DateTime(2025, 4, 24, 0, 0, 0, 0, DateTimeKind.Unspecified), true, "Normal shed.", 1, new DateTime(2025, 4, 20, 0, 0, 0, 0, DateTimeKind.Unspecified), false },
-                    { 2, new DateTime(2025, 4, 15, 0, 0, 0, 0, DateTimeKind.Unspecified), true, "Helped with tail shedding.", 2, new DateTime(2025, 4, 10, 0, 0, 0, 0, DateTimeKind.Unspecified), true }
-                });
+            migrationBuilder.CreateIndex(
+                name: "UserNameIndex",
+                table: "AspNetUsers",
+                column: "NormalizedUserName",
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_BehaviorLogs_ReptileId",
@@ -362,6 +476,11 @@ namespace ReptileCare.Server.Migrations
                 column: "EnclosureProfileId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Reptiles_OwnerId",
+                table: "Reptiles",
+                column: "OwnerId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_ScheduledTasks_ReptileId",
                 table: "ScheduledTasks",
                 column: "ReptileId");
@@ -375,6 +494,21 @@ namespace ReptileCare.Server.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropTable(
+                name: "AspNetRoleClaims");
+
+            migrationBuilder.DropTable(
+                name: "AspNetUserClaims");
+
+            migrationBuilder.DropTable(
+                name: "AspNetUserLogins");
+
+            migrationBuilder.DropTable(
+                name: "AspNetUserRoles");
+
+            migrationBuilder.DropTable(
+                name: "AspNetUserTokens");
+
             migrationBuilder.DropTable(
                 name: "BehaviorLogs");
 
@@ -400,7 +534,13 @@ namespace ReptileCare.Server.Migrations
                 name: "SheddingRecords");
 
             migrationBuilder.DropTable(
+                name: "AspNetRoles");
+
+            migrationBuilder.DropTable(
                 name: "Reptiles");
+
+            migrationBuilder.DropTable(
+                name: "AspNetUsers");
 
             migrationBuilder.DropTable(
                 name: "EnclosureProfiles");

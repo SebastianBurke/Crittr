@@ -17,6 +17,198 @@ namespace ReptileCare.Server.Migrations
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.4");
 
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ConcurrencyStamp")
+                        .IsConcurrencyToken()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("NormalizedName")
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NormalizedName")
+                        .IsUnique()
+                        .HasDatabaseName("RoleNameIndex");
+
+                    b.ToTable("AspNetRoles", (string)null);
+                });
+
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ClaimType")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ClaimValue")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("RoleId")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RoleId");
+
+                    b.ToTable("AspNetRoleClaims", (string)null);
+                });
+
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<string>", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ClaimType")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ClaimValue")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("AspNetUserClaims", (string)null);
+                });
+
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<string>", b =>
+                {
+                    b.Property<string>("LoginProvider")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ProviderKey")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ProviderDisplayName")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("LoginProvider", "ProviderKey");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("AspNetUserLogins", (string)null);
+                });
+
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserRole<string>", b =>
+                {
+                    b.Property<string>("UserId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("RoleId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("UserId", "RoleId");
+
+                    b.HasIndex("RoleId");
+
+                    b.ToTable("AspNetUserRoles", (string)null);
+                });
+
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<string>", b =>
+                {
+                    b.Property<string>("UserId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("LoginProvider")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Value")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("UserId", "LoginProvider", "Name");
+
+                    b.ToTable("AspNetUserTokens", (string)null);
+                });
+
+            modelBuilder.Entity("ReptileCare.Server.Models.AppUser", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("AccessFailedCount")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ConcurrencyStamp")
+                        .IsConcurrencyToken()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("EmailConfirmed")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("LockoutEnabled")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTimeOffset?>("LockoutEnd")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("NormalizedEmail")
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("NormalizedUserName")
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("PasswordHash")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("PhoneNumber")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("PhoneNumberConfirmed")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("SecurityStamp")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("TwoFactorEnabled")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("UserName")
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NormalizedEmail")
+                        .HasDatabaseName("EmailIndex");
+
+                    b.HasIndex("NormalizedUserName")
+                        .IsUnique()
+                        .HasDatabaseName("UserNameIndex");
+
+                    b.ToTable("AspNetUsers", (string)null);
+                });
+
             modelBuilder.Entity("ReptileCare.Shared.Models.BehaviorLog", b =>
                 {
                     b.Property<int>("Id")
@@ -116,34 +308,6 @@ namespace ReptileCare.Server.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("EnclosureProfiles");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            HasHeatingElement = true,
-                            HasUVBLighting = true,
-                            Height = 60.0,
-                            IdealHumidity = 30.0,
-                            IdealTemperature = 32.0,
-                            Length = 120.0,
-                            Name = "Desert Terrarium",
-                            SubstrateType = "Sand/Clay mix",
-                            Width = 60.0
-                        },
-                        new
-                        {
-                            Id = 2,
-                            HasHeatingElement = true,
-                            HasUVBLighting = true,
-                            Height = 90.0,
-                            IdealHumidity = 70.0,
-                            IdealTemperature = 28.0,
-                            Length = 90.0,
-                            Name = "Tropical Vivarium",
-                            SubstrateType = "Coconut Fiber",
-                            Width = 45.0
-                        });
                 });
 
             modelBuilder.Entity("ReptileCare.Shared.Models.EnvironmentalReading", b =>
@@ -178,29 +342,6 @@ namespace ReptileCare.Server.Migrations
                     b.HasIndex("ReptileId");
 
                     b.ToTable("EnvironmentalReadings");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            Humidity = 35.0,
-                            IsManualReading = true,
-                            ReadingDate = new DateTime(2025, 5, 4, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            ReptileId = 1,
-                            Source = "Manual",
-                            Temperature = 33.5,
-                            UVBIndex = 6.7000000000000002
-                        },
-                        new
-                        {
-                            Id = 2,
-                            Humidity = 65.0,
-                            IsManualReading = true,
-                            ReadingDate = new DateTime(2025, 5, 4, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            ReptileId = 2,
-                            Source = "Manual",
-                            Temperature = 28.0
-                        });
                 });
 
             modelBuilder.Entity("ReptileCare.Shared.Models.FeedingRecord", b =>
@@ -236,38 +377,6 @@ namespace ReptileCare.Server.Migrations
                     b.HasIndex("ReptileId");
 
                     b.ToTable("FeedingRecords");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            FeedingDate = new DateTime(2025, 4, 29, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            FoodItem = "Crickets",
-                            ItemType = 0,
-                            Quantity = 12.0,
-                            ReptileId = 1,
-                            WasEaten = true
-                        },
-                        new
-                        {
-                            Id = 2,
-                            FeedingDate = new DateTime(2025, 4, 25, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            FoodItem = "Mealworms",
-                            ItemType = 0,
-                            Quantity = 15.0,
-                            ReptileId = 1,
-                            WasEaten = true
-                        },
-                        new
-                        {
-                            Id = 3,
-                            FeedingDate = new DateTime(2025, 4, 22, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            FoodItem = "Small Rat",
-                            ItemType = 1,
-                            Quantity = 1.0,
-                            ReptileId = 2,
-                            WasEaten = true
-                        });
                 });
 
             modelBuilder.Entity("ReptileCare.Shared.Models.HealthScore", b =>
@@ -297,24 +406,6 @@ namespace ReptileCare.Server.Migrations
                     b.HasIndex("ReptileId");
 
                     b.ToTable("HealthScores");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            AssessmentDate = new DateTime(2025, 4, 30, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Notes = "Healthy and active.",
-                            ReptileId = 1,
-                            Score = 9
-                        },
-                        new
-                        {
-                            Id = 2,
-                            AssessmentDate = new DateTime(2025, 4, 30, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Notes = "Slight respiratory noise observed.",
-                            ReptileId = 2,
-                            Score = 8
-                        });
                 });
 
             modelBuilder.Entity("ReptileCare.Shared.Models.MeasurementRecord", b =>
@@ -343,26 +434,6 @@ namespace ReptileCare.Server.Migrations
                     b.HasIndex("ReptileId");
 
                     b.ToTable("MeasurementRecords");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            Length = 46.0,
-                            MeasurementDate = new DateTime(2025, 4, 15, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Notes = "Gained some weight.",
-                            ReptileId = 1,
-                            Weight = 460.0
-                        },
-                        new
-                        {
-                            Id = 2,
-                            Length = 121.0,
-                            MeasurementDate = new DateTime(2025, 4, 18, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Notes = "Normal growth.",
-                            ReptileId = 2,
-                            Weight = 1520.0
-                        });
                 });
 
             modelBuilder.Entity("ReptileCare.Shared.Models.Reptile", b =>
@@ -390,6 +461,10 @@ namespace ReptileCare.Server.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("OwnerId")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Sex")
                         .HasColumnType("TEXT");
 
@@ -404,35 +479,9 @@ namespace ReptileCare.Server.Migrations
 
                     b.HasIndex("EnclosureProfileId");
 
-                    b.ToTable("Reptiles");
+                    b.HasIndex("OwnerId");
 
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            DateAcquired = new DateTime(2024, 11, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            DateOfBirth = new DateTime(2023, 5, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Friendly beardie with orange coloration",
-                            EnclosureProfileId = 1,
-                            Length = 45.0,
-                            Name = "Spike",
-                            Sex = "Male",
-                            Species = "Bearded Dragon",
-                            Weight = 450.0
-                        },
-                        new
-                        {
-                            Id = 2,
-                            DateAcquired = new DateTime(2023, 5, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            DateOfBirth = new DateTime(2022, 5, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Normal morph ball python, very docile",
-                            EnclosureProfileId = 2,
-                            Length = 120.0,
-                            Name = "Monty",
-                            Sex = "Male",
-                            Species = "Ball Python",
-                            Weight = 1500.0
-                        });
+                    b.ToTable("Reptiles");
                 });
 
             modelBuilder.Entity("ReptileCare.Shared.Models.ScheduledTask", b =>
@@ -469,28 +518,6 @@ namespace ReptileCare.Server.Migrations
                     b.HasIndex("ReptileId");
 
                     b.ToTable("ScheduledTasks");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            Description = "Full substrate change and decoration cleaning",
-                            DueDate = new DateTime(2025, 5, 8, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            IsCompleted = false,
-                            Priority = 1,
-                            ReptileId = 1,
-                            Title = "Clean terrarium"
-                        },
-                        new
-                        {
-                            Id = 2,
-                            Description = "Replace the UVB bulb which is nearing end of its effective lifespan",
-                            DueDate = new DateTime(2025, 5, 12, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            IsCompleted = false,
-                            Priority = 2,
-                            ReptileId = 2,
-                            Title = "UVB Bulb Replacement"
-                        });
                 });
 
             modelBuilder.Entity("ReptileCare.Shared.Models.SheddingRecord", b =>
@@ -522,28 +549,57 @@ namespace ReptileCare.Server.Migrations
                     b.HasIndex("ReptileId");
 
                     b.ToTable("SheddingRecords");
+                });
 
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            CompletionDate = new DateTime(2025, 4, 24, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            IsComplete = true,
-                            Notes = "Normal shed.",
-                            ReptileId = 1,
-                            StartDate = new DateTime(2025, 4, 20, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            WasAssisted = false
-                        },
-                        new
-                        {
-                            Id = 2,
-                            CompletionDate = new DateTime(2025, 4, 15, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            IsComplete = true,
-                            Notes = "Helped with tail shedding.",
-                            ReptileId = 2,
-                            StartDate = new DateTime(2025, 4, 10, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            WasAssisted = true
-                        });
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
+                {
+                    b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole", null)
+                        .WithMany()
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<string>", b =>
+                {
+                    b.HasOne("ReptileCare.Server.Models.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<string>", b =>
+                {
+                    b.HasOne("ReptileCare.Server.Models.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserRole<string>", b =>
+                {
+                    b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole", null)
+                        .WithMany()
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ReptileCare.Server.Models.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<string>", b =>
+                {
+                    b.HasOne("ReptileCare.Server.Models.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("ReptileCare.Shared.Models.BehaviorLog", b =>
@@ -619,6 +675,12 @@ namespace ReptileCare.Server.Migrations
                         .HasForeignKey("EnclosureProfileId")
                         .OnDelete(DeleteBehavior.SetNull);
 
+                    b.HasOne("ReptileCare.Server.Models.AppUser", null)
+                        .WithMany("Reptiles")
+                        .HasForeignKey("OwnerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.Navigation("EnclosureProfile");
                 });
 
@@ -642,6 +704,11 @@ namespace ReptileCare.Server.Migrations
                         .IsRequired();
 
                     b.Navigation("Reptile");
+                });
+
+            modelBuilder.Entity("ReptileCare.Server.Models.AppUser", b =>
+                {
+                    b.Navigation("Reptiles");
                 });
 
             modelBuilder.Entity("ReptileCare.Shared.Models.EnclosureProfile", b =>

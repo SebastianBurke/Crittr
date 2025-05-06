@@ -1,16 +1,17 @@
+using Blazored.LocalStorage;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using ReptileCare.Shared.DTOs;
-using ReptileCare.Shared.Models;
-
-namespace ReptileCare.Client.Services;
 
 public class ReptileService
 {
     private readonly HttpClient _http;
+    private readonly ILocalStorageService _localStorage;
 
-    public ReptileService(HttpClient http)
+    public ReptileService(HttpClient http, ILocalStorageService localStorage)
     {
         _http = http;
+        _localStorage = localStorage;
     }
 
     public async Task<List<ReptileDto>> GetReptilesAsync()
@@ -26,5 +27,4 @@ public class ReptileService
             return new List<ReptileDto>();
         }
     }
-
 }

@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ReptileCare.Server.Services.Interfaces;
 using ReptileCare.Shared.DTOs;
@@ -7,6 +9,7 @@ namespace ReptileCare.Server.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
 public class ReptileController : ControllerBase
 {
     private readonly IReptileService _reptileService;
@@ -15,7 +18,7 @@ public class ReptileController : ControllerBase
     {
         _reptileService = reptileService;
     }
-
+    
     [HttpGet]
     public async Task<ActionResult<List<Reptile>>> GetAll()
     {
@@ -25,8 +28,12 @@ public class ReptileController : ControllerBase
     [HttpGet("dto")]
     public async Task<ActionResult<List<ReptileDto>>> GetAllDtos()
     {
-        return await _reptileService.GetAllDtosAsync();
+        var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (userId == null) return Unauthorized();
+
+        return await _reptileService.GetAllDtosByUserIdAsync(userId);
     }
+
 
     [HttpGet("{id}")]
     public async Task<ActionResult<Reptile>> GetById(int id)

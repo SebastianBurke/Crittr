@@ -8,7 +8,7 @@ public interface IReptileService
     Task<List<Reptile>> GetAllAsync();
     Task<Reptile?> GetByIdAsync(int id);
     Task<ReptileDto?> GetDtoByIdAsync(int id);
-    Task<List<ReptileDto>> GetAllDtosAsync();
+    Task<List<ReptileDto>> GetAllDtosByUserIdAsync(string userId);
     Task<Reptile> CreateAsync(Reptile reptile);
     Task<bool> UpdateAsync(Reptile reptile);
     Task<bool> DeleteAsync(int id);

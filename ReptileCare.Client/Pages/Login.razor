@@ -1,0 +1,33 @@
+﻿@page "/login"
+@using ReptileCare.Client.Services
+@inject AuthService AuthService
+@inject NavigationManager Nav
+
+<h3>Login</h3>
+
+<input placeholder="Email" @bind="email" />
+<input placeholder="Password" @bind="password" type="password" />
+<button @onclick="HandleLogin">Login</button>
+
+@code {
+    string email;
+    string password;
+    bool loginFailed = false;
+
+    private async Task HandleLogin()
+    {
+        
+        var success = await AuthService.LoginAsync(email, password);
+        if (success)
+        {
+            Nav.NavigateTo("/");
+        }
+        else
+        {
+            loginFailed = true;
+        }
+    }
+    
+    
+    
+}

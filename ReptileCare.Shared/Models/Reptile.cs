@@ -3,6 +3,7 @@ namespace ReptileCare.Shared.Models;
 public class Reptile
 {
     public int Id { get; set; }
+    public string OwnerId { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public string Species { get; set; } = string.Empty;
     public DateTime DateAcquired { get; set; }

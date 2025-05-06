@@ -56,6 +56,29 @@ public class ReptileService : IReptileService
         return await CreateDtoFromReptile(reptile);
     }
 
+    public async Task<List<ReptileDto>> GetAllDtosByUserIdAsync(string userId)
+    {
+        return await _db.Reptiles
+            .Where(r => r.OwnerId == userId)
+            .Select(r => new ReptileDto
+            {
+                Id = r.Id,
+                Name = r.Name,
+                Species = r.Species,
+                DateAcquired = r.DateAcquired,
+                RecentHealthScore = r.HealthScores
+                    .OrderByDescending(h => h.AssessmentDate).Select(h => h.Score).FirstOrDefault(),
+                LastFeedingDate = r.FeedingRecords
+                    .OrderByDescending(f => f.FeedingDate).Select(f => f.FeedingDate).FirstOrDefault(),
+                LastWeightDate = r.MeasurementRecords
+                    .OrderByDescending(m => m.MeasurementDate).Select(m => m.MeasurementDate).FirstOrDefault(),
+                PendingTasksCount = r.ScheduledTasks.Count(t => !t.IsCompleted)
+            })
+            .ToListAsync();
+
+    }
+
+
     public async Task<List<ReptileDto>> GetAllDtosAsync()
     {
         var reptiles = await GetAllAsync();
@@ -103,7 +126,7 @@ public class ReptileService : IReptileService
         searchTerm = searchTerm.ToLower();
         var reptiles = await _db.Reptiles
             .Include(r => r.EnclosureProfile)
-            .Where(r => r.Name.ToLower().Contains(searchTerm) || 
+            .Where(r => r.Name.ToLower().Contains(searchTerm) ||
                         r.Species.ToLower().Contains(searchTerm) ||
                         r.Description != null && r.Description.ToLower().Contains(searchTerm))
             .ToListAsync();
