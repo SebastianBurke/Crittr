@@ -7,4 +7,5 @@ namespace ReptileCare.Server.Models;
 public class AppUser : IdentityUser
 {
     public ICollection<Reptile> Reptiles { get; set; } = new List<Reptile>();
+    public ICollection<EnclosureProfile> Enclosures { get; set; } = new List<EnclosureProfile>();
 }

@@ -32,6 +32,7 @@ builder.Services.AddScoped<IHealthService, HealthService>();
 builder.Services.AddScoped<IScheduledTaskService, ScheduledTaskService>();
 builder.Services.AddScoped<IReptileService, ReptileService>();
 builder.Services.AddScoped<DataSeeder>();
+builder.Services.AddScoped<IEnclosureService, EnclosureService>();
 
 builder.Services.AddControllers()
     .AddJsonOptions(options =>

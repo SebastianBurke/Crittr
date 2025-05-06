@@ -8,6 +8,7 @@ public interface IEnclosureService
     Task<List<EnclosureProfile>> GetAllAsync();
     Task<EnclosureProfile?> GetByIdAsync(int id);
     Task<EnclosureProfileDto?> GetDtoByIdAsync(int id);
+    Task<List<EnclosureProfileDto>> GetAllDtosByUserIdAsync(string userId);
     Task<List<EnclosureProfileDto>> GetAllDtosAsync();
     Task<EnclosureProfile> CreateAsync(EnclosureProfile profile);
     Task<bool> UpdateAsync(EnclosureProfile profile);

@@ -21,4 +21,9 @@
       <ProjectReference Include="..\ReptileCare.Shared\ReptileCare.Shared.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <_ContentIncludedByDefault Remove="Layout\MainLayout.razor" />
+      <_ContentIncludedByDefault Remove="Layout\NavMenu.razor" />
+    </ItemGroup>
+
 </Project>

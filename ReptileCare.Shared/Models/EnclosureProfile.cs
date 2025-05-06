@@ -3,6 +3,7 @@ namespace ReptileCare.Shared.Models;
 public class EnclosureProfile
 {
     public int Id { get; set; }
+    public string OwnerId { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public double Length { get; set; } // in centimeters
     public double Width { get; set; } // in centimeters
@@ -15,4 +16,5 @@ public class EnclosureProfile
     
     // Navigation properties
     public ICollection<Reptile> Reptiles { get; set; } = new List<Reptile>();
+    public ICollection<CaregiverAccess> Caregivers { get; set; } = new List<CaregiverAccess>();
 }

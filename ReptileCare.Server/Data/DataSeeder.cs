@@ -17,13 +17,24 @@ public class DataSeeder
         _dbContext = dbContext;
     }
 
-    public async Task SeedAsync(string userId)
+    public async Task SeedAsync(string userIdFromArgs)
     {
         if (_dbContext.Reptiles.Any()) return;
 
+        var user = await _userManager.FindByEmailAsync("demo@demo.com");
+        if (user == null)
+        {
+            user = new AppUser
+            {
+                UserName = "demo@demo.com",
+                Email = "demo@demo.com"
+            };
+            var result = await _userManager.CreateAsync(user, "Password123!");
+            if (!result.Succeeded) throw new Exception("Failed to create demo user.");
+        }
+
         var enclosure1 = new EnclosureProfile
         {
-            Id = 1,
             Name = "Desert Terrarium",
             Length = 120,
             Width = 60,
@@ -32,12 +43,12 @@ public class DataSeeder
             HasUVBLighting = true,
             HasHeatingElement = true,
             IdealTemperature = 32,
-            IdealHumidity = 30
+            IdealHumidity = 30,
+            OwnerId = user.Id
         };
 
         var enclosure2 = new EnclosureProfile
         {
-            Id = 2,
             Name = "Tropical Vivarium",
             Length = 90,
             Width = 45,
@@ -46,10 +57,12 @@ public class DataSeeder
             HasUVBLighting = true,
             HasHeatingElement = true,
             IdealTemperature = 28,
-            IdealHumidity = 70
+            IdealHumidity = 70,
+            OwnerId = user.Id
         };
 
         _dbContext.EnclosureProfiles.AddRange(enclosure1, enclosure2);
+        await _dbContext.SaveChangesAsync(); 
 
         var spike = new Reptile
         {
@@ -61,8 +74,8 @@ public class DataSeeder
             Weight = 450,
             Length = 45,
             Description = "Friendly beardie with orange coloration",
-            OwnerId = userId,
-            EnclosureProfileId = 1
+            OwnerId = user.Id,
+            EnclosureProfileId = enclosure1.Id
         };
 
         var monty = new Reptile
@@ -75,10 +88,9 @@ public class DataSeeder
             Weight = 1500,
             Length = 120,
             Description = "Normal morph ball python, very docile",
-            OwnerId = userId,
-            EnclosureProfileId = 2
+            OwnerId = user.Id,
+            EnclosureProfileId = enclosure2.Id
         };
-
         _dbContext.Reptiles.AddRange(spike, monty);
         await _dbContext.SaveChangesAsync();
 

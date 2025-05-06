@@ -18,6 +18,7 @@ builder.Services.AddScoped<MeasurementService>();
 builder.Services.AddScoped<HealthService>();
 builder.Services.AddScoped<ScheduledTaskService>();
 builder.Services.AddScoped<AuthorizedHandler>();
+builder.Services.AddScoped<EnclosureService>();
 
 builder.Services.AddHttpClient<ReptileService>(client =>
 {

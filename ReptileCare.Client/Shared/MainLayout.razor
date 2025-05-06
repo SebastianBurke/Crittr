@@ -1,5 +1,55 @@
-<h3>MainLayout</h3>
+@inherits LayoutComponentBase
+@inject Blazored.LocalStorage.ILocalStorageService LocalStorage
+@inject NavigationManager Navigation
+
+<div class="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 flex flex-col">
+    <!-- Navbar -->
+    <header class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow">
+        <div class="max-w-screen-xl mx-auto px-4 py-3 flex justify-between items-center">
+            <span class="text-xl font-semibold text-blue-600">Critter</span>
+            <nav class="space-x-4 text-sm flex items-center">
+                <NavLink href="/" class="text-gray-600 dark:text-gray-300 hover:text-blue-600" Match="NavLinkMatch.All">Dashboard</NavLink>
+                <NavLink href="/enclosures" class="text-gray-600 dark:text-gray-300 hover:text-blue-600">Enclosures</NavLink>
+                <NavLink href="/reptiles" class="text-gray-600 dark:text-gray-300 hover:text-blue-600">Reptiles</NavLink>
+
+                @if (IsLoggedIn)
+                {
+                    <button @onclick="Logout" class="ml-4 px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 text-sm">Logout</button>
+                }
+                else
+                {
+                    <NavLink href="/login" class="ml-4 px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">Login</NavLink>
+                }
+            </nav>
+        </div>
+    </header>
+
+    <!-- Page content -->
+    <main class="flex-grow container mx-auto px-4 py-6">
+        @Body
+    </main>
+</div>
 
 @code {
-    
+    private bool IsLoggedIn = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var token = await LocalStorage.GetItemAsync<string>("authToken");
+        IsLoggedIn = !string.IsNullOrWhiteSpace(token);
+
+        Navigation.LocationChanged += async (_, __) =>
+        {
+            var newToken = await LocalStorage.GetItemAsync<string>("authToken");
+            IsLoggedIn = !string.IsNullOrWhiteSpace(newToken);
+            StateHasChanged();
+        };
+    }
+
+    private async Task Logout()
+    {
+        await LocalStorage.RemoveItemAsync("authToken");
+        IsLoggedIn = false;
+        Navigation.NavigateTo("/login", forceLoad: false);
+    }
 }

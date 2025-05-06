@@ -1,11 +1,9 @@
 ﻿@page "/"
 @using ReptileCare.Client.Services
 @using ReptileCare.Shared.DTOs
-@using ReptileCare.Shared.Models
 @inject ReptileService ReptileService
+@inject EnclosureService EnclosureService
 @inject Blazored.LocalStorage.ILocalStorageService localStorage
-
-<h2 class="text-2xl font-bold mb-4">My Reptiles Dashboard</h2>
 
 @if (isLoading)
 {
@@ -13,26 +11,61 @@
 }
 else if (!isAuthenticated)
 {
-    <p>Please <a href="/login" class="text-blue-500 underline">log in</a> to view your reptiles.</p>
-}
-else if (reptiles.Count == 0)
-{
-    <p>No reptiles found. Add a new one to get started!</p>
+    <p>Please <a href="/login" class="text-blue-500 underline">log in</a> to view your reptiles and enclosures.</p>
 }
 else
 {
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        @foreach (var reptile in reptiles)
+    <div class="mb-8">
+        <h3 class="text-xl font-semibold mb-2">Enclosures</h3>
+
+        @if (enclosures.Count == 0)
         {
-            <div class="bg-white dark:bg-gray-800 shadow-md rounded-xl p-4 border dark:border-gray-700">
-                <h3 class="text-lg font-semibold">@reptile.Name (@reptile.Species)</h3>
-                <p class="text-sm text-gray-500">Acquired: @reptile.DateAcquired.ToShortDateString()</p>
-                <ul class="mt-2 text-sm">
-                    <li><strong>Last Fed:</strong> @(reptile.LastFeedingDate?.ToLocalTime().ToString("g") ?? "N/A")</li>
-                    <li><strong>Weight Date:</strong> @(reptile.LastWeightDate?.ToLocalTime().ToString("g") ?? "N/A")</li>
-                    <li><strong>Health Score:</strong> @(reptile.RecentHealthScore?.ToString() ?? "N/A")</li>
-                    <li><strong>Pending Tasks:</strong> @reptile.PendingTasksCount</li>
-                </ul>
+            <p>No enclosures yet. <a href="/add-enclosure" class="text-blue-500 underline">Add one</a>.</p>
+        }
+        else
+        {
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                @foreach (var enclosure in enclosures)
+                {
+                    <div class="bg-white dark:bg-gray-800 shadow-md rounded-xl p-4 border dark:border-gray-700">
+                        <h4 class="text-lg font-semibold">@enclosure.Name</h4>
+                        <p class="text-sm text-gray-500">@enclosure.SubstrateType</p>
+                        <ul class="mt-2 text-sm">
+                            <li><strong>Dimensions:</strong> @enclosure.Length x @enclosure.Width x @enclosure.Height</li>
+                            <li><strong>UVB:</strong> @(enclosure.HasUVBLighting ? "Yes" : "No")</li>
+                            <li><strong>Heating:</strong> @(enclosure.HasHeatingElement ? "Yes" : "No")</li>
+                            <li><strong>Ideal Temp:</strong> @enclosure.IdealTemperature°C</li>
+                            <li><strong>Humidity:</strong> @enclosure.IdealHumidity%</li>
+                        </ul>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+
+    <div>
+        <h3 class="text-xl font-semibold mb-2">Reptiles</h3>
+
+        @if (reptiles.Count == 0)
+        {
+            <p>No reptiles found. Add a new one to get started!</p>
+        }
+        else
+        {
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                @foreach (var reptile in reptiles)
+                {
+                    <div class="bg-white dark:bg-gray-800 shadow-md rounded-xl p-4 border dark:border-gray-700">
+                        <h4 class="text-lg font-semibold">@reptile.Name (@reptile.Species)</h4>
+                        <p class="text-sm text-gray-500">Acquired: @reptile.DateAcquired.ToShortDateString()</p>
+                        <ul class="mt-2 text-sm">
+                            <li><strong>Last Fed:</strong> @(reptile.LastFeedingDate?.ToLocalTime().ToString("g") ?? "N/A")</li>
+                            <li><strong>Weight Date:</strong> @(reptile.LastWeightDate?.ToLocalTime().ToString("g") ?? "N/A")</li>
+                            <li><strong>Health Score:</strong> @(reptile.RecentHealthScore?.ToString() ?? "N/A")</li>
+                            <li><strong>Pending Tasks:</strong> @reptile.PendingTasksCount</li>
+                        </ul>
+                    </div>
+                }
             </div>
         }
     </div>
@@ -40,6 +73,7 @@ else
 
 @code {
     private List<ReptileDto> reptiles = new();
+    private List<EnclosureProfileDto> enclosures = new();
     private bool isLoading = true;
     private bool isAuthenticated = false;
 
@@ -51,9 +85,9 @@ else
         if (isAuthenticated)
         {
             reptiles = await ReptileService.GetReptilesAsync();
+            enclosures = await EnclosureService.GetEnclosuresAsync();
         }
 
         isLoading = false;
     }
 }
-

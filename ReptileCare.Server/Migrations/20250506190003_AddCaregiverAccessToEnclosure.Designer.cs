@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using ReptileCare.Server.Data;
 
@@ -10,9 +11,11 @@ using ReptileCare.Server.Data;
 namespace ReptileCare.Server.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250506190003_AddCaregiverAccessToEnclosure")]
+    partial class AddCaregiverAccessToEnclosure
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.4");
@@ -299,10 +302,6 @@ namespace ReptileCare.Server.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("OwnerId")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
                     b.Property<string>("SubstrateType")
                         .HasColumnType("TEXT");
 
@@ -310,8 +309,6 @@ namespace ReptileCare.Server.Migrations
                         .HasColumnType("REAL");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("OwnerId");
 
                     b.ToTable("EnclosureProfiles");
                 });
@@ -630,15 +627,6 @@ namespace ReptileCare.Server.Migrations
                     b.Navigation("Enclosure");
                 });
 
-            modelBuilder.Entity("ReptileCare.Shared.Models.EnclosureProfile", b =>
-                {
-                    b.HasOne("ReptileCare.Server.Models.AppUser", null)
-                        .WithMany("Enclosures")
-                        .HasForeignKey("OwnerId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("ReptileCare.Shared.Models.EnvironmentalReading", b =>
                 {
                     b.HasOne("ReptileCare.Shared.Models.Reptile", "Reptile")
@@ -723,8 +711,6 @@ namespace ReptileCare.Server.Migrations
 
             modelBuilder.Entity("ReptileCare.Server.Models.AppUser", b =>
                 {
-                    b.Navigation("Enclosures");
-
                     b.Navigation("Reptiles");
                 });
 

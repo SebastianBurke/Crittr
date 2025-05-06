@@ -1,32 +1,44 @@
 <!DOCTYPE html>
-<html lang="en">
-
+<html lang="en" data-theme="light">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ReptileCare.Client</title>
+    <title>ReptileCare</title>
     <base href="/" />
-    <link rel="stylesheet" href="css/bootstrap/bootstrap.min.css" />
-    <link rel="stylesheet" href="css/app.css" />
+
+    <!-- Tailwind CSS -->
+    <link href="css/output.css" rel="stylesheet" />
+
+    <!-- Flowbite -->
+    <script src="https://unpkg.com/flowbite@latest/dist/flowbite.min.js" defer></script>
+
+    <!-- Favicon -->
     <link rel="icon" type="image/png" href="favicon.png" />
-    <link href="ReptileCare.Client.styles.css" rel="stylesheet" />
 </head>
 
-<body>
-    <div id="app">
-        <svg class="loading-progress">
-            <circle r="40%" cx="50%" cy="50%" />
-            <circle r="40%" cx="50%" cy="50%" />
-        </svg>
-        <div class="loading-progress-text"></div>
-    </div>
+<body class="bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-100 min-h-screen antialiased">
 
-    <div id="blazor-error-ui">
-        An unhandled error has occurred.
-        <a href="" class="reload">Reload</a>
-        <a class="dismiss">🗙</a>
+<div id="app">
+    <div class="flex h-screen items-center justify-center">
+        <div class="flex flex-col items-center gap-3 text-center">
+            <svg class="animate-spin h-10 w-10 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none"
+                 viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+                <path class="opacity-75" fill="currentColor"
+                      d="M4 12a8 8 0 018-8v4l3-3-3-3v4a10 10 0 00-10 10h4z" />
+            </svg>
+            <p class="text-base font-medium">Loading Critter...</p>
+        </div>
     </div>
-    <script src="_framework/blazor.webassembly.js"></script>
+</div>
+
+<div id="blazor-error-ui" class="hidden fixed bottom-0 inset-x-0 bg-red-600 text-white text-sm p-4 flex justify-between items-center z-50">
+    <span>An unhandled error has occurred.</span>
+    <div class="flex gap-2">
+        <a href="" class="underline">Reload</a>
+    </div>
+</div>
+
+<script src="_framework/blazor.webassembly.js"></script>
 </body>
-
 </html>
