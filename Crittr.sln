@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Crittr.Shared", "Crittr.Shared\Crittr.Shared.csproj", "{EBA5E265-1F71-43AA-9AEB-4B7BF28C5439}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Crittr.Server", "Crittr.Server\Crittr.Server.csproj", "{B2CE25B0-5EB3-45A0-859C-E5201793ADC4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Crittr.Client", "Crittr.Client\Crittr.Client.csproj", "{645F1D49-286F-4179-AB62-9480EDCBE1DD}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{EBA5E265-1F71-43AA-9AEB-4B7BF28C5439}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EBA5E265-1F71-43AA-9AEB-4B7BF28C5439}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EBA5E265-1F71-43AA-9AEB-4B7BF28C5439}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EBA5E265-1F71-43AA-9AEB-4B7BF28C5439}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B2CE25B0-5EB3-45A0-859C-E5201793ADC4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B2CE25B0-5EB3-45A0-859C-E5201793ADC4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B2CE25B0-5EB3-45A0-859C-E5201793ADC4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B2CE25B0-5EB3-45A0-859C-E5201793ADC4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{645F1D49-286F-4179-AB62-9480EDCBE1DD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{645F1D49-286F-4179-AB62-9480EDCBE1DD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{645F1D49-286F-4179-AB62-9480EDCBE1DD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{645F1D49-286F-4179-AB62-9480EDCBE1DD}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
