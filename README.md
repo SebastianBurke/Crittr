@@ -1,100 +1,119 @@
 # ReptileCareApp 🦎
 
-This is a full-stack Blazor WebAssembly + ASP.NET Core application for managing reptile care. It supports tracking reptile data, feeding, shedding, measurement, health, and scheduled tasks, with secure authentication via JWT.
+A modern full-stack **Blazor WebAssembly + ASP.NET Core** application to help reptile keepers track care routines. It supports feeding, shedding, measurements, health logs, and environmental needs — all scoped per user.
 
 ---
 
 ## 📁 Project Structure
 
-| Project | Purpose |
-|--------|---------|
-| `ReptileCare.Client` | Blazor WebAssembly frontend |
+| Project | Description |
+|---------|-------------|
+| `ReptileCare.Client` | Blazor WebAssembly SPA frontend |
 | `ReptileCare.Server` | ASP.NET Core API backend |
-| `ReptileCare.Shared` | Shared DTOs and models (used by both client and server) |
+| `ReptileCare.Shared` | Shared DTOs/models used by both |
 
 ---
 
-## 🔐 Authentication
+## 🔐 Authentication (JWT + Identity)
 
-- **Identity**: Uses ASP.NET Core Identity (`AppUser` in `.Server` project).
-- **JWT Auth**: Token issued on login, stored in browser using `Blazored.LocalStorage`.
-- **AuthService** (`Client/Services/AuthService.cs`): Handles login, token storage, and setting the `Authorization` header.
-- **AuthorizedHandler** (`Client/Services/AuthorizedHandler.cs`): Used to inject the token into protected API requests.
+- 🔑 **Auth system** built using ASP.NET Core Identity and JWT tokens.
+- 🧠 Token is stored in `localStorage` using `Blazored.LocalStorage`.
+- 🔐 `AuthService` handles login logic and injects tokens into authorized API calls.
+- ✅ Logout implemented SPA-style — no page reload required.
+- 🧪 Supports demo login with a seeded user.
 
-### Login Flow
+### ⚙️ Login Flow
 
-1. User logs in with email and password.
-2. Server validates and returns JWT.
-3. Token is saved in `localStorage`, then attached to requests.
-4. Authorized API endpoints require `[Authorize]` and extract `User.Identity.Name` or `User.FindFirst(ClaimTypes.NameIdentifier)?.Value`.
-
-### Swagger Support
-
-For development, Swagger endpoints were enabled even with authentication. You may consider adding Swagger JWT support if needed.
+1. User logs in via `/login`.
+2. Token is issued by the backend.
+3. Token saved to `localStorage`, used on protected endpoints.
+4. API endpoints use `[Authorize]` and extract the user via claims.
 
 ---
 
-## ✅ Current Features
+## 🧪 Demo User (Seeded)
 
-- ✅ Login via seeded demo user (`demo@reptileapp.com` / `Demo123!`)
-- ✅ Token stored and used in protected requests
-- ✅ Reptile data seeded and scoped per-user
-- ✅ Blazor client loads reptiles after login
+This user is created on backend startup and has demo reptiles and enclosures:
 
----
+Email: demo@demo.com
+Password: Password123!
 
-## 🔧 Things To Update or Add Later
+This user is empty
 
-| Task | Status | Notes |
-|------|--------|-------|
-| Refresh Token Support | ❌ | Currently JWT expires with no refresh flow |
-| Logout Expiration Handling | ⚠️ | User will stay logged in until token expires or is cleared |
-| Role-based access | ❌ | Can add role claims to the token if needed |
-| API Error Handling | ⚠️ | Add proper toast/UI error messages |
-| Production Secrets | ❌ | Move JWT key to a secret manager or environment variable before deploying |
-| HTTPS Certs | ⚠️ | Development-only certs used right now |
-| Stronger Token Claims | ⚠️ | Consider adding roles, emails, or user metadata to token |
-
----
-
-## 🧪 Seeded Demo User
-
-In `Program.cs` (Server):
-
-```
-Email: demo@reptileapp.com
+Email: demo@reptilecare.com
 Password: Demo123!
-```
 
-This user is automatically created at startup and linked to seeded reptile data.
 
 ---
 
-## 🔒 Security Notes
+## ✅ Features Implemented
 
-- JWT secret is hardcoded in `appsettings.json`. This should be **secured in production**.
-- CORS is configured for `https://localhost:7110` (Blazor client) only.
-- Default token expiry is short. No refresh mechanism is implemented.
-- Tokens are stored in localStorage — good for SPA simplicity, but vulnerable to XSS.
+- [x] Full JWT login flow
+- [x] Secure API access with per-user data
+- [x] Dashboard displaying reptiles + enclosures
+- [x] Logout/Login button that updates without page reload
+- [x] TailwindCSS + Flowbite for responsive UI
+- [x] Clean layout and navigation via `MainLayout.razor`
 
 ---
 
-## 📦 Packages Used
+## ⚠️ Known Issues / Caution Points
 
-- `Microsoft.AspNetCore.Identity`
-- `Microsoft.EntityFrameworkCore.Sqlite`
-- `Blazored.LocalStorage`
-- `System.Net.Http.Json`
+| Area | Risk | Notes |
+|------|------|-------|
+| **JWT expiration** | ⚠️ | No refresh token; token expires silently |
+| **Login State on Nav** | ⚠️ | Login/logout button updates only if the layout component is refreshed |
+| **Token in localStorage** | ⚠️ | Vulnerable to XSS. Consider token hardening or secure cookie auth later |
+| **Hardcoded secrets** | ❌ | JWT key in `appsettings.json` — **must** be moved to secret store before prod |
+| **Swagger auth** | ⚠️ | Public dev-only; should support JWT or be protected |
+| **Unprotected routes** | ⚠️ | UI restricts access, but routes themselves don’t redirect yet |
+| **Role-based auth** | ⏳ | Not implemented yet, but infrastructure is in place to support it |
 
 ---
 
 ## 🧭 Next Steps
 
-- Add user registration
-- Add reptile CRUD from the client
-- Add reminder system (notifications/emails?)
-- Consider cloud deployment (Azure App Service + Azure SQLite or PostgreSQL)
+| Task | Priority | Notes |
+|------|----------|-------|
+| 🧑‍💻 User Registration | High | Allow users to register (create accounts) |
+| ✍️ Reptile & Enclosure CRUD | High | Full create/update/delete from client |
+| 📅 Scheduled Reminders | Medium | For feedings, cleanings, checkups |
+| ☁️ Cloud Deployment | Medium | Azure App Service + SQLite or Azure DB |
+| 🔐 Token Refresh | Medium | Implement silent refresh mechanism |
+| 🔒 Harden Security | High | Protect token, validate roles, enforce HTTPS |
+| 🎨 Improved UX | Medium | Conditional UI, modals, error feedback |
+| 🧪 Testing | Medium | Add integration/unit tests especially for auth flow |
 
 ---
 
-Built with 💚 by Sebastian Canales Burke.
+## 🧰 Stack + Tools
+
+- `Blazor WebAssembly` (SPA frontend)
+- `ASP.NET Core` (API backend)
+- `Entity Framework Core` (SQLite)
+- `Microsoft.AspNetCore.Identity`
+- `JWT Bearer Auth`
+- `Blazored.LocalStorage`
+- `TailwindCSS + Flowbite`
+
+---
+
+## 🏁 Summary of Today’s Milestones
+
+✅ Integrated TailwindCSS and Flowbite cleanly via `index.html`  
+✅ Refactored `MainLayout.razor` to support SPA-aware login/logout  
+✅ Resolved token state sync issues without relying on page reloads  
+✅ Set up proper dependency injection, error handling, and layout rendering  
+✅ Cleaned up all legacy nav/menu components  
+✅ Unified the visual theme and structure of the app across pages  
+
+---
+
+## 🧠 Final Thoughts
+
+> The architecture is now clean, modular, and scalable.  
+> With some backend polish (refresh tokens, secure config) and frontend CRUD, this is ready for production-level polish.
+
+---
+
+Built with 💚 by **Sebastian Canales Burke**  
