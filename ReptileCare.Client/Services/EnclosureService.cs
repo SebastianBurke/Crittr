@@ -1,3 +1,4 @@
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using Blazored.LocalStorage;
 using ReptileCare.Shared.DTOs;
@@ -33,4 +34,24 @@ public class EnclosureService
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadFromJsonAsync<List<EnclosureProfileDto>>() ?? new List<EnclosureProfileDto>();
     }
+    
+    public async Task<EnclosureProfileDto?> CreateEnclosureAsync(EnclosureProfileDto dto)
+    {
+        var token = await _localStorage.GetItemAsync<string>("authToken");
+
+        if (!string.IsNullOrWhiteSpace(token))
+        {
+            _http.DefaultRequestHeaders.Authorization =
+                new AuthenticationHeaderValue("Bearer", token);
+        }
+
+        var response = await _http.PostAsJsonAsync("api/enclosure/dto", dto);
+
+        if (!response.IsSuccessStatusCode)
+            return null;
+
+        return await response.Content.ReadFromJsonAsync<EnclosureProfileDto>();
+    }
+
+
 }

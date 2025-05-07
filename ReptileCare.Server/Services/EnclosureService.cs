@@ -77,7 +77,7 @@ public class EnclosureService : IEnclosureService
         return true;
     }
 
-    private static EnclosureProfileDto MapToDto(EnclosureProfile e)
+    public static EnclosureProfileDto MapToDto(EnclosureProfile e)
     {
         return new EnclosureProfileDto
         {

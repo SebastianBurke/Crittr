@@ -18,6 +18,14 @@ public class ReptileService
     {
         try
         {
+            var token = await _localStorage.GetItemAsync<string>("authToken");
+
+            if (!string.IsNullOrWhiteSpace(token))
+            {
+                _http.DefaultRequestHeaders.Authorization =
+                    new AuthenticationHeaderValue("Bearer", token);
+            }
+
             var reptiles = await _http.GetFromJsonAsync<List<ReptileDto>>("api/reptile/dto");
             return reptiles ?? new List<ReptileDto>();
         }
@@ -26,5 +34,28 @@ public class ReptileService
             Console.WriteLine($"Failed to fetch reptiles: {ex.Message}");
             return new List<ReptileDto>();
         }
+    }
+
+    
+    public async Task<ReptileDto?> CreateReptileAsync(ReptileDto dto)
+    {
+        var token = await _localStorage.GetItemAsync<string>("authToken");
+
+        if (!string.IsNullOrWhiteSpace(token))
+        {
+            _http.DefaultRequestHeaders.Authorization =
+                new AuthenticationHeaderValue("Bearer", token);
+        }
+
+        var response = await _http.PostAsJsonAsync("api/reptile/dto", dto);
+
+        if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+        {
+            throw new UnauthorizedAccessException("User is not authenticated.");
+        }
+
+        if (!response.IsSuccessStatusCode) return null;
+
+        return await response.Content.ReadFromJsonAsync<ReptileDto>();
     }
 }

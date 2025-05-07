@@ -26,4 +26,8 @@
       <_ContentIncludedByDefault Remove="Layout\NavMenu.razor" />
     </ItemGroup>
 
+    <ItemGroup>
+      <AdditionalFiles Include="Pages\Shared\MainLayout.razor" />
+    </ItemGroup>
+
 </Project>

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using ReptileCare.Server.Services;
 using ReptileCare.Server.Services.Interfaces;
 using ReptileCare.Shared.DTOs;
 using ReptileCare.Shared.Models;
@@ -59,6 +60,30 @@ public class EnclosureController : ControllerBase
     {
         var created = await _enclosureService.CreateAsync(enclosure);
         return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
+    }
+
+    [HttpPost("dto")]
+    public async Task<ActionResult<EnclosureProfileDto>> CreateFromDto([FromBody] EnclosureProfileDto dto)
+    {
+        var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (userId == null) return Unauthorized();
+
+        var model = new EnclosureProfile
+        {
+            Name = dto.Name,
+            SubstrateType = dto.SubstrateType,
+            Length = dto.Length,
+            Width = dto.Width,
+            Height = dto.Height,
+            HasUVBLighting = dto.HasUVBLighting,
+            HasHeatingElement = dto.HasHeatingElement,
+            IdealTemperature = dto.IdealTemperature,
+            IdealHumidity = dto.IdealHumidity,
+            OwnerId = userId
+        };
+
+        var created = await _enclosureService.CreateAsync(model);
+        return CreatedAtAction(nameof(GetDtoById), new { id = created.Id }, EnclosureService.MapToDto(created));
     }
 
     [HttpPut("{id}")]

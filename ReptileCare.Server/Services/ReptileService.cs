@@ -66,6 +66,7 @@ public class ReptileService : IReptileService
                 Name = r.Name,
                 Species = r.Species,
                 DateAcquired = r.DateAcquired,
+                EnclosureProfileId = r.EnclosureProfileId,
                 RecentHealthScore = r.HealthScores
                     .OrderByDescending(h => h.AssessmentDate).Select(h => h.Score).FirstOrDefault(),
                 LastFeedingDate = r.FeedingRecords
@@ -75,7 +76,6 @@ public class ReptileService : IReptileService
                 PendingTasksCount = r.ScheduledTasks.Count(t => !t.IsCompleted)
             })
             .ToListAsync();
-
     }
 
 

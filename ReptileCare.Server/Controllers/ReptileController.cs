@@ -61,7 +61,33 @@ public class ReptileController : ControllerBase
         var createdReptile = await _reptileService.CreateAsync(reptile);
         return CreatedAtAction(nameof(GetById), new { id = createdReptile.Id }, createdReptile);
     }
+    
+    [HttpPost("dto")]
+    public async Task<ActionResult<ReptileDto>> CreateFromDto([FromBody] ReptileDto dto)
+    {
+        var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (userId == null) return Unauthorized();
 
+        var reptile = new Reptile
+        {
+            Name = dto.Name,
+            Species = dto.Species,
+            DateOfBirth = dto.DateOfBirth,
+            DateAcquired = dto.DateAcquired,
+            Description = dto.Description,
+            Sex = dto.Sex,
+            Length = dto.Length,
+            Weight = dto.Weight,
+            EnclosureProfileId = dto.EnclosureProfileId,
+            OwnerId = userId
+        };
+
+        var created = await _reptileService.CreateAsync(reptile);
+        var dtoResult = await _reptileService.GetDtoByIdAsync(created.Id);
+
+        return CreatedAtAction(nameof(GetDtoById), new { id = created.Id }, dtoResult);
+    }
+    
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(int id, Reptile reptile)
     {

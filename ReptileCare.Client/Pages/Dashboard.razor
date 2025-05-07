@@ -1,14 +1,15 @@
 ﻿@page "/"
+@using ReptileCare.Client.Pages.Shared.Components
 @using ReptileCare.Client.Services
 @using ReptileCare.Shared.DTOs
 @inject ReptileService ReptileService
 @inject EnclosureService EnclosureService
 @inject Blazored.LocalStorage.ILocalStorageService localStorage
+@inject IJSRuntime JSRuntime
 
 <div class="relative w-full text-center mt-8">
     @if (isLoading)
     {
-        <p><em>Loading...</em></p>
     }
     else if (!isAuthenticated)
     {
@@ -16,12 +17,12 @@
     }
     else
     {
-        <div class="relative">
+        <div id="swipeArea" class="relative touch-pan-x">
             @if (currentCardIndex < enclosures.Count)
             {
-                // Render an existing enclosure card
                 var enclosure = enclosures[currentCardIndex];
                 var enclosureReptiles = reptiles.Where(r => r.EnclosureProfileId == enclosure.Id).ToList();
+
                 <div
                     class="max-w-xl mx-auto bg-gray-100 dark:bg-gray-700 border-2 border-green-400 rounded-xl p-6 shadow-lg">
                     <h2 class="text-2xl font-bold mb-1">@enclosure.Name</h2>
@@ -30,11 +31,23 @@
                     {
                         <div class="mt-4 text-gray-400 italic">No critters here yet... it's a bit too quiet.</div>
                         <button class="mt-4 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-                                @onclick="ShowAddReptileModal">Add a Critter
+                                @onclick="() => ShowAddReptileModal(enclosure)">Add a Critter
                         </button>
                     }
                     else
                     {
+                        <div
+                            class="relative h-40 w-full mb-4 overflow-hidden rounded border bg-green-100 dark:bg-green-800">
+                            @foreach (var reptile in enclosureReptiles)
+                            {
+                                <img id="critter-@reptile.Id"
+                                     src="img/critters/lizard.svg"
+                                     class="absolute w-12 h-12 transition-transform duration-1000 ease-in-out"
+                                     alt="@reptile.Name"
+                                     style="top:@(RandomOffset())%; left:@(RandomOffset())%;"/>
+                            }
+
+                        </div>
                         <div class="grid grid-cols-2 gap-4 mt-4">
                             @foreach (var reptile in enclosureReptiles)
                             {
@@ -45,6 +58,9 @@
                                 </div>
                             }
                         </div>
+                        <button class="mt-4 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+                                @onclick="() => ShowAddReptileModal(enclosure)">Add Another Critter
+                        </button>
                     }
                 </div>
             }
@@ -79,24 +95,65 @@
     }
 </div>
 
+<CreateEnclosureModal IsVisible="showEnclosureModal"
+                      IsVisibleChanged="HandleEnclosureModalVisibilityChanged"
+                      OnEnclosureCreated="HandleEnclosureCreated"/>
+
+<AddReptileModal IsVisible="showReptileModal"
+                 IsVisibleChanged="HandleReptileModalVisibilityChanged"
+                 EnclosureName="@currentEnclosureName"
+                 EnclosureId="@currentEnclosureId"
+                 OnReptileAdded="HandleReptileAdded"/>
+
+
 @code {
     private bool isLoading = true;
     private bool isAuthenticated = false;
     private List<EnclosureProfileDto> enclosures = new();
     private List<ReptileDto> reptiles = new();
+    private DotNetObjectReference<Dashboard>? dotNetHelper;
     private int currentCardIndex = 0;
     private int totalCards => enclosures.Count + 1;
 
+    // Modal control
+    private bool showEnclosureModal = false;
+    private bool showReptileModal = false;
+    private string currentEnclosureName = "";
+    private int currentEnclosureId;
+
     protected override async Task OnInitializedAsync()
     {
-        isAuthenticated = await localStorage.ContainKeyAsync("authToken");
-        if (isAuthenticated)
+        try
+        {
+            isAuthenticated = await localStorage.ContainKeyAsync("authToken");
+            if (isAuthenticated)
+            {
+                await LoadData();
+            }
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("console.error", "Error in initialization: " + ex.Message);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task LoadData()
+    {
+        try
         {
             enclosures = await EnclosureService.GetEnclosuresAsync();
             reptiles = await ReptileService.GetReptilesAsync();
-        }
 
-        isLoading = false;
+            // Log for debugging
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("console.error", "Error loading data: " + ex.Message);
+        }
     }
 
     private void NavigateToCard(int index)
@@ -109,14 +166,79 @@
         }
     }
 
+    // Enclosure modal methods
     private void ShowAddEnclosureModal()
     {
-        // TODO: Hook into modal
+        showEnclosureModal = true;
+        StateHasChanged(); // Explicitly update UI
     }
 
-    private void ShowAddReptileModal()
+    private Task HandleEnclosureModalVisibilityChanged(bool visible)
     {
-        // TODO: Hook into modal
+        showEnclosureModal = visible;
+        StateHasChanged(); // Explicitly update UI
+        return Task.CompletedTask;
     }
+
+    private async Task HandleEnclosureCreated(EnclosureProfileDto newEnclosure)
+    {
+        // Reload data
+        await LoadData();
+
+        // Navigate to the new enclosure
+        currentCardIndex = enclosures.FindIndex(e => e.Id == newEnclosure.Id);
+        if (currentCardIndex < 0) currentCardIndex = enclosures.Count - 1; // Fallback
+
+        StateHasChanged();
+    }
+
+    // Reptile modal methods
+    private void ShowAddReptileModal(EnclosureProfileDto enclosure)
+    {
+        currentEnclosureName = enclosure.Name;
+        currentEnclosureId = enclosure.Id;
+        showReptileModal = true;
+        StateHasChanged(); // Explicitly update UI
+    }
+
+    private Task HandleReptileModalVisibilityChanged(bool visible)
+    {
+        showReptileModal = visible;
+        StateHasChanged(); // Explicitly update UI
+        return Task.CompletedTask;
+    }
+
+    private async Task HandleReptileAdded(ReptileDto newReptile)
+    {
+        // Reload reptiles data only
+        reptiles = await ReptileService.GetReptilesAsync();
+        StateHasChanged();
+    }
+
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            dotNetHelper = DotNetObjectReference.Create(this);
+        }
+
+        if (!isLoading && isAuthenticated && currentCardIndex < enclosures.Count)
+        {
+            var enclosure = enclosures[currentCardIndex];
+            var enclosureReptiles = reptiles
+                .Where(r => r.EnclosureProfileId == enclosure.Id)
+                .Select(r => $"critter-{r.Id}")
+                .ToArray();
+            await JSRuntime.InvokeVoidAsync("animateAllCritters", (object)enclosureReptiles);
+        }
+
+    }
+
+    private static int RandomOffset()
+    {
+        return new Random().Next(5, 80); // stays within bounds
+    }
+    
 
 }
