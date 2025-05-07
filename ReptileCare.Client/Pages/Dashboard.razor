@@ -47,7 +47,7 @@
                             </div>
                         }
                     </div>
-                    
+
                 </div>
             }
             else
@@ -84,11 +84,12 @@
                       IsVisibleChanged="HandleEnclosureModalVisibilityChanged"
                       OnEnclosureCreated="HandleEnclosureCreated"/>
 
-<AddReptileModal IsVisible="showReptileModal"
-                 IsVisibleChanged="HandleReptileModalVisibilityChanged"
-                 EnclosureName="@currentEnclosureName"
-                 EnclosureId="@currentEnclosureId"
-                 OnReptileAdded="HandleReptileAdded"/>
+<AddReptileModal
+    IsVisible="showReptileModal"
+    IsVisibleChanged="HandleReptileModalVisibilityChanged"
+    EnclosureName="@currentEnclosureName"
+    EnclosureId="@currentEnclosureId"/>
+
 
 
 @code {
@@ -96,6 +97,7 @@
     private bool isAuthenticated = false;
     private List<EnclosureProfileDto> enclosures = new();
     private List<ReptileDto> reptiles = new();
+    private List<ReptileDto> pendingReptiles = new();
     private DotNetObjectReference<Dashboard>? dotNetHelper;
     private int currentCardIndex = 0;
     private int totalCards => enclosures.Count + 1;
@@ -173,21 +175,28 @@
 
     private async Task HandleEnclosureCreated(EnclosureProfileDto newEnclosure)
     {
-        // Reload data
+        foreach (var draft in pendingReptiles)
+        {
+            draft.EnclosureProfileId = newEnclosure.Id;
+            await ReptileService.CreateReptileAsync(draft);
+        }
+
+        pendingReptiles.Clear();
+
         await LoadData();
-
-        // Navigate to the new enclosure
         currentCardIndex = enclosures.FindIndex(e => e.Id == newEnclosure.Id);
-        if (currentCardIndex < 0) currentCardIndex = enclosures.Count - 1; // Fallback
+        if (currentCardIndex < 0) currentCardIndex = enclosures.Count - 1;
 
+        showEnclosureModal = false;
         StateHasChanged();
     }
 
+
     // Reptile modal methods
-    private void ShowAddReptileModal(EnclosureProfileDto enclosure)
+    private void ShowAddReptileModal()
     {
-        currentEnclosureName = enclosure.Name;
-        currentEnclosureId = enclosure.Id;
+        currentEnclosureName = "";
+        currentEnclosureId = 0; // No enclosure assigned yet
         showReptileModal = true;
         StateHasChanged(); // Explicitly update UI
     }
@@ -246,38 +255,17 @@
             tooltipVisible[reptileId] = true;
     }
 
-    private async Task<EnclosureProfileDto> EnsureDraftEnclosureExistsAsync()
-    {
-        var draft = enclosures.FirstOrDefault(e => e.Name == "New Enclosure (Draft)");
-        if (draft != null) return draft;
-
-        var dto = new EnclosureProfileDto
-        {
-            Name = "New Enclosure (Draft)",
-            Length = 0,
-            Width = 0,
-            Height = 0,
-            HasUVBLighting = false,
-            HasHeatingElement = false,
-            IdealHumidity = 0,
-            IdealTemperature = 0,
-            SubstrateType = ""
-        };
-
-        var created = await EnclosureService.CreateEnclosureAsync(dto);
-        if (created != null)
-        {
-            enclosures.Add(created);
-            return created;
-        }
-
-        throw new Exception("Failed to create draft enclosure.");
-    }
 
     private async Task BeginPetFirstFlow()
     {
-        var draft = await EnsureDraftEnclosureExistsAsync();
-        ShowAddReptileModal(draft);
+        ShowAddReptileModal();
+    }
+
+    private void HandleDraftReptileCreated(ReptileDto draft)
+    {
+        pendingReptiles.Add(draft);
+        showReptileModal = false;
+        showEnclosureModal = true; // prompt user to create/select enclosure
     }
 
 }

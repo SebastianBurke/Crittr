@@ -5,19 +5,22 @@
 <div class="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 flex flex-col">
     <!-- Navbar -->
     <header class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow">
-        <div class="max-w-screen-xl mx-auto px-2 py-0 flex justify-between items-center">
+        <div class="max-w-screen-xl mx-auto px-4 py-2 flex justify-between items-center">
             <a href="/" class="flex items-center gap-2">
-                <img src="img/logo.svg" alt="Crittr Logo" class="h-20 w-auto transform scale-150" />
+                <img src="img/logo.svg"
+                     alt="Crittr Logo"
+                     class="h-28 w-auto" />
             </a>
             <nav class="space-x-4 text-sm flex items-center">
                 @if (IsLoggedIn)
                 {
-                    <button @onclick="Logout" class="ml-4 p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700" aria-label="Logout">
-                        <img src="img/icons/logout.svg" alt="Logout Icon" class="h-6 w-6" />
+                    <button @onclick="Logout"
+                            class="ml-4 p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+                            aria-label="Logout">
+                        <img src="img/icons/logout.svg" alt="Logout Icon" class="h-10 w-10" />
                     </button>
                 }
             </nav>
-
         </div>
     </header>
     
