@@ -18,23 +18,20 @@ public class ReptileController : ControllerBase
     {
         _reptileService = reptileService;
     }
-    
+
     [HttpGet]
     public async Task<ActionResult<List<Reptile>>> GetAll()
     {
         return await _reptileService.GetAllAsync();
     }
 
-    [HttpGet("dto")]
-    public async Task<ActionResult<List<ReptileDto>>> GetAllDtos()
+    [HttpGet("dto/by-enclosure/{enclosureId}")]
+    public async Task<ActionResult<List<ReptileDto>>> GetAllByEnclosureId(int enclosureId)
     {
-        var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        if (userId == null) return Unauthorized();
-
-        return await _reptileService.GetAllDtosByUserIdAsync(userId);
+        var reptiles = await _reptileService.GetAllDtosByEnclosureIdAsync(enclosureId);
+        return Ok(reptiles);
     }
-
-
+    
     [HttpGet("{id}")]
     public async Task<ActionResult<Reptile>> GetById(int id)
     {
@@ -61,7 +58,7 @@ public class ReptileController : ControllerBase
         var createdReptile = await _reptileService.CreateAsync(reptile);
         return CreatedAtAction(nameof(GetById), new { id = createdReptile.Id }, createdReptile);
     }
-    
+
     [HttpPost("dto")]
     public async Task<ActionResult<ReptileDto>> CreateFromDto([FromBody] ReptileDto dto)
     {
@@ -79,7 +76,6 @@ public class ReptileController : ControllerBase
             Length = dto.Length,
             Weight = dto.Weight,
             EnclosureProfileId = dto.EnclosureProfileId,
-            OwnerId = userId
         };
 
         var created = await _reptileService.CreateAsync(reptile);
@@ -87,7 +83,7 @@ public class ReptileController : ControllerBase
 
         return CreatedAtAction(nameof(GetDtoById), new { id = created.Id }, dtoResult);
     }
-    
+
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(int id, Reptile reptile)
     {

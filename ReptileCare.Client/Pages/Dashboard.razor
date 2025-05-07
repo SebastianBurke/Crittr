@@ -27,52 +27,37 @@
                     class="max-w-xl mx-auto bg-gray-100 dark:bg-gray-700 border-2 border-green-400 rounded-xl p-6 shadow-lg">
                     <h2 class="text-2xl font-bold mb-1">@enclosure.Name</h2>
 
-                    @if (enclosureReptiles.Count == 0)
-                    {
-                        <div class="mt-4 text-gray-400 italic">No critters here yet... it's a bit too quiet.</div>
-                        <button class="mt-4 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-                                @onclick="() => ShowAddReptileModal(enclosure)">Add a Critter
-                        </button>
-                    }
-                    else
-                    {
-                        <div
-                            class="relative h-40 w-full mb-4 overflow-hidden rounded border bg-green-100 dark:bg-green-800">
-                            @foreach (var reptile in enclosureReptiles)
-                            {
+                    <div
+                        class="relative h-40 w-full mb-4 overflow-hidden rounded border bg-green-100 dark:bg-green-800">
+                        @foreach (var reptile in enclosureReptiles)
+                        {
+                            <div class="absolute group" style="top:@(RandomOffset())%; left:@(RandomOffset())%;">
                                 <img id="critter-@reptile.Id"
                                      src="img/critters/lizard.svg"
-                                     class="absolute w-12 h-12 transition-transform duration-1000 ease-in-out"
-                                     alt="@reptile.Name"
-                                     style="top:@(RandomOffset())%; left:@(RandomOffset())%;"/>
-                            }
+                                     class="w-12 h-12 transition-transform duration-1000 ease-in-out cursor-pointer"
+                                     alt="@reptile.Name"/>
 
-                        </div>
-                        <div class="grid grid-cols-2 gap-4 mt-4">
-                            @foreach (var reptile in enclosureReptiles)
-                            {
-                                <div class="bg-white dark:bg-gray-800 border rounded p-3 text-left">
-                                    <h3 class="text-lg font-semibold">@reptile.Name</h3>
-                                    <p class="text-sm text-gray-600 dark:text-gray-400">@reptile.Species</p>
-                                    <p class="text-xs text-gray-400">@("Last fed: " + (reptile.LastFeedingDate?.ToShortDateString() ?? "N/A"))</p>
+                                <!-- Tooltip container -->
+                                <div class="absolute opacity-0 group-hover:opacity-100 transition-opacity duration-300 
+                        bg-white text-black dark:bg-gray-800 dark:text-white text-sm p-2 rounded shadow-lg w-40 mt-2">
+                                    <strong>@reptile.Name</strong><br/>
+                                    @reptile.Species<br/>
+                                    Last fed: @(reptile.LastFeedingDate?.ToShortDateString() ?? "N/A")
                                 </div>
-                            }
-                        </div>
-                        <button class="mt-4 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-                                @onclick="() => ShowAddReptileModal(enclosure)">Add Another Critter
-                        </button>
-                    }
+                            </div>
+                        }
+                    </div>
+                    
                 </div>
             }
             else
             {
                 <div
                     class="max-w-xl mx-auto bg-gradient-to-br from-gray-100 to-green-100 dark:from-gray-700 dark:to-green-900 border-2 border-dashed border-green-400 rounded-xl flex flex-col justify-center items-center p-6">
-                    <h2 class="text-xl font-semibold mb-2">Your next enclosure awaits</h2>
-                    <p class="text-gray-500 mb-4">Let's build a new home for your critters. Each habitat tells a
-                        story.</p>
+                    <h2 class="text-xl font-semibold mb-2">Your next critter is waiting...</h2>
+                    <p class="text-gray-500 mb-4">Who's it gonna be?</p>
                     <button class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-                            @onclick="ShowAddEnclosureModal">Add an Enclosure
+                            @onclick="BeginPetFirstFlow">Add a Critter
                     </button>
                 </div>
             }
@@ -118,6 +103,7 @@
     // Modal control
     private bool showEnclosureModal = false;
     private bool showReptileModal = false;
+    private Dictionary<int, bool> tooltipVisible = new();
     private string currentEnclosureName = "";
     private int currentEnclosureId;
 
@@ -146,7 +132,12 @@
         try
         {
             enclosures = await EnclosureService.GetEnclosuresAsync();
-            reptiles = await ReptileService.GetReptilesAsync();
+            reptiles.Clear();
+            foreach (var enclosure in enclosures)
+            {
+                var enclosureReptiles = await ReptileService.GetReptilesByEnclosureIdAsync(enclosure.Id);
+                reptiles.AddRange(enclosureReptiles);
+            }
 
             // Log for debugging
         }
@@ -210,11 +201,19 @@
 
     private async Task HandleReptileAdded(ReptileDto newReptile)
     {
-        // Reload reptiles data only
-        reptiles = await ReptileService.GetReptilesAsync();
+        await LoadData();
+
+        // If added to a draft enclosure, prompt enclosure modal
+        var draft = enclosures.FirstOrDefault(e => e.Name == "New Enclosure (Draft)");
+        if (draft != null)
+        {
+            currentEnclosureId = draft.Id;
+            currentEnclosureName = draft.Name;
+            showEnclosureModal = true;
+        }
+
         StateHasChanged();
     }
-
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -232,13 +231,53 @@
                 .ToArray();
             await JSRuntime.InvokeVoidAsync("animateAllCritters", (object)enclosureReptiles);
         }
-
     }
 
     private static int RandomOffset()
     {
         return new Random().Next(5, 80); // stays within bounds
     }
-    
+
+    private void ToggleTooltip(int reptileId)
+    {
+        if (tooltipVisible.ContainsKey(reptileId))
+            tooltipVisible[reptileId] = !tooltipVisible[reptileId];
+        else
+            tooltipVisible[reptileId] = true;
+    }
+
+    private async Task<EnclosureProfileDto> EnsureDraftEnclosureExistsAsync()
+    {
+        var draft = enclosures.FirstOrDefault(e => e.Name == "New Enclosure (Draft)");
+        if (draft != null) return draft;
+
+        var dto = new EnclosureProfileDto
+        {
+            Name = "New Enclosure (Draft)",
+            Length = 0,
+            Width = 0,
+            Height = 0,
+            HasUVBLighting = false,
+            HasHeatingElement = false,
+            IdealHumidity = 0,
+            IdealTemperature = 0,
+            SubstrateType = ""
+        };
+
+        var created = await EnclosureService.CreateEnclosureAsync(dto);
+        if (created != null)
+        {
+            enclosures.Add(created);
+            return created;
+        }
+
+        throw new Exception("Failed to create draft enclosure.");
+    }
+
+    private async Task BeginPetFirstFlow()
+    {
+        var draft = await EnsureDraftEnclosureExistsAsync();
+        ShowAddReptileModal(draft);
+    }
 
 }

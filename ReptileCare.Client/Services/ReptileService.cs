@@ -14,7 +14,7 @@ public class ReptileService
         _localStorage = localStorage;
     }
 
-    public async Task<List<ReptileDto>> GetReptilesAsync()
+    public async Task<List<ReptileDto>> GetReptilesByEnclosureIdAsync(int enclosureId)
     {
         try
         {
@@ -26,16 +26,14 @@ public class ReptileService
                     new AuthenticationHeaderValue("Bearer", token);
             }
 
-            var reptiles = await _http.GetFromJsonAsync<List<ReptileDto>>("api/reptile/dto");
+            var reptiles = await _http.GetFromJsonAsync<List<ReptileDto>>($"api/reptile/dto/by-enclosure/{enclosureId}");
             return reptiles ?? new List<ReptileDto>();
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Failed to fetch reptiles: {ex.Message}");
             return new List<ReptileDto>();
         }
     }
-
     
     public async Task<ReptileDto?> CreateReptileAsync(ReptileDto dto)
     {

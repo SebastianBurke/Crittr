@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using ReptileCare.Server.Data;
 
@@ -10,9 +11,11 @@ using ReptileCare.Server.Data;
 namespace ReptileCare.Server.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250507125253_RemoveOwnerIdFromPet")]
+    partial class RemoveOwnerIdFromPet
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.4");
@@ -277,6 +280,9 @@ namespace ReptileCare.Server.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("AppUserId")
+                        .HasColumnType("TEXT");
+
                     b.Property<bool>("HasHeatingElement")
                         .HasColumnType("INTEGER");
 
@@ -310,6 +316,8 @@ namespace ReptileCare.Server.Migrations
                         .HasColumnType("REAL");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("AppUserId");
 
                     b.ToTable("EnclosureProfiles");
                 });
@@ -446,6 +454,9 @@ namespace ReptileCare.Server.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("AppUserId")
+                        .HasColumnType("TEXT");
+
                     b.Property<DateTime>("DateAcquired")
                         .HasColumnType("TEXT");
 
@@ -479,6 +490,8 @@ namespace ReptileCare.Server.Migrations
                         .HasColumnType("REAL");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("AppUserId");
 
                     b.HasIndex("EnclosureProfileId");
 
@@ -625,6 +638,13 @@ namespace ReptileCare.Server.Migrations
                     b.Navigation("Enclosure");
                 });
 
+            modelBuilder.Entity("ReptileCare.Shared.Models.EnclosureProfile", b =>
+                {
+                    b.HasOne("ReptileCare.Server.Models.AppUser", null)
+                        .WithMany("Enclosures")
+                        .HasForeignKey("AppUserId");
+                });
+
             modelBuilder.Entity("ReptileCare.Shared.Models.EnvironmentalReading", b =>
                 {
                     b.HasOne("ReptileCare.Shared.Models.Reptile", "Reptile")
@@ -671,6 +691,10 @@ namespace ReptileCare.Server.Migrations
 
             modelBuilder.Entity("ReptileCare.Shared.Models.Reptile", b =>
                 {
+                    b.HasOne("ReptileCare.Server.Models.AppUser", null)
+                        .WithMany("Reptiles")
+                        .HasForeignKey("AppUserId");
+
                     b.HasOne("ReptileCare.Shared.Models.EnclosureProfile", "EnclosureProfile")
                         .WithMany("Reptiles")
                         .HasForeignKey("EnclosureProfileId")
@@ -699,6 +723,13 @@ namespace ReptileCare.Server.Migrations
                         .IsRequired();
 
                     b.Navigation("Reptile");
+                });
+
+            modelBuilder.Entity("ReptileCare.Server.Models.AppUser", b =>
+                {
+                    b.Navigation("Enclosures");
+
+                    b.Navigation("Reptiles");
                 });
 
             modelBuilder.Entity("ReptileCare.Shared.Models.EnclosureProfile", b =>

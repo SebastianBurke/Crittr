@@ -1,3 +1,5 @@
+using ReptileCare.Shared.Models.Enums;
+
 namespace ReptileCare.Shared.DTOs;
 
 public class ReptileDto
@@ -14,6 +16,7 @@ public class ReptileDto
     public int? EnclosureProfileId { get; set; }
 
     // Summary data (for dashboard view)
+    public SpeciesType SpeciesType { get; set; }
     public DateTime? LastFeedingDate { get; set; }
     public DateTime? LastWeightDate { get; set; }
     public DateTime? LastSheddingDate { get; set; }

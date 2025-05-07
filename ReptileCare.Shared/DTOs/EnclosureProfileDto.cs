@@ -1,3 +1,5 @@
+using ReptileCare.Shared.Models.Enums;
+
 namespace ReptileCare.Shared.DTOs;
 
 public class EnclosureProfileDto
@@ -12,5 +14,8 @@ public class EnclosureProfileDto
     public bool HasHeatingElement { get; set; }
     public double IdealTemperature { get; set; }
     public double IdealHumidity { get; set; }
-    public List<int> AssignedReptileIds { get; set; } = new List<int>();
+
+    public EnclosureType EnclosureType { get; set; }
+
+    public List<int> AssignedReptileIds { get; set; } = new();
 }

@@ -51,21 +51,15 @@ public class ApplicationDbContext : IdentityDbContext<AppUser>
         modelBuilder.Entity<Reptile>()
             .HasOne(r => r.EnclosureProfile).WithMany(e => e.Reptiles).HasForeignKey(r => r.EnclosureProfileId)
             .OnDelete(DeleteBehavior.SetNull);
-        modelBuilder.Entity<AppUser>()
-            .HasMany(u => u.Reptiles)
-            .WithOne()
-            .HasForeignKey(r => r.OwnerId)
-            .OnDelete(DeleteBehavior.Cascade);
         modelBuilder.Entity<CaregiverAccess>()
             .HasOne(c => c.Enclosure)
             .WithMany(e => e.Caregivers)
             .HasForeignKey(c => c.EnclosureId)
             .OnDelete(DeleteBehavior.Cascade);
         modelBuilder.Entity<EnclosureProfile>()
-            .HasOne<AppUser>()
-            .WithMany(u => u.Enclosures)
-            .HasForeignKey(e => e.OwnerId)
+            .HasMany(e => e.Reptiles)
+            .WithOne(r => r.EnclosureProfile)
+            .HasForeignKey(r => r.EnclosureProfileId)
             .OnDelete(DeleteBehavior.Cascade);
-
     }
 }

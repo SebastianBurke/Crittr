@@ -74,7 +74,6 @@ public class DataSeeder
             Weight = 450,
             Length = 45,
             Description = "Friendly beardie with orange coloration",
-            OwnerId = user.Id,
             EnclosureProfileId = enclosure1.Id
         };
 
@@ -88,7 +87,6 @@ public class DataSeeder
             Weight = 1500,
             Length = 120,
             Description = "Normal morph ball python, very docile",
-            OwnerId = user.Id,
             EnclosureProfileId = enclosure2.Id
         };
         _dbContext.Reptiles.AddRange(spike, monty);

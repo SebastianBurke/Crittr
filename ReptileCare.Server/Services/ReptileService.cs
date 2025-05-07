@@ -56,28 +56,43 @@ public class ReptileService : IReptileService
         return await CreateDtoFromReptile(reptile);
     }
 
-    public async Task<List<ReptileDto>> GetAllDtosByUserIdAsync(string userId)
+    public async Task<List<ReptileDto>> GetAllDtosByEnclosureIdAsync(int enclosureId)
     {
         return await _db.Reptiles
-            .Where(r => r.OwnerId == userId)
+            .Where(r => r.EnclosureProfileId == enclosureId)
             .Select(r => new ReptileDto
             {
                 Id = r.Id,
                 Name = r.Name,
                 Species = r.Species,
+                SpeciesType = r.SpeciesType,
                 DateAcquired = r.DateAcquired,
+                DateOfBirth = r.DateOfBirth,
+                Sex = r.Sex,
+                Weight = r.Weight,
+                Length = r.Length,
+                Description = r.Description,
                 EnclosureProfileId = r.EnclosureProfileId,
                 RecentHealthScore = r.HealthScores
-                    .OrderByDescending(h => h.AssessmentDate).Select(h => h.Score).FirstOrDefault(),
+                    .OrderByDescending(h => h.AssessmentDate)
+                    .Select(h => h.Score)
+                    .FirstOrDefault(),
                 LastFeedingDate = r.FeedingRecords
-                    .OrderByDescending(f => f.FeedingDate).Select(f => f.FeedingDate).FirstOrDefault(),
+                    .OrderByDescending(f => f.FeedingDate)
+                    .Select(f => f.FeedingDate)
+                    .FirstOrDefault(),
                 LastWeightDate = r.MeasurementRecords
-                    .OrderByDescending(m => m.MeasurementDate).Select(m => m.MeasurementDate).FirstOrDefault(),
+                    .OrderByDescending(m => m.MeasurementDate)
+                    .Select(m => m.MeasurementDate)
+                    .FirstOrDefault(),
+                LastSheddingDate = r.SheddingRecords
+                    .OrderByDescending(s => s.CompletionDate)
+                    .Select(s => s.CompletionDate)
+                    .FirstOrDefault(),
                 PendingTasksCount = r.ScheduledTasks.Count(t => !t.IsCompleted)
             })
             .ToListAsync();
     }
-
 
     public async Task<List<ReptileDto>> GetAllDtosAsync()
     {
