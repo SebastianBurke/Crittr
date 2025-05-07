@@ -5,89 +5,118 @@
 @inject EnclosureService EnclosureService
 @inject Blazored.LocalStorage.ILocalStorageService localStorage
 
-@if (isLoading)
-{
-    <p><em>Loading...</em></p>
-}
-else if (!isAuthenticated)
-{
-    <p>Please <a href="/login" class="text-blue-500 underline">log in</a> to view your reptiles and enclosures.</p>
-}
-else
-{
-    <div class="mb-8">
-        <h3 class="text-xl font-semibold mb-2">Enclosures</h3>
+<div class="relative w-full text-center mt-8">
+    @if (isLoading)
+    {
+        <p><em>Loading...</em></p>
+    }
+    else if (!isAuthenticated)
+    {
+        <p>Please <a href="/login" class="text-blue-500 underline">log in</a> to view your reptiles and enclosures.</p>
+    }
+    else
+    {
+        <div class="relative">
+            @if (currentCardIndex < enclosures.Count)
+            {
+                // Render an existing enclosure card
+                var enclosure = enclosures[currentCardIndex];
+                var enclosureReptiles = reptiles.Where(r => r.EnclosureProfileId == enclosure.Id).ToList();
+                <div
+                    class="max-w-xl mx-auto bg-gray-100 dark:bg-gray-700 border-2 border-green-400 rounded-xl p-6 shadow-lg">
+                    <h2 class="text-2xl font-bold mb-1">@enclosure.Name</h2>
 
-        @if (enclosures.Count == 0)
-        {
-            <p>No enclosures yet. <a href="/add-enclosure" class="text-blue-500 underline">Add one</a>.</p>
-        }
-        else
-        {
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                @foreach (var enclosure in enclosures)
-                {
-                    <div class="bg-white dark:bg-gray-800 shadow-md rounded-xl p-4 border dark:border-gray-700">
-                        <h4 class="text-lg font-semibold">@enclosure.Name</h4>
-                        <p class="text-sm text-gray-500">@enclosure.SubstrateType</p>
-                        <ul class="mt-2 text-sm">
-                            <li><strong>Dimensions:</strong> @enclosure.Length x @enclosure.Width x @enclosure.Height</li>
-                            <li><strong>UVB:</strong> @(enclosure.HasUVBLighting ? "Yes" : "No")</li>
-                            <li><strong>Heating:</strong> @(enclosure.HasHeatingElement ? "Yes" : "No")</li>
-                            <li><strong>Ideal Temp:</strong> @enclosure.IdealTemperature°C</li>
-                            <li><strong>Humidity:</strong> @enclosure.IdealHumidity%</li>
-                        </ul>
-                    </div>
-                }
-            </div>
-        }
-    </div>
+                    @if (enclosureReptiles.Count == 0)
+                    {
+                        <div class="mt-4 text-gray-400 italic">No critters here yet... it's a bit too quiet.</div>
+                        <button class="mt-4 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+                                @onclick="ShowAddReptileModal">Add a Critter
+                        </button>
+                    }
+                    else
+                    {
+                        <div class="grid grid-cols-2 gap-4 mt-4">
+                            @foreach (var reptile in enclosureReptiles)
+                            {
+                                <div class="bg-white dark:bg-gray-800 border rounded p-3 text-left">
+                                    <h3 class="text-lg font-semibold">@reptile.Name</h3>
+                                    <p class="text-sm text-gray-600 dark:text-gray-400">@reptile.Species</p>
+                                    <p class="text-xs text-gray-400">@("Last fed: " + (reptile.LastFeedingDate?.ToShortDateString() ?? "N/A"))</p>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div
+                    class="max-w-xl mx-auto bg-gradient-to-br from-gray-100 to-green-100 dark:from-gray-700 dark:to-green-900 border-2 border-dashed border-green-400 rounded-xl flex flex-col justify-center items-center p-6">
+                    <h2 class="text-xl font-semibold mb-2">Your next enclosure awaits</h2>
+                    <p class="text-gray-500 mb-4">Let's build a new home for your critters. Each habitat tells a
+                        story.</p>
+                    <button class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+                            @onclick="ShowAddEnclosureModal">Add an Enclosure
+                    </button>
+                </div>
+            }
+        </div>
 
-    <div>
-        <h3 class="text-xl font-semibold mb-2">Reptiles</h3>
-
-        @if (reptiles.Count == 0)
-        {
-            <p>No reptiles found. Add a new one to get started!</p>
-        }
-        else
-        {
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                @foreach (var reptile in reptiles)
-                {
-                    <div class="bg-white dark:bg-gray-800 shadow-md rounded-xl p-4 border dark:border-gray-700">
-                        <h4 class="text-lg font-semibold">@reptile.Name (@reptile.Species)</h4>
-                        <p class="text-sm text-gray-500">Acquired: @reptile.DateAcquired.ToShortDateString()</p>
-                        <ul class="mt-2 text-sm">
-                            <li><strong>Last Fed:</strong> @(reptile.LastFeedingDate?.ToLocalTime().ToString("g") ?? "N/A")</li>
-                            <li><strong>Weight Date:</strong> @(reptile.LastWeightDate?.ToLocalTime().ToString("g") ?? "N/A")</li>
-                            <li><strong>Health Score:</strong> @(reptile.RecentHealthScore?.ToString() ?? "N/A")</li>
-                            <li><strong>Pending Tasks:</strong> @reptile.PendingTasksCount</li>
-                        </ul>
-                    </div>
-                }
-            </div>
-        }
-    </div>
-}
+        <nav class="flex justify-center gap-2 mt-4" aria-label="Enclosure navigation">
+            @for (int i = 0; i <= enclosures.Count; i++)
+            {
+                int index = i; // Capture the loop variable
+                bool isAddNew = (i == enclosures.Count);
+                string label = isAddNew ? "Add New Enclosure" : $"View enclosure: {enclosures[i].Name}";
+                <button
+                    class="w-4 h-4 rounded-full border-2 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 @(i == currentCardIndex ? (isAddNew ? "bg-green-300 border-green-600" : "bg-green-500 border-green-500") : "bg-gray-300 dark:bg-gray-600 border-transparent")"
+                    aria-label="@label"
+                    aria-current="@(i == currentCardIndex ? "true" : "false")"
+                    @onclick="() => NavigateToCard(index)">
+                </button>
+            }
+        </nav>
+    }
+</div>
 
 @code {
-    private List<ReptileDto> reptiles = new();
-    private List<EnclosureProfileDto> enclosures = new();
     private bool isLoading = true;
     private bool isAuthenticated = false;
+    private List<EnclosureProfileDto> enclosures = new();
+    private List<ReptileDto> reptiles = new();
+    private int currentCardIndex = 0;
+    private int totalCards => enclosures.Count + 1;
 
     protected override async Task OnInitializedAsync()
     {
-        var token = await localStorage.GetItemAsync<string>("authToken");
-        isAuthenticated = !string.IsNullOrWhiteSpace(token);
-
+        isAuthenticated = await localStorage.ContainKeyAsync("authToken");
         if (isAuthenticated)
         {
-            reptiles = await ReptileService.GetReptilesAsync();
             enclosures = await EnclosureService.GetEnclosuresAsync();
+            reptiles = await ReptileService.GetReptilesAsync();
         }
 
         isLoading = false;
     }
+
+    private void NavigateToCard(int index)
+    {
+        // Ensure the index is within bounds
+        if (index >= 0 && index <= enclosures.Count)
+        {
+            currentCardIndex = index;
+            StateHasChanged(); // Explicitly trigger UI update
+        }
+    }
+
+    private void ShowAddEnclosureModal()
+    {
+        // TODO: Hook into modal
+    }
+
+    private void ShowAddReptileModal()
+    {
+        // TODO: Hook into modal
+    }
+
 }
