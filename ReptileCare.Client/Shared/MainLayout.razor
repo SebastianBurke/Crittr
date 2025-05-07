@@ -5,24 +5,25 @@
 <div class="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 flex flex-col">
     <!-- Navbar -->
     <header class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow">
-        <div class="max-w-screen-xl mx-auto px-4 py-3 flex justify-between items-center">
-            <span class="text-xl font-semibold text-blue-600">Critter</span>
+        <div class="max-w-screen-xl mx-auto px-2 py-0 flex justify-between items-center">
+            <a href="/" class="flex items-center gap-2">
+                <img src="img/logo.svg" alt="Crittr Logo" class="h-20 w-auto transform scale-150" />
+            </a>
             <nav class="space-x-4 text-sm flex items-center">
-                <NavLink href="/" class="text-gray-600 dark:text-gray-300 hover:text-blue-600" Match="NavLinkMatch.All">Dashboard</NavLink>
-                <NavLink href="/enclosures" class="text-gray-600 dark:text-gray-300 hover:text-blue-600">Enclosures</NavLink>
-                <NavLink href="/reptiles" class="text-gray-600 dark:text-gray-300 hover:text-blue-600">Reptiles</NavLink>
-
                 @if (IsLoggedIn)
                 {
-                    <button @onclick="Logout" class="ml-4 px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 text-sm">Logout</button>
+                    <button @onclick="Logout" class="ml-4 px-3 py-1 bg-gray-500 text-white rounded hover:bg-gray-600 text-sm">Logout</button>
                 }
                 else
                 {
-                    <NavLink href="/login" class="ml-4 px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">Login</NavLink>
+                    <NavLink href="/login" class="ml-4 px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-sm">Login</NavLink>
                 }
             </nav>
+
         </div>
     </header>
+
+
 
     <!-- Page content -->
     <main class="flex-grow container mx-auto px-4 py-6">
