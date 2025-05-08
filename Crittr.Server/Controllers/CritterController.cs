@@ -52,6 +52,24 @@ public class CritterController : ControllerBase
         return critterDto;
     }
 
+    [HttpGet("dto/unassigned")]
+    public async Task<ActionResult<List<CritterDto>>> GetUnassignedCritters()
+    {
+        try
+        {
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized("User not authenticated");
+
+            var critters = await _critterService.GetUnassignedCrittersByUserAsync(userId);
+            return Ok(critters);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Error getting unassigned critters: {ex.Message}");
+        }
+    }
+
     [HttpPost]
     public async Task<ActionResult<Critter>> Create(Critter critter)
     {
@@ -73,9 +91,9 @@ public class CritterController : ControllerBase
             DateAcquired = dto.DateAcquired,
             Description = dto.Description,
             Sex = dto.Sex,
-            Length = dto.Length,
-            Weight = dto.Weight,
             EnclosureProfileId = dto.EnclosureProfileId,
+            IconUrl = dto.IconUrl,
+            UserId = userId
         };
 
         var created = await _critterService.CreateAsync(critter);

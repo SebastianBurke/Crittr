@@ -66,21 +66,24 @@ public class DataSeeder
 
         var spike = new Critter
         {
-            Name = "Spike",
-            Species = "Bearded Dragon",
+            Name = "Billy",
+            Species = "Leopard Gecko",
+            IconUrl = "img/critters/eublepharis-macularius.svg",
             DateAcquired = new DateTime(2024, 11, 1),
             DateOfBirth = new DateTime(2023, 5, 1),
             Sex = "Male",
             Weight = 450,
             Length = 45,
-            Description = "Friendly beardie with orange coloration",
-            EnclosureProfileId = enclosure1.Id
+            Description = "Friendly leo with yellow coloration",
+            EnclosureProfileId = enclosure1.Id,
+            UserId = user.Id
         };
 
         var monty = new Critter
         {
             Name = "Monty",
             Species = "Ball Python",
+            IconUrl = "img/critters/python-regius.svg",
             DateAcquired = new DateTime(2023, 5, 1),
             DateOfBirth = new DateTime(2022, 5, 1),
             Sex = "Male",
@@ -89,6 +92,7 @@ public class DataSeeder
             Description = "Normal morph ball python, very docile",
             EnclosureProfileId = enclosure2.Id
         };
+
         _dbContext.Critters.AddRange(spike, monty);
         await _dbContext.SaveChangesAsync();
 

@@ -73,6 +73,8 @@ public class CritterService : ICritterService
                 Length = r.Length,
                 Description = r.Description,
                 EnclosureProfileId = r.EnclosureProfileId,
+                UserId = r.UserId,
+                IconUrl = r.IconUrl,
                 RecentHealthScore = r.HealthScores
                     .OrderByDescending(h => h.AssessmentDate)
                     .Select(h => h.Score)
@@ -105,6 +107,21 @@ public class CritterService : ICritterService
         }
 
         return dtos;
+    }
+    
+    public async Task<List<CritterDto>> GetUnassignedCrittersByUserAsync(string userId)
+    {
+        var critters = await _db.Critters
+            .Where(c => c.UserId == userId && c.EnclosureProfileId == null)
+            .ToListAsync();
+
+        var result = new List<CritterDto>();
+        foreach (var c in critters)
+        {
+            result.Add(await CreateDtoFromCritter(c));
+        }
+
+        return result;
     }
 
     public async Task<Critter> CreateAsync(Critter critter)
@@ -169,6 +186,8 @@ public class CritterService : ICritterService
             Length = critter.Length,
             Description = critter.Description,
             EnclosureProfileId = critter.EnclosureProfileId,
+            IconUrl = critter.IconUrl,
+            UserId = critter.UserId,
             LastFeedingDate = await _feedingService.GetLastFeedingDateAsync(critter.Id),
             LastSheddingDate = await _sheddingService.GetLastSheddingDateAsync(critter.Id),
             RecentHealthScore = await _healthService.GetLatestHealthScoreAsync(critter.Id),

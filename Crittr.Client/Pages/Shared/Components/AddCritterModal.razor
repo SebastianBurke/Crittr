@@ -32,39 +32,58 @@
                         <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
                             What species of @selectedSpeciesType?
                         </label>
-                        <input type="text"
-                               class="w-full p-2 rounded dark:bg-gray-700 text-gray-800 dark:text-white"
-                               @bind="speciesQuery"
-                               @oninput="OnSpeciesInputChanged"
-                               placeholder="Start typing (e.g. Leopard Gecko)"/>
 
-                        @if (showSuggestions && filteredSpecies.Any())
+                        @if (selectedSpecies is null)
                         {
-                            <ul class="absolute bg-white dark:bg-gray-700 border mt-1 w-full z-10 rounded shadow-lg max-h-40 overflow-y-auto text-left">
-                                @foreach (var suggestion in filteredSpecies)
-                                {
-                                    <li class="flex items-center justify-between gap-2 px-4 py-2 hover:bg-green-100 dark:hover:bg-green-800 cursor-pointer"
-                                        @onclick="() => SelectSpecies(suggestion)">
-    
-                                        <div class="text-left">
-                                            <span>@suggestion.CommonName</span><br/>
-                                            <span class="text-xs text-gray-400">@suggestion.ScientificName</span>
-                                        </div>
+                            <input type="text"
+                                   class="w-full p-2 rounded dark:bg-gray-700 text-gray-800 dark:text-white"
+                                   @bind="speciesQuery"
+                                   @oninput="OnSpeciesInputChanged"
+                                   placeholder="Start typing..."/>
 
-                                        @if (!string.IsNullOrWhiteSpace(suggestion.ImageUrl))
-                                        {
-                                            <img src="@suggestion.ImageUrl" alt="image of @suggestion.CommonName"
-                                                 class="w-8 h-8 rounded object-cover flex-shrink-0"/>
-                                        }
-                                    </li>
-                                }
-                            </ul>
+                            @if (showSuggestions && filteredSpecies.Any())
+                            {
+                                <ul class="absolute bg-white dark:bg-gray-700 border mt-1 w-full z-10 rounded shadow-lg max-h-40 overflow-y-auto text-left">
+                                    @foreach (var suggestion in filteredSpecies)
+                                    {
+                                        <li class="flex items-center justify-between gap-2 px-4 py-2 hover:bg-green-100 dark:hover:bg-green-800 cursor-pointer"
+                                            @onclick="() => SelectSpecies(suggestion)">
 
+                                            <div class="text-left">
+                                                <span>@suggestion.CommonName</span><br/>
+                                                <span class="text-xs text-gray-400">@suggestion.ScientificName</span>
+                                            </div>
+
+                                            @if (!string.IsNullOrWhiteSpace(suggestion.IconUrl))
+                                            {
+                                                <img src="@suggestion.IconUrl" alt="@suggestion.CommonName"
+                                                     class="w-8 h-8 rounded object-cover flex-shrink-0"/>
+                                            }
+                                        </li>
+                                    }
+                                </ul>
+                            }
                         }
+                        else
+                        {
+                            <div class="flex items-center gap-3 bg-gray-100 dark:bg-gray-700 p-2 rounded mt-2">
+                                <img src="@selectedSpecies.IconUrl" class="w-10 h-10 rounded object-cover"/>
+                                <div>
+                                    <p class="font-semibold">@selectedSpecies.CommonName</p>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">@selectedSpecies.ScientificName</p>
+                                </div>
+                                <button @onclick="ClearSpecies" class="ml-auto text-sm text-red-500 hover:underline">
+                                    Change
+                                </button>
+                            </div>
+                        }
+
                         <div class="mt-4 flex justify-between">
-                            <button class="text-sm text-gray-500" @onclick="PrevStep">Back</button>
-                            <button class="bg-green-600 text-white px-4 py-2 rounded" @onclick="NextStep"
-                                    disabled="@string.IsNullOrWhiteSpace(newCritter.Species)">
+                            <button class="text-sm text-gray-500" @onclick="() => { PrevStep(); ClearSpecies(); }">
+                                Back
+                            </button>
+                            <button class="bg-green-600 text-white px-4 py-2 rounded"
+                                    @onclick="NextStep">
                                 Next
                             </button>
                         </div>
@@ -79,52 +98,30 @@
                         <input type="text"
                                class="w-full p-2 rounded dark:bg-gray-700 text-gray-800 dark:text-white"
                                @bind="newCritter.Name"
-                               placeholder="e.g. Spike"/>
+                               placeholder=""/>
 
                         <div class="mt-4 flex justify-between">
                             <button class="text-sm text-gray-500" @onclick="PrevStep">Back</button>
-                            <button class="bg-green-600 text-white px-4 py-2 rounded" @onclick="NextStep"
-                                    disabled="@string.IsNullOrWhiteSpace(newCritter.Name)">
-                                Next
+                            <button class="bg-green-600 text-white px-4 py-2 rounded"
+                                    @onclick="HandleSubmit"
+                                    disabled="@(string.IsNullOrWhiteSpace(newCritter.Name) || isSubmitting)">
+                                @if (isSubmitting)
+                                {
+                                    <span>Saving...</span>
+                                }
+                                else
+                                {
+                                    <span>Save Critter</span>
+                                }
                             </button>
                         </div>
                     </div>
                 }
-                else if (step == 4)
-                {
-                    <EditForm Model="@newCritter" OnValidSubmit="HandleSubmit">
-                        <div class="text-left">
-                            <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Weight
-                                (g)</label>
-                            <InputNumber @bind-Value="newCritter.Weight"
-                                         class="w-full p-2 rounded dark:bg-gray-700 text-gray-800 dark:text-white"/>
-
-                            <label class="mt-4 block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Length
-                                (in)</label>
-                            <InputNumber @bind-Value="newCritter.Length"
-                                         class="w-full p-2 rounded dark:bg-gray-700 text-gray-800 dark:text-white"/>
-
-                            <div class="mt-6 flex justify-between">
-                                <button class="text-sm text-gray-500" @onclick="PrevStep">Back</button>
-                                <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded"
-                                        disabled="@isSubmitting">
-                                    @if (isSubmitting)
-                                    {
-                                        <span>Saving...</span>
-                                    }
-                                    else
-                                    {
-                                        <span>Save Critter</span>
-                                    }
-                                </button>
-                            </div>
-                        </div>
-                    </EditForm>
-                }
                 <button @onclick="CloseModal"
                         class="absolute top-4 right-4 text-gray-400 hover:text-red-600 transition-transform transform hover:scale-125"
                         aria-label="Close">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="w-6 h-6">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                         class="w-6 h-6">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                     </svg>
                 </button>
@@ -135,7 +132,7 @@
 }
 
 @code {
-    
+
     [Parameter] public bool IsVisible { get; set; }
     [Parameter] public string EnclosureName { get; set; } = "Enclosure";
     [Parameter] public int EnclosureId { get; set; }
@@ -148,62 +145,127 @@
 
     private int step = 1;
 
-    private SpeciesType selectedSpeciesType = SpeciesType.Critter;
+    private SpeciesType selectedSpeciesType = SpeciesType.Reptile;
+    private SpeciesInfo? selectedSpecies;
     private string speciesQuery = "";
-    private List<SpeciesService.SpeciesSuggestion> filteredSpecies = new();
+    private List<SpeciesInfo> filteredSpecies = new();
     private bool showSuggestions = false;
     private bool isSubmitting = false;
-
     private CritterDto newCritter = new();
-
-    private void NextStep() => step++;
-    private void PrevStep() => step--;
 
     private async Task OnSpeciesInputChanged(ChangeEventArgs e)
     {
         speciesQuery = e.Value?.ToString() ?? "";
-        if (speciesQuery.Length < 2)
-        {
-            showSuggestions = false;
-            filteredSpecies.Clear();
-            return;
-        }
+        if (string.IsNullOrWhiteSpace(speciesQuery)) return;
 
-        filteredSpecies = await SpeciesService.SearchSpeciesAsync(selectedSpeciesType, speciesQuery);
         showSuggestions = true;
+        filteredSpecies = await SpeciesService.SearchAsync(speciesQuery, selectedSpeciesType);
     }
 
-    private void SelectSpecies(SpeciesService.SpeciesSuggestion suggestion)
+    private void NextStep()
     {
-        newCritter.Species = suggestion.ScientificName;
-        speciesQuery = suggestion.CommonName;
-        showSuggestions = false;
+        step++;
+        StateHasChanged();
     }
 
+    private void PrevStep()
+    {
+        step--;
+        StateHasChanged();
+    }
+
+    private void SelectSpecies(SpeciesInfo suggestion)
+    {
+        selectedSpecies = suggestion;
+        showSuggestions = false;
+        speciesQuery = suggestion.CommonName;
+
+        newCritter.Species = suggestion.CommonName;
+        newCritter.SpeciesType = suggestion.Type;
+        newCritter.IconUrl = suggestion.IconUrl;
+
+        // Force UI refresh
+        StateHasChanged();
+    }
 
     private async Task HandleSubmit()
     {
         try
         {
             isSubmitting = true;
-            newCritter.EnclosureProfileId = EnclosureId;
+
+            // DEBUGGING
+            await JSRuntime.InvokeVoidAsync("console.log", "Starting HandleSubmit");
+            await JSRuntime.InvokeVoidAsync("console.log", $"Selected species: {selectedSpecies?.CommonName ?? "null"}");
+            await JSRuntime.InvokeVoidAsync("console.log", $"EnclosureId: {EnclosureId}");
+
+            // Initialize a new critter if null
+            if (newCritter == null)
+            {
+                newCritter = new CritterDto();
+            }
+
+            // Required props - Handle nullable EnclosureId
+            // If EnclosureId is 0, it means no enclosure assigned
+            newCritter.EnclosureProfileId = EnclosureId > 0 ? EnclosureId : null;
             newCritter.DateAcquired = DateTime.Today;
 
+            // Handle potentially null selectedSpecies
+            if (selectedSpecies != null)
+            {
+                newCritter.Species = selectedSpecies.CommonName;
+                newCritter.SpeciesType = selectedSpecies.Type;
+                newCritter.IconUrl = !string.IsNullOrEmpty(selectedSpecies.IconUrl)
+                    ? selectedSpecies.IconUrl
+                    : "img/critters/default.svg";
+            }
+            else
+            {
+                // Fallback for missing species data
+                newCritter.Species = "Unknown";
+                newCritter.SpeciesType = selectedSpeciesType; // Use at least the selected type
+                newCritter.IconUrl = "img/critters/default.svg";
+
+                await JSRuntime.InvokeVoidAsync("console.warn", "Creating critter with missing species information");
+            }
+
+            // Ensure name is set (required field)
+            if (string.IsNullOrWhiteSpace(newCritter.Name))
+            {
+                throw new Exception("Name is required");
+            }
+
+            await JSRuntime.InvokeVoidAsync("console.log", "About to call CritterService.CreateCritterAsync");
+
+            // Create the critter
             var created = await CritterService.CreateCritterAsync(newCritter);
-            await OnCritterAdded.InvokeAsync(created);
-            await JSRuntime.InvokeVoidAsync("alert", $"{created.Name} added to {EnclosureName}!");
+
+            await JSRuntime.InvokeVoidAsync("console.log", "Critter created successfully");
+
+            // Notify parent component
+            if (OnCritterAdded.HasDelegate)
+            {
+                await OnCritterAdded.InvokeAsync(created);
+            }
+
+            string locationText = EnclosureId > 0 ? EnclosureName : "your collection";
 
             await IsVisibleChanged.InvokeAsync(false);
+            ResetModal();
         }
         catch (Exception ex)
         {
             await JSRuntime.InvokeVoidAsync("console.error", $"Error saving critter: {ex.Message}");
+            await JSRuntime.InvokeVoidAsync("console.error", ex.StackTrace);
+
         }
         finally
         {
             isSubmitting = false;
+            StateHasChanged();
         }
     }
+
 
     private async Task CloseModal()
     {
@@ -211,4 +273,35 @@
         showSuggestions = false;
         step = 1;
     }
+
+    private void ClearSpecies()
+    {
+        selectedSpecies = null;
+        speciesQuery = "";
+        filteredSpecies.Clear();
+    }
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        newCritter = new CritterDto();
+        step = 1;
+    }
+
+    private async Task ForceStateUpdate()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void ResetModal()
+    {
+        step = 1;
+        selectedSpecies = null;
+        speciesQuery = "";
+        filteredSpecies.Clear();
+        newCritter = new CritterDto();
+        showSuggestions = false;
+        isSubmitting = false;
+    }
+
 }

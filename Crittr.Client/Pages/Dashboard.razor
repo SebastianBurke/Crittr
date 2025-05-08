@@ -33,8 +33,8 @@
                         {
                             <div class="absolute group" style="top:@(RandomOffset())%; left:@(RandomOffset())%;">
                                 <img id="critter-@critter.Id"
-                                     src="img/critters/lizard.svg"
-                                     class="w-12 h-12 transition-transform duration-1000 ease-in-out cursor-pointer"
+                                     src="@critter.IconUrl"
+                                     class="w-12 h-12"
                                      alt="@critter.Name"/>
 
                                 <!-- Tooltip container -->
@@ -77,6 +77,35 @@
                 </button>
             }
         </nav>
+
+        @if (critters.Any(c => c.EnclosureProfileId == null))
+        {
+            <div
+                class="max-w-xl mx-auto mt-10 bg-yellow-100 dark:bg-yellow-800 border-2 border-yellow-400 rounded-xl p-6 shadow space-y-4">
+                <h2 class="text-xl font-semibold text-yellow-900 dark:text-yellow-200">Unassigned Critters</h2>
+                <p class="text-yellow-800 dark:text-yellow-100 italic mb-4">These critters are sad and lonely
+                    😢. They need a home (enclosure) to be tracked!</p>
+
+                @foreach (var critter in critters.Where(c => c.EnclosureProfileId == null))
+                {
+                    <div class="flex items-center gap-4 bg-white dark:bg-gray-700 rounded-lg p-3 shadow">
+                        <img src="@($"/{critter.IconUrl?.TrimStart('/') ?? "img/critters/default.svg"}")"
+                             alt="@critter.Name"
+                             class="w-12 h-12"/>
+
+                        <div class="flex-1">
+                            <strong>@critter.Name</strong><br/>
+                            <span class="text-sm text-gray-500 dark:text-gray-300">@critter.Species</span>
+                        </div>
+
+                        <button class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm"
+                                @onclick="() => PromptEnclosureForCritter(critter)">
+                            Create Enclosure
+                        </button>
+                    </div>
+                }
+            </div>
+        }
     }
 </div>
 
@@ -88,7 +117,8 @@
     IsVisible="showCritterModal"
     IsVisibleChanged="HandleCritterModalVisibilityChanged"
     EnclosureName="@currentEnclosureName"
-    EnclosureId="@currentEnclosureId"/>
+    EnclosureId="@currentEnclosureId"
+    OnCritterAdded="HandleCritterAdded"/>
 
 
 
@@ -129,19 +159,58 @@
         }
     }
 
+    private async Task HandleCritterAdded(CritterDto newCritter)
+    {
+        try
+        {
+            // Add the new critter to the local collection
+            critters.Add(newCritter);
+
+            // Refresh data to ensure everything is up-to-date
+            await LoadData();
+
+            // If the critter has an enclosure, navigate to that enclosure
+            if (newCritter.EnclosureProfileId.HasValue)
+            {
+                int enclosureIndex = enclosures.FindIndex(e => e.Id == newCritter.EnclosureProfileId.Value);
+                if (enclosureIndex >= 0)
+                {
+                    NavigateToCard(enclosureIndex);
+                }
+            }
+
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("console.error", $"Error handling new critter: {ex.Message}");
+        }
+    }
+
+// Modify the LoadData method to load ALL critters, including those without enclosures
     private async Task LoadData()
     {
         try
         {
+            // Load all enclosures
             enclosures = await EnclosureService.GetEnclosuresAsync();
+
+            // Clear existing critters
             critters.Clear();
+
+            // Load critters from enclosures
             foreach (var enclosure in enclosures)
             {
                 var enclosureCritters = await CritterService.GetCrittersByEnclosureIdAsync(enclosure.Id);
                 critters.AddRange(enclosureCritters);
             }
 
-            // Log for debugging
+            // IMPORTANT: Also load critters without enclosures
+            var unassignedCritters = await CritterService.GetUnassignedCrittersAsync();
+            critters.AddRange(unassignedCritters);
+
+            // Debug log to verify critters were loaded
+            await JSRuntime.InvokeVoidAsync("console.log", $"Loaded {critters.Count} total critters, including {unassignedCritters.Count} unassigned");
         }
         catch (Exception ex)
         {
@@ -208,22 +277,6 @@
         return Task.CompletedTask;
     }
 
-    private async Task HandleCritterAdded(CritterDto newCritter)
-    {
-        await LoadData();
-
-        // If added to a draft enclosure, prompt enclosure modal
-        var draft = enclosures.FirstOrDefault(e => e.Name == "New Enclosure (Draft)");
-        if (draft != null)
-        {
-            currentEnclosureId = draft.Id;
-            currentEnclosureName = draft.Name;
-            showEnclosureModal = true;
-        }
-
-        StateHasChanged();
-    }
-
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
@@ -247,25 +300,16 @@
         return new Random().Next(5, 80); // stays within bounds
     }
 
-    private void ToggleTooltip(int critterId)
-    {
-        if (tooltipVisible.ContainsKey(critterId))
-            tooltipVisible[critterId] = !tooltipVisible[critterId];
-        else
-            tooltipVisible[critterId] = true;
-    }
-
 
     private async Task BeginPetFirstFlow()
     {
         ShowAddCritterModal();
     }
 
-    private void HandleDraftCritterCreated(CritterDto draft)
+    private void PromptEnclosureForCritter(CritterDto homelessCritter)
     {
-        pendingCritters.Add(draft);
-        showCritterModal = false;
-        showEnclosureModal = true; // prompt user to create/select enclosure
+        pendingCritters.Add(homelessCritter);
+        showEnclosureModal = true;
     }
 
 }

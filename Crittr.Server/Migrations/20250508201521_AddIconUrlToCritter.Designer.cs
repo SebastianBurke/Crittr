@@ -3,6 +3,7 @@ using System;
 using Crittr.Server.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Crittr.Server.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250508201521_AddIconUrlToCritter")]
+    partial class AddIconUrlToCritter
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.4");
@@ -162,10 +165,9 @@ namespace Crittr.Server.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("IconUrl")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<double?>("Length")
+                    b.Property<double>("Length")
                         .HasColumnType("REAL");
 
                     b.Property<string>("Name")
@@ -182,11 +184,7 @@ namespace Crittr.Server.Migrations
                     b.Property<int>("SpeciesType")
                         .HasColumnType("INTEGER");
 
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<double?>("Weight")
+                    b.Property<double>("Weight")
                         .HasColumnType("REAL");
 
                     b.HasKey("Id");

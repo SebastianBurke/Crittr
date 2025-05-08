@@ -30,4 +30,22 @@
       <AdditionalFiles Include="Pages\Shared\MainLayout.razor" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Content Update="wwwroot\img\critters\eublepharis-macularis.svg">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </Content>
+      <Content Update="wwwroot\img\critters\betta-splendens.svg">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </Content>
+      <Content Update="wwwroot\img\critters\default.svg">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </Content>
+      <Content Update="wwwroot\img\critters\nymphicus-hollandicus.svg">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </Content>
+      <Content Update="wwwroot\img\critters\python-regius.svg">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </Content>
+    </ItemGroup>
+
 </Project>

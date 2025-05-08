@@ -34,6 +34,26 @@ public class CritterService
             return new List<CritterDto>();
         }
     }
+    public async Task<List<CritterDto>> GetUnassignedCrittersAsync()
+    {
+        try
+        {
+            var token = await _localStorage.GetItemAsync<string>("authToken");
+
+            if (!string.IsNullOrWhiteSpace(token))
+            {
+                _http.DefaultRequestHeaders.Authorization =
+                    new AuthenticationHeaderValue("Bearer", token);
+            }
+
+            var critters = await _http.GetFromJsonAsync<List<CritterDto>>($"api/critter/dto/unassigned/");
+            return critters ?? new List<CritterDto>();
+        }
+        catch (Exception ex)
+        {
+            return new List<CritterDto>();
+        }
+    }
     
     public async Task<CritterDto?> CreateCritterAsync(CritterDto dto)
     {
@@ -56,4 +76,5 @@ public class CritterService
 
         return await response.Content.ReadFromJsonAsync<CritterDto>();
     }
+    
 }

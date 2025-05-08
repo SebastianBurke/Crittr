@@ -9,6 +9,7 @@ public interface ICritterService
     Task<Critter?> GetByIdAsync(int id);
     Task<CritterDto?> GetDtoByIdAsync(int id);
     Task<List<CritterDto>> GetAllDtosByEnclosureIdAsync(int enclosureId);
+    Task<List<CritterDto>> GetUnassignedCrittersByUserAsync(string userId);
     Task<Critter> CreateAsync(Critter critter);
     Task<bool> UpdateAsync(Critter critter);
     Task<bool> DeleteAsync(int id);
