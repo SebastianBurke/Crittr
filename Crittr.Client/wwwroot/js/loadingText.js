@@ -21,7 +21,10 @@ export function cycleLoadingText(elId) {
         "Brewing critter-safe coffee...",
         "Sharpening claws... carefully.",
         "Camouflaging... please wait.",
-        "Fetching data from the jungle 🐍"
+        "Fetching data from the jungle 🐍",
+        "Watching the chicken cross the road...",
+        "Spinning the hamster wheel...",
+        "Taking 2 birds out with one stone..."
     ];
 
     const getRandomMessage = () =>
