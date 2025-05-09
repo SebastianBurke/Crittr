@@ -90,7 +90,8 @@ public class DataSeeder
             Weight = 1500,
             Length = 120,
             Description = "Normal morph ball python, very docile",
-            EnclosureProfileId = enclosure2.Id
+            EnclosureProfileId = enclosure2.Id,
+            UserId = user.Id
         };
 
         _dbContext.Critters.AddRange(spike, monty);

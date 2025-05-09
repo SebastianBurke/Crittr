@@ -31,7 +31,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Content Update="wwwroot\img\critters\eublepharis-macularis.svg">
+      <Content Update="wwwroot\img\critters\eublepharis-macularius.svg">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       </Content>
       <Content Update="wwwroot\img\critters\betta-splendens.svg">

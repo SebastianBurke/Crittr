@@ -24,7 +24,8 @@ export function cycleLoadingText(elId) {
         "Fetching data from the jungle 🐍",
         "Watching the chicken cross the road...",
         "Spinning the hamster wheel...",
-        "Taking 2 birds out with one stone..."
+        "Taking 2 birds out with one stone...",
+        "Crittr is yawning..."
     ];
 
     const getRandomMessage = () =>
