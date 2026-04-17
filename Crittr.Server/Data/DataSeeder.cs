@@ -1,6 +1,7 @@
-﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity;
 using Crittr.Server.Models;
 using Crittr.Shared.Models;
+using Crittr.Shared.Models.Enums;
 using static Crittr.Shared.Models.Enums.ItemType;
 using static Crittr.Shared.Models.Enums.TaskPriority;
 
@@ -17,25 +18,56 @@ public class DataSeeder
         _dbContext = dbContext;
     }
 
+    /// <summary>Corrects EnclosureType for existing rows that were seeded before the field was populated.</summary>
+    public async Task FixEnclosureTypesAsync()
+    {
+        var fixes = new Dictionary<string, EnclosureType>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["vivarium"]    = EnclosureType.Vivarium,
+            ["aquarium"]    = EnclosureType.Aquarium,
+            ["paludarium"]  = EnclosureType.Paludarium,
+            ["insectarium"] = EnclosureType.Insectarium,
+            ["aviary"]      = EnclosureType.Aviary,
+            ["cage"]        = EnclosureType.Cage,
+            ["rack"]        = EnclosureType.RackSystem,
+            ["bin"]         = EnclosureType.Bin,
+            ["tank"]        = EnclosureType.Tank,
+        };
+
+        var enclosures = _dbContext.EnclosureProfiles
+            .Where(e => e.EnclosureType == EnclosureType.Terrarium)
+            .ToList();
+
+        bool changed = false;
+        foreach (var enc in enclosures)
+        {
+            foreach (var (keyword, type) in fixes)
+            {
+                if (enc.Name.Contains(keyword, StringComparison.OrdinalIgnoreCase))
+                {
+                    enc.EnclosureType = type;
+                    changed = true;
+                    break;
+                }
+            }
+        }
+
+        if (changed) await _dbContext.SaveChangesAsync();
+    }
+
     public async Task SeedAsync(string userIdFromArgs)
     {
         if (_dbContext.Critters.Any()) return;
 
-        var user = await _userManager.FindByEmailAsync("demo@demo.com");
+        var user = await _userManager.FindByIdAsync(userIdFromArgs);
         if (user == null)
-        {
-            user = new AppUser
-            {
-                UserName = "demo@demo.com",
-                Email = "demo@demo.com"
-            };
-            var result = await _userManager.CreateAsync(user, "Password123!");
-            if (!result.Succeeded) throw new Exception("Failed to create demo user.");
-        }
+            throw new InvalidOperationException(
+                "Demo user from startup seed was not found; cannot attach sample critters.");
 
         var enclosure1 = new EnclosureProfile
         {
             Name = "Desert Terrarium",
+            EnclosureType = EnclosureType.Terrarium,
             Length = 120,
             Width = 60,
             Height = 60,
@@ -50,6 +82,7 @@ public class DataSeeder
         var enclosure2 = new EnclosureProfile
         {
             Name = "Tropical Vivarium",
+            EnclosureType = EnclosureType.Vivarium,
             Length = 90,
             Width = 45,
             Height = 90,

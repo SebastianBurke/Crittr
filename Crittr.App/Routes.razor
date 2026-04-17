@@ -1,0 +1,20 @@
+<Router AppAssembly="@typeof(Routes).Assembly">
+    <Found Context="routeData">
+        <RouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)"/>
+        <FocusOnNavigate RouteData="@routeData" Selector="h1"/>
+    </Found>
+    <NotFound>
+        <PageTitle>Page not found — Crittr</PageTitle>
+        <LayoutView Layout="@typeof(MainLayout)">
+            <div class="max-w-md mx-auto text-center py-16 px-4">
+                <p class="text-6xl font-black text-green-600/30 dark:text-green-500/20 select-none" aria-hidden="true">404</p>
+                <h1 class="mt-4 text-2xl font-bold text-slate-900 dark:text-white">This page doesn’t exist</h1>
+                <p class="mt-2 text-slate-600 dark:text-slate-400">Check the URL, or head back to your dashboard.</p>
+                <a href="/"
+                   class="mt-8 inline-flex rounded-xl bg-green-600 hover:bg-green-700 text-white font-semibold px-6 py-3 shadow-lg shadow-green-600/25">
+                    Go home
+                </a>
+            </div>
+        </LayoutView>
+    </NotFound>
+</Router>

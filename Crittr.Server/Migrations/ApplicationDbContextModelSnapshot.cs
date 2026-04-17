@@ -202,6 +202,9 @@ namespace Crittr.Server.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<int>("EnclosureType")
+                        .HasColumnType("INTEGER");
+
                     b.Property<bool>("HasHeatingElement")
                         .HasColumnType("INTEGER");
 
@@ -587,7 +590,7 @@ namespace Crittr.Server.Migrations
                     b.HasOne("Crittr.Shared.Models.EnclosureProfile", "EnclosureProfile")
                         .WithMany("Critters")
                         .HasForeignKey("EnclosureProfileId")
-                        .OnDelete(DeleteBehavior.Cascade);
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("EnclosureProfile");
                 });

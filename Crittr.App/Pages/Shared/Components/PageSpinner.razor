@@ -1,0 +1,14 @@
+<div class="@RootClass">
+    <div class="h-11 w-11 rounded-full border-2 border-green-500/25 border-t-green-600 dark:border-t-green-400 animate-spin" aria-hidden="true"></div>
+    @if (!string.IsNullOrEmpty(Message))
+    {
+        <p class="text-sm font-medium text-slate-600 dark:text-slate-300">@Message</p>
+    }
+</div>
+
+@code {
+    [Parameter] public string? Message { get; set; }
+    [Parameter] public string? Class { get; set; }
+
+    private string RootClass => string.Join(' ', "flex flex-col items-center justify-center gap-4 py-16", Class ?? string.Empty).Trim();
+}

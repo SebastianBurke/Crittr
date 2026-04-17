@@ -1,0 +1,25 @@
+/* Crittr v1 — complements Tailwind output */
+:root {
+  --crittr-accent: #059669;
+  --crittr-accent-muted: rgba(5, 150, 105, 0.12);
+}
+
+::selection {
+  background-color: rgba(16, 185, 129, 0.22);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* Focus visible for keyboard users */
+:focus-visible {
+  outline: 2px solid var(--crittr-accent);
+  outline-offset: 2px;
+}
+
+/* Blazor error UI */
+#blazor-error-ui {
+  background: linear-gradient(90deg, #b91c1c, #dc2626);
+  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.15);
+}

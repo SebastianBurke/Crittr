@@ -14,4 +14,6 @@ public interface ICritterService
     Task<bool> UpdateAsync(Critter critter);
     Task<bool> DeleteAsync(int id);
     Task<List<CritterDto>> SearchAsync(string searchTerm);
+    Task<List<Critter>> GetAllByUserAsync(string userId);
+    Task<List<CritterDto>> SearchByUserAsync(string searchTerm, string userId);
 }

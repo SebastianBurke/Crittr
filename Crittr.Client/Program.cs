@@ -1,36 +1,32 @@
-using Blazored.LocalStorage;
+using Crittr.App;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
-using Crittr.Client;
-using Crittr.Client.Services;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
-builder.RootComponents.Add<App>("#app");
+builder.RootComponents.Add<Routes>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
-builder.Services.AddScoped(sp => new HttpClient
-{
-    BaseAddress = new Uri("https://localhost:7282/")
-});
-builder.Services.AddScoped<FeedingService>();
-builder.Services.AddScoped<SheddingService>();
-builder.Services.AddScoped<MeasurementService>();
-builder.Services.AddScoped<HealthService>();
-builder.Services.AddScoped<ScheduledTaskService>();
-builder.Services.AddScoped<AuthorizedHandler>();
-builder.Services.AddScoped<EnclosureService>();
-builder.Services.AddScoped<SpeciesService>();
-
-builder.Services.AddHttpClient<CritterService>(client =>
-{
-    client.BaseAddress = new Uri("https://localhost:7282/");
-}).AddHttpMessageHandler<AuthorizedHandler>();
-
-builder.Services.AddHttpClient<AuthService>(client =>
-{
-    client.BaseAddress = new Uri("https://localhost:7282/");
-});
-
-builder.Services.AddBlazoredLocalStorage();
+var apiBase = await ResolveApiBaseAsync(builder);
+builder.Services.AddCrittrApp(apiBase);
 
 await builder.Build().RunAsync();
+
+static async Task<string> ResolveApiBaseAsync(WebAssemblyHostBuilder builder)
+{
+    try
+    {
+        using var http = new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) };
+        await using var stream = await http.GetStreamAsync("appsettings.json");
+        builder.Configuration.AddJsonStream(stream);
+    }
+    catch
+    {
+        // Optional file (e.g. first run); fall through to default
+    }
+
+    var url = builder.Configuration["ApiBaseUrl"];
+    if (string.IsNullOrWhiteSpace(url))
+        url = "https://localhost:7282/";
+
+    return url.TrimEnd('/') + "/";
+}

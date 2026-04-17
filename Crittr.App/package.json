@@ -1,0 +1,17 @@
+{
+  "name": "crittr.app",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build:css": "tailwindcss -i ./wwwroot/css/tailwind.css -o ./wwwroot/css/output.css",
+    "watch:css": "tailwindcss -i ./wwwroot/css/tailwind.css -o ./wwwroot/css/output.css --watch"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.2.2",
+    "autoprefixer": "^10.4.21",
+    "flowbite": "^3.1.2",
+    "postcss": "^8.5.3",
+    "tailwindcss": "^4.1.5",
+    "tailwindcss-cli": "^0.1.2"
+  }
+}

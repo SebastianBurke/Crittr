@@ -23,9 +23,9 @@ public class SpeciesController : ControllerBase
     }
 
     [HttpGet("search")]
-    public async Task<ActionResult<List<SpeciesInfo>>> Search([FromQuery] string q, [FromQuery] SpeciesType? type)
+    public async Task<ActionResult<List<SpeciesInfo>>> Search([FromQuery] string? q, [FromQuery] SpeciesType? type)
     {
-        var results = await _catalog.SearchAsync(q, type);
+        var results = await _catalog.SearchAsync(q ?? "", type);
         return results;
     }
 }

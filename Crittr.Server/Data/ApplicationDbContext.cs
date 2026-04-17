@@ -56,10 +56,5 @@ public class ApplicationDbContext : IdentityDbContext<AppUser>
             .WithMany(e => e.Caregivers)
             .HasForeignKey(c => c.EnclosureId)
             .OnDelete(DeleteBehavior.Cascade);
-        modelBuilder.Entity<EnclosureProfile>()
-            .HasMany(e => e.Critters)
-            .WithOne(r => r.EnclosureProfile)
-            .HasForeignKey(r => r.EnclosureProfileId)
-            .OnDelete(DeleteBehavior.Cascade);
     }
 }

@@ -1,0 +1,230 @@
+@using Crittr.App.Services
+@using Crittr.Shared.DTOs
+@using Crittr.Shared.Models.Enums
+@inject EnclosureService EnclosureService
+
+@if (IsVisible)
+{
+    <div class="fixed inset-0 z-[1000] bg-slate-900/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4" @onclick="Close">
+        <div class="relative w-full sm:max-w-lg bg-white dark:bg-gray-800 rounded-t-2xl sm:rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 max-h-[92dvh] overflow-y-auto"
+             @onclick:stopPropagation>
+
+            <!-- Header -->
+            <div class="sticky top-0 z-10 flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-gray-800 rounded-t-2xl sm:rounded-t-2xl">
+                <h3 class="text-lg font-semibold text-slate-900 dark:text-white">New enclosure</h3>
+                <button type="button" @onclick="Close" aria-label="Close"
+                        class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            <form @onsubmit="HandleSubmit" class="px-5 py-5 space-y-5">
+
+                <!-- Name + Type -->
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Name <span class="text-red-500">*</span></label>
+                        <input type="text" @bind="newEnclosure.Name" placeholder="e.g. Desert Vivarium"
+                               class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-900 px-3.5 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-green-500/40 focus:border-green-500 outline-none"/>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Type</label>
+                        <select @bind="newEnclosure.EnclosureType"
+                                class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-900 px-3.5 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-green-500/40 focus:border-green-500 outline-none">
+                            @foreach (var t in Enum.GetValues<EnclosureType>())
+                            {
+                                <option value="@t">@t</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Dimensions -->
+                <div>
+                    <p class="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Dimensions (inches)</p>
+                    <div class="grid grid-cols-3 gap-3">
+                        <div>
+                            <label class="block text-xs text-slate-500 dark:text-slate-400 mb-1">Length</label>
+                            <input type="number" @bind="newEnclosure.Length" min="1" step="0.5"
+                                   class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-900 px-3 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-green-500/40 focus:border-green-500 outline-none"/>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-slate-500 dark:text-slate-400 mb-1">Width</label>
+                            <input type="number" @bind="newEnclosure.Width" min="1" step="0.5"
+                                   class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-900 px-3 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-green-500/40 focus:border-green-500 outline-none"/>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-slate-500 dark:text-slate-400 mb-1">Height</label>
+                            <input type="number" @bind="newEnclosure.Height" min="1" step="0.5"
+                                   class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-900 px-3 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-green-500/40 focus:border-green-500 outline-none"/>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Substrate -->
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Substrate <span class="text-slate-400 font-normal">(optional)</span></label>
+                    <input type="text" @bind="newEnclosure.SubstrateType" placeholder="e.g. Critter Carpet, Aspen Shavings"
+                           class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-900 px-3.5 py-2.5 text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-green-500/40 focus:border-green-500 outline-none"/>
+                </div>
+
+                <!-- Environment -->
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Temp (°F)</label>
+                        <input type="number" @bind="newEnclosure.IdealTemperature" min="0" max="120" step="1"
+                               class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-900 px-3.5 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-green-500/40 focus:border-green-500 outline-none"/>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Humidity (%)</label>
+                        <input type="number" @bind="newEnclosure.IdealHumidity" min="0" max="100" step="1"
+                               class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-900 px-3.5 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-green-500/40 focus:border-green-500 outline-none"/>
+                    </div>
+                </div>
+
+                <!-- Lighting / Heating -->
+                <div class="flex gap-6">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" @bind="newEnclosure.HasUVBLighting"
+                               class="w-4 h-4 rounded border-slate-300 text-green-600 focus:ring-green-500"/>
+                        <span class="text-sm font-medium text-slate-700 dark:text-slate-300">UVB Lighting</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" @bind="newEnclosure.HasHeatingElement"
+                               class="w-4 h-4 rounded border-slate-300 text-green-600 focus:ring-green-500"/>
+                        <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Heating Element</span>
+                    </label>
+                </div>
+
+                @if (!string.IsNullOrEmpty(errorMessage))
+                {
+                    <div class="rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 text-red-800 dark:text-red-200 px-4 py-3 text-sm" role="alert">
+                        @errorMessage
+                    </div>
+                }
+
+                <!-- Actions -->
+                <div class="flex gap-3 pt-1 pb-safe">
+                    <button type="button" @onclick="Close"
+                            class="flex-1 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-800 text-slate-800 dark:text-slate-200 font-semibold py-2.5 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+                        Cancel
+                    </button>
+                    <button type="submit" disabled="@isSubmitting"
+                            class="flex-1 rounded-xl bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-2.5 shadow-lg shadow-green-600/20 transition-colors">
+                        @(isSubmitting ? "Creating…" : "Create enclosure")
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+}
+
+@code {
+    private bool _isVisible;
+
+    [Parameter]
+    public bool IsVisible
+    {
+        get => _isVisible;
+        set
+        {
+            if (_isVisible != value)
+            {
+                _isVisible = value;
+                if (_isVisible)
+                {
+                    ResetForm();
+                }
+            }
+        }
+    }
+
+    [Parameter] public EventCallback<bool> IsVisibleChanged { get; set; }
+
+    [Parameter] public EventCallback<EnclosureProfileDto> OnEnclosureCreated { get; set; }
+
+    private EnclosureProfileDto newEnclosure = new EnclosureProfileDto();
+    private bool isSubmitting = false;
+    private string errorMessage = null;
+
+    protected override void OnInitialized()
+    {
+        ResetForm();
+    }
+
+    private void ResetForm()
+    {
+        // Reset form values
+        newEnclosure = new EnclosureProfileDto
+        {
+            HasUVBLighting = true, // Default values
+            HasHeatingElement = true,
+            IdealTemperature = 85,
+            IdealHumidity = 50,
+            Length = 36,
+            Width = 18,
+            Height = 18
+        };
+        errorMessage = null;
+    }
+
+    private async Task HandleSubmit()
+    {
+        try
+        {
+            isSubmitting = true;
+            errorMessage = null;
+
+            // Basic validation
+            if (string.IsNullOrWhiteSpace(newEnclosure.Name))
+            {
+                errorMessage = "Enclosure name is required.";
+                return;
+            }
+
+            if (newEnclosure.Length <= 0 || newEnclosure.Width <= 0 || newEnclosure.Height <= 0)
+            {
+                errorMessage = "Length, width, and height must be greater than zero.";
+                return;
+            }
+
+            if (newEnclosure.IdealTemperature <= 0)
+            {
+                errorMessage = "Ideal temperature must be specified.";
+                return;
+            }
+
+            if (newEnclosure.IdealHumidity < 0 || newEnclosure.IdealHumidity > 100)
+            {
+                errorMessage = "Ideal humidity must be between 0 and 100%.";
+                return;
+            }
+
+            // Submit to service
+            var createdEnclosure = await EnclosureService.CreateEnclosureAsync(newEnclosure);
+
+            // Success - notify parent
+            await OnEnclosureCreated.InvokeAsync(createdEnclosure);
+            await Close();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error creating enclosure: {ex.Message}";
+        }
+        finally
+        {
+            isSubmitting = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task Close()
+    {
+        _isVisible = false;
+        await IsVisibleChanged.InvokeAsync(false);
+        StateHasChanged();
+    }
+
+}

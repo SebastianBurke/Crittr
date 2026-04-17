@@ -39,6 +39,7 @@ public class EnclosureService : IEnclosureService
             {
                 Id = e.Id,
                 Name = e.Name,
+                EnclosureType = e.EnclosureType,
                 SubstrateType = e.SubstrateType,
                 Length = e.Length,
                 Width = e.Width,
@@ -83,6 +84,7 @@ public class EnclosureService : IEnclosureService
         {
             Id = e.Id,
             Name = e.Name,
+            EnclosureType = e.EnclosureType,
             SubstrateType = e.SubstrateType,
             Length = e.Length,
             Width = e.Width,
@@ -101,6 +103,7 @@ public class EnclosureService : IEnclosureService
             {
                 Id = e.Id,
                 Name = e.Name,
+                EnclosureType = e.EnclosureType,
                 SubstrateType = e.SubstrateType,
                 Length = e.Length,
                 Width = e.Width,

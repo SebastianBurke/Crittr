@@ -1,0 +1,101 @@
+@inherits LayoutComponentBase
+@inject Blazored.LocalStorage.ILocalStorageService LocalStorage
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+
+<div class="w-full min-h-screen flex flex-col bg-white dark:bg-gray-950 text-slate-900 dark:text-slate-100 antialiased">
+    <header class="sticky top-0 z-40 border-b border-slate-200/80 dark:border-slate-700/80 bg-white/85 dark:bg-gray-900/90 backdrop-blur-md shadow-sm shadow-slate-900/5">
+        <div class="w-full px-4 sm:px-6 lg:px-10 h-14 sm:h-16 flex justify-between items-center gap-4">
+            <a href="/" class="flex items-center gap-2 shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500 rounded-lg">
+                <img src="@AppAssets.Url("img/logo.svg")"
+                     alt="Crittr"
+                     class="h-10 sm:h-11 w-auto"/>
+            </a>
+            <nav class="flex items-center gap-1 sm:gap-3 text-sm font-medium">
+                @if (IsLoggedIn)
+                {
+                    <a href="/"
+                       class="hidden sm:inline px-3 py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-green-500/10 hover:text-green-800 dark:hover:text-green-200 transition-colors">
+                        Dashboard
+                    </a>
+                }
+
+                <!-- Dark / light toggle -->
+                <button type="button" @onclick="ToggleTheme" aria-label="Toggle dark mode"
+                        class="w-9 h-9 flex items-center justify-center rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                    @if (isDark)
+                    {
+                        <!-- Sun icon -->
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                            <circle cx="12" cy="12" r="4"/>
+                            <path stroke-linecap="round" d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                        </svg>
+                    }
+                    else
+                    {
+                        <!-- Moon icon -->
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>
+                        </svg>
+                    }
+                </button>
+
+                @if (IsLoggedIn)
+                {
+                    <button type="button"
+                            @onclick="Logout"
+                            class="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                            aria-label="Log out">
+                        <img src="@AppAssets.Url("img/icons/logout.svg")" alt="" class="h-8 w-8 opacity-80" width="32" height="32"/>
+                        <span class="hidden sm:inline">Log out</span>
+                    </button>
+                }
+            </nav>
+        </div>
+    </header>
+
+    <main class="flex-1 w-full min-w-0 overflow-x-hidden px-4 sm:px-6 lg:px-10 py-6 sm:py-8">
+        @Body
+    </main>
+
+    <footer class="mt-auto border-t border-slate-200/80 dark:border-slate-800 py-5 px-4 sm:px-6 lg:px-10 text-center text-xs text-slate-500 dark:text-slate-400">
+        <p class="font-medium text-slate-600 dark:text-slate-300">Crittr <a href="/changelog" class="text-green-600 dark:text-green-400 hover:underline">v@(AppInfo.Version)</a></p>
+        <p class="mt-1">@AppInfo.Tagline</p>
+    </footer>
+</div>
+
+@code {
+    private bool IsLoggedIn;
+    private bool isDark;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var token = await LocalStorage.GetItemAsync<string>("authToken");
+        IsLoggedIn = !string.IsNullOrWhiteSpace(token);
+
+        var saved = await LocalStorage.GetItemAsync<string>("theme");
+        isDark = saved == "dark";
+
+        Navigation.LocationChanged += async (_, __) =>
+        {
+            var newToken = await LocalStorage.GetItemAsync<string>("authToken");
+            IsLoggedIn = !string.IsNullOrWhiteSpace(newToken);
+            await InvokeAsync(StateHasChanged);
+        };
+    }
+
+    private async Task ToggleTheme()
+    {
+        isDark = !isDark;
+        var theme = isDark ? "dark" : "light";
+        await LocalStorage.SetItemAsync("theme", theme);
+        await JS.InvokeVoidAsync("setTheme", theme);
+    }
+
+    private async Task Logout()
+    {
+        await LocalStorage.RemoveItemAsync("authToken");
+        IsLoggedIn = false;
+        Navigation.NavigateTo("/login", forceLoad: false);
+    }
+}

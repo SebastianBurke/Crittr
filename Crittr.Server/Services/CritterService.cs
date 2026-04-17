@@ -98,30 +98,106 @@ public class CritterService : ICritterService
 
     public async Task<List<CritterDto>> GetAllDtosAsync()
     {
-        var critters = await GetAllAsync();
-        var dtos = new List<CritterDto>();
-
-        foreach (var critter in critters)
-        {
-            dtos.Add(await CreateDtoFromCritter(critter));
-        }
-
-        return dtos;
+        return await _db.Critters
+            .Select(r => new CritterDto
+            {
+                Id = r.Id,
+                Name = r.Name,
+                Species = r.Species,
+                SpeciesType = r.SpeciesType,
+                DateAcquired = r.DateAcquired,
+                DateOfBirth = r.DateOfBirth,
+                Sex = r.Sex,
+                Weight = r.Weight,
+                Length = r.Length,
+                Description = r.Description,
+                EnclosureProfileId = r.EnclosureProfileId,
+                UserId = r.UserId,
+                IconUrl = r.IconUrl,
+                RecentHealthScore = r.HealthScores
+                    .OrderByDescending(h => h.AssessmentDate)
+                    .Select(h => h.Score)
+                    .FirstOrDefault(),
+                LastFeedingDate = r.FeedingRecords
+                    .OrderByDescending(f => f.FeedingDate)
+                    .Select(f => f.FeedingDate)
+                    .FirstOrDefault(),
+                LastWeightDate = r.MeasurementRecords
+                    .OrderByDescending(m => m.MeasurementDate)
+                    .Select(m => m.MeasurementDate)
+                    .FirstOrDefault(),
+                LastSheddingDate = r.SheddingRecords
+                    .OrderByDescending(s => s.CompletionDate)
+                    .Select(s => s.CompletionDate)
+                    .FirstOrDefault(),
+                PendingTasksCount = r.ScheduledTasks.Count(t => !t.IsCompleted)
+            })
+            .ToListAsync();
     }
     
     public async Task<List<CritterDto>> GetUnassignedCrittersByUserAsync(string userId)
     {
-        var critters = await _db.Critters
+        return await _db.Critters
             .Where(c => c.UserId == userId && c.EnclosureProfileId == null)
+            .Select(r => new CritterDto
+            {
+                Id = r.Id,
+                Name = r.Name,
+                Species = r.Species,
+                SpeciesType = r.SpeciesType,
+                DateAcquired = r.DateAcquired,
+                DateOfBirth = r.DateOfBirth,
+                Sex = r.Sex,
+                Weight = r.Weight,
+                Length = r.Length,
+                Description = r.Description,
+                EnclosureProfileId = r.EnclosureProfileId,
+                UserId = r.UserId,
+                IconUrl = r.IconUrl,
+                RecentHealthScore = r.HealthScores
+                    .OrderByDescending(h => h.AssessmentDate)
+                    .Select(h => h.Score)
+                    .FirstOrDefault(),
+                LastFeedingDate = r.FeedingRecords
+                    .OrderByDescending(f => f.FeedingDate)
+                    .Select(f => f.FeedingDate)
+                    .FirstOrDefault(),
+                LastWeightDate = r.MeasurementRecords
+                    .OrderByDescending(m => m.MeasurementDate)
+                    .Select(m => m.MeasurementDate)
+                    .FirstOrDefault(),
+                LastSheddingDate = r.SheddingRecords
+                    .OrderByDescending(s => s.CompletionDate)
+                    .Select(s => s.CompletionDate)
+                    .FirstOrDefault(),
+                PendingTasksCount = r.ScheduledTasks.Count(t => !t.IsCompleted)
+            })
+            .ToListAsync();
+    }
+
+    public async Task<List<Critter>> GetAllByUserAsync(string userId)
+    {
+        return await _db.Critters
+            .Include(r => r.EnclosureProfile)
+            .Where(c => c.UserId == userId)
+            .ToListAsync();
+    }
+
+    public async Task<List<CritterDto>> SearchByUserAsync(string searchTerm, string userId)
+    {
+        searchTerm = searchTerm.ToLower();
+        var critters = await _db.Critters
+            .Include(r => r.EnclosureProfile)
+            .Where(r => r.UserId == userId &&
+                        (r.Name.ToLower().Contains(searchTerm) ||
+                         r.Species.ToLower().Contains(searchTerm) ||
+                         r.Description != null && r.Description.ToLower().Contains(searchTerm)))
             .ToListAsync();
 
-        var result = new List<CritterDto>();
-        foreach (var c in critters)
-        {
-            result.Add(await CreateDtoFromCritter(c));
-        }
-
-        return result;
+        var dtos = new List<CritterDto>();
+        foreach (var critter in critters)
+            dtos.Add(await CreateDtoFromCritter(critter));
+        return dtos;
     }
 
     public async Task<Critter> CreateAsync(Critter critter)
@@ -179,6 +255,7 @@ public class CritterService : ICritterService
             Id = critter.Id,
             Name = critter.Name,
             Species = critter.Species,
+            SpeciesType = critter.SpeciesType,
             DateAcquired = critter.DateAcquired,
             DateOfBirth = critter.DateOfBirth,
             Sex = critter.Sex,

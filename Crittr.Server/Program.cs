@@ -12,8 +12,16 @@ using ICritterService = Crittr.Server.Services.Interfaces.ICritterService;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// In Development, bind the URLs the Blazor client expects (see Crittr.App / launchSettings https profile).
+// Without this, `dotnet run` may use the "http" profile (5099 only) and the WASM app cannot reach https://localhost:7282.
+if (builder.Environment.IsDevelopment())
+{
+    // Bind HTTP to all interfaces so LAN devices (phones, emulators) can reach the API.
+    // HTTPS stays localhost-only (dev cert is not trusted on remote devices).
+    builder.WebHost.UseUrls("http://0.0.0.0:5099", "https://localhost:7282");
+}
+
 // Register services
-builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme);
@@ -46,14 +54,39 @@ builder.Services.AddIdentity<AppUser, IdentityRole>()
     .AddEntityFrameworkStores<ApplicationDbContext>();
 
 
-// CORS for Blazor client
+// CORS for Blazor WASM (Crittr.Client launchSettings: https on 7110, http on 5267 — scheme+port must match exactly).
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        policy.WithOrigins("https://localhost:7110") // match Blazor client port
-            .AllowAnyHeader()
-            .AllowAnyMethod();
+        if (builder.Environment.IsDevelopment())
+        {
+            policy.SetIsOriginAllowed(origin =>
+            {
+                if (!Uri.TryCreate(origin, UriKind.Absolute, out var uri))
+                    return false;
+                if (uri.IsLoopback)
+                    return true;
+                // Allow private-network addresses for LAN testing (iPhone, emulators, etc.)
+                if (uri.HostNameType == UriHostNameType.IPv4 &&
+                    System.Net.IPAddress.TryParse(uri.Host, out var ip))
+                {
+                    var b = ip.GetAddressBytes();
+                    return b[0] == 10 ||
+                           (b[0] == 172 && b[1] >= 16 && b[1] <= 31) ||
+                           (b[0] == 192 && b[1] == 168);
+                }
+                return false;
+            });
+        }
+        else
+        {
+            policy.WithOrigins(
+                builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+                ?? ["https://localhost:7110"]);
+        }
+
+        policy.AllowAnyHeader().AllowAnyMethod();
     });
 });
 
@@ -95,7 +128,9 @@ if (app.Environment.IsDevelopment())
 }
 
 
-app.UseHttpsRedirection();
+if (!app.Environment.IsDevelopment())
+    app.UseHttpsRedirection();
+
 app.UseCors(); // must be before UseAuthorization
 
 app.UseAuthentication();
@@ -103,41 +138,52 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-var userId = await SeedDemoUser(app);
+var sampleDataOwnerId = await SeedDemoUsers(app);
 
 using (var scope = app.Services.CreateScope())
 {
     var seeder = scope.ServiceProvider.GetRequiredService<DataSeeder>();
-    await seeder.SeedAsync(userId);
+    await seeder.SeedAsync(sampleDataOwnerId);
+    await seeder.FixEnclosureTypesAsync();
 }
 
 app.Run();
 
-// Seeding helper method
-async Task<string> SeedDemoUser(WebApplication app)
+/// <summary>
+/// Ensures documented demo accounts exist. Sample critters/enclosures attach to <c>demo@critterapp.com</c>.
+/// </summary>
+static async Task<string> SeedDemoUsers(WebApplication app)
 {
     using var scope = app.Services.CreateScope();
     var userManager = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
 
-    var demoEmail = "demo@critterapp.com";
-    var demoPassword = "Demo123!";
+    await EnsureDemoUserAsync(userManager, "demo@critterapp.com", "Demo123!");
+    await EnsureDemoUserAsync(userManager, "demo@reptilecare.com", "Demo123!");
+    await EnsureDemoUserAsync(userManager, "demo@demo.com", "Password123!");
 
-    var user = await userManager.FindByEmailAsync(demoEmail);
-    if (user != null)
-        return user.Id;
+    var owner = await userManager.FindByEmailAsync("demo@critterapp.com");
+    if (owner is null)
+        throw new InvalidOperationException("demo@critterapp.com was not found after seeding.");
 
-    var newUser = new AppUser
+    return owner.Id;
+
+    static async Task EnsureDemoUserAsync(UserManager<AppUser> userManager, string email, string password)
     {
-        UserName = demoEmail,
-        Email = demoEmail,
-        EmailConfirmed = true
-    };
+        if (await userManager.FindByEmailAsync(email) is not null)
+            return;
 
-    var result = await userManager.CreateAsync(newUser, demoPassword);
-    if (!result.Succeeded)
-    {
-        throw new Exception("Failed to seed demo user: " + string.Join(", ", result.Errors.Select(e => e.Description)));
+        var user = new AppUser
+        {
+            UserName = email,
+            Email = email,
+            EmailConfirmed = true
+        };
+
+        var result = await userManager.CreateAsync(user, password);
+        if (!result.Succeeded)
+        {
+            throw new Exception(
+                $"Failed to seed {email}: " + string.Join(", ", result.Errors.Select(e => e.Description)));
+        }
     }
-
-    return newUser.Id;
 }

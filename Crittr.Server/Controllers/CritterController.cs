@@ -1,6 +1,9 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Crittr.Server.Data;
 using Crittr.Server.Services.Interfaces;
 using Crittr.Shared.DTOs;
 using Crittr.Shared.Models;
@@ -13,21 +16,37 @@ namespace Crittr.Server.Controllers;
 public class CritterController : ControllerBase
 {
     private readonly ICritterService _critterService;
+    private readonly ApplicationDbContext _db;
 
-    public CritterController(ICritterService critterService)
+    public CritterController(ICritterService critterService, ApplicationDbContext db)
     {
         _critterService = critterService;
+        _db = db;
+    }
+
+    private string? CurrentUserId => User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+    private async Task<bool> OwnsEnclosureAsync(int enclosureId)
+    {
+        var uid = CurrentUserId;
+        if (uid is null) return false;
+        return await _db.EnclosureProfiles.AnyAsync(e => e.Id == enclosureId && e.OwnerId == uid);
     }
 
     [HttpGet]
     public async Task<ActionResult<List<Critter>>> GetAll()
     {
-        return await _critterService.GetAllAsync();
+        var uid = CurrentUserId;
+        if (uid is null) return Unauthorized();
+        return await _critterService.GetAllByUserAsync(uid);
     }
 
     [HttpGet("dto/by-enclosure/{enclosureId}")]
     public async Task<ActionResult<List<CritterDto>>> GetAllByEnclosureId(int enclosureId)
     {
+        if (!await OwnsEnclosureAsync(enclosureId))
+            return Forbid();
+
         var critters = await _critterService.GetAllDtosByEnclosureIdAsync(enclosureId);
         return Ok(critters);
     }
@@ -39,6 +58,9 @@ public class CritterController : ControllerBase
         if (critter == null)
             return NotFound();
 
+        if (critter.UserId != CurrentUserId)
+            return Forbid();
+
         return critter;
     }
 
@@ -48,6 +70,9 @@ public class CritterController : ControllerBase
         var critterDto = await _critterService.GetDtoByIdAsync(id);
         if (critterDto == null)
             return NotFound();
+
+        if (critterDto.UserId != CurrentUserId)
+            return Forbid();
 
         return critterDto;
     }
@@ -73,6 +98,12 @@ public class CritterController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<Critter>> Create(Critter critter)
     {
+        var userId = CurrentUserId;
+        if (userId is null) return Unauthorized();
+
+        critter.UserId = userId;
+        critter.Id = 0;
+
         var createdCritter = await _critterService.CreateAsync(critter);
         return CreatedAtAction(nameof(GetById), new { id = createdCritter.Id }, createdCritter);
     }
@@ -87,6 +118,7 @@ public class CritterController : ControllerBase
         {
             Name = dto.Name,
             Species = dto.Species,
+            SpeciesType = dto.SpeciesType,
             DateOfBirth = dto.DateOfBirth,
             DateAcquired = dto.DateAcquired,
             Description = dto.Description,
@@ -108,6 +140,14 @@ public class CritterController : ControllerBase
         if (id != critter.Id)
             return BadRequest();
 
+        var existing = await _critterService.GetByIdAsync(id);
+        if (existing is null)
+            return NotFound();
+        if (existing.UserId != CurrentUserId)
+            return Forbid();
+
+        critter.UserId = existing.UserId;
+
         var success = await _critterService.UpdateAsync(critter);
         if (!success)
             return NotFound();
@@ -115,9 +155,32 @@ public class CritterController : ControllerBase
         return NoContent();
     }
 
+    public record AssignEnclosureRequest(int? EnclosureId);
+
+    [HttpPatch("{id}/enclosure")]
+    public async Task<IActionResult> AssignEnclosure(int id, [FromBody] AssignEnclosureRequest request)
+    {
+        var existing = await _critterService.GetByIdAsync(id);
+        if (existing is null) return NotFound();
+        if (existing.UserId != CurrentUserId) return Forbid();
+
+        if (request.EnclosureId.HasValue && !await OwnsEnclosureAsync(request.EnclosureId.Value))
+            return Forbid();
+
+        existing.EnclosureProfileId = request.EnclosureId;
+        await _critterService.UpdateAsync(existing);
+        return NoContent();
+    }
+
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id)
     {
+        var existing = await _critterService.GetByIdAsync(id);
+        if (existing is null)
+            return NotFound();
+        if (existing.UserId != CurrentUserId)
+            return Forbid();
+
         var success = await _critterService.DeleteAsync(id);
         if (!success)
             return NotFound();
@@ -128,6 +191,8 @@ public class CritterController : ControllerBase
     [HttpGet("search/{searchTerm}")]
     public async Task<ActionResult<List<CritterDto>>> Search(string searchTerm)
     {
-        return await _critterService.SearchAsync(searchTerm);
+        var uid = CurrentUserId;
+        if (uid is null) return Unauthorized();
+        return await _critterService.SearchByUserAsync(searchTerm, uid);
     }
 }

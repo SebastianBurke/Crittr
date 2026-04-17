@@ -1,0 +1,453 @@
+@using Crittr.App.Services
+@using Crittr.Shared.DTOs
+@using Crittr.Shared.Models.Enums
+
+@if (IsVisible)
+{
+    <div class="fixed inset-0 z-[1000] bg-slate-900/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4" @onclick="CloseModal">
+        <div class="relative w-full sm:max-w-lg bg-white dark:bg-gray-800 rounded-t-2xl sm:rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 max-h-[92dvh] flex flex-col"
+             @onclick:stopPropagation>
+
+            <!-- Header -->
+            <div class="shrink-0 flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-gray-800 rounded-t-2xl">
+                <div>
+                    <h3 class="text-lg font-semibold text-slate-900 dark:text-white">Add a critter</h3>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Step @step of 3</p>
+                </div>
+                <button type="button" @onclick="CloseModal" aria-label="Close"
+                        class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            @if (step == 1)
+            {
+                <div class="flex-1 overflow-y-auto px-5 py-5">
+                    <p class="text-sm text-slate-600 dark:text-slate-400 mb-4">What kind of critter are you adding?</p>
+                    <select @bind="selectedSpeciesType"
+                            class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-900 px-3.5 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-green-500/40 focus:border-green-500 outline-none">
+                        @foreach (var type in Enum.GetValues<SpeciesType>())
+                        {
+                            <option value="@type">@type</option>
+                        }
+                    </select>
+                    <button type="button" @onclick="NextStep"
+                            class="mt-5 w-full rounded-xl bg-green-600 hover:bg-green-700 text-white font-semibold py-2.5 shadow-lg shadow-green-600/20 transition-colors">
+                        Next
+                    </button>
+                </div>
+            }
+            else if (step == 2)
+            {
+                <div class="flex-1 flex flex-col overflow-hidden px-5 py-5">
+                    <p class="shrink-0 text-sm text-slate-600 dark:text-slate-400 mb-3">Search for the species of @selectedSpeciesType.</p>
+
+                    @if (selectedSpecies is null)
+                    {
+                        <div class="shrink-0">
+                            <input type="text"
+                                   class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-900 px-3.5 py-2.5 text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-green-500/40 focus:border-green-500 outline-none"
+                                   value="@speciesQuery"
+                                   @oninput="OnSpeciesInputChanged"
+                                   placeholder="Search or pick from the list below…"/>
+                        </div>
+
+                        @if (showSuggestions && filteredSpecies.Any())
+                        {
+                            <div class="flex-1 min-h-0 mt-2 rounded-xl border border-slate-200 dark:border-slate-600 overflow-hidden flex flex-col">
+                                @if (string.IsNullOrWhiteSpace(speciesQuery))
+                                {
+                                    <div class="shrink-0 px-4 py-2 bg-slate-50 dark:bg-gray-900/60 border-b border-slate-200 dark:border-slate-600">
+                                        <p class="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide">Common @selectedSpeciesType species</p>
+                                    </div>
+                                }
+                                <ul class="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-700/60">
+                                    @foreach (var suggestion in filteredSpecies)
+                                    {
+                                        <li class="flex items-center gap-3 px-4 py-3 hover:bg-green-50 dark:hover:bg-green-900/30 cursor-pointer transition-colors"
+                                            @onclick="() => SelectSpecies(suggestion)">
+                                            @if (!string.IsNullOrWhiteSpace(suggestion.IconUrl))
+                                            {
+                                                <img src="@suggestion.IconUrl" alt="" class="w-10 h-10 rounded-lg object-cover shrink-0"/>
+                                            }
+                                            <div class="min-w-0">
+                                                <p class="font-semibold text-slate-900 dark:text-white text-sm">@suggestion.CommonName</p>
+                                                <p class="text-xs text-slate-500 dark:text-slate-400 italic">@suggestion.ScientificName</p>
+                                            </div>
+                                        </li>
+                                    }
+                                </ul>
+                            </div>
+                        }
+
+                        @if (!string.IsNullOrWhiteSpace(speciesQuery) && !filteredSpecies.Any())
+                        {
+                            <p class="mt-2 text-xs text-slate-500 dark:text-slate-400">No matches found. Try a different name.</p>
+                        }
+                    }
+                    else
+                    {
+                        <div class="shrink-0 flex items-center gap-3 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-xl p-3">
+                            @if (!string.IsNullOrWhiteSpace(selectedSpecies.IconUrl))
+                            {
+                                <img src="@selectedSpecies.IconUrl" alt="" class="w-12 h-12 rounded-lg object-cover shrink-0"/>
+                            }
+                            <div class="min-w-0 flex-1">
+                                <p class="font-semibold text-slate-900 dark:text-white">@selectedSpecies.CommonName</p>
+                                <p class="text-xs text-slate-500 dark:text-slate-400 italic">@selectedSpecies.ScientificName</p>
+                            </div>
+                            <button type="button" @onclick="ClearSpecies"
+                                    class="text-xs font-medium text-red-500 hover:text-red-700 shrink-0">
+                                Change
+                            </button>
+                        </div>
+                    }
+
+                    @if (selectedSpecies is null && !string.IsNullOrWhiteSpace(speciesQuery))
+                    {
+                        <p class="shrink-0 mt-2 text-xs text-amber-600 dark:text-amber-400">Please select a species from the list above.</p>
+                    }
+
+                    <div class="shrink-0 mt-4 flex gap-3">
+                        <button type="button" @onclick="async () => { ClearSpecies(); await PrevStep(); }"
+                                class="flex-1 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-800 text-slate-800 dark:text-slate-200 font-semibold py-2.5 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+                            Back
+                        </button>
+                        <button type="button" @onclick="SkipSpecies"
+                                class="rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-800 text-slate-500 dark:text-slate-400 text-sm font-medium px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+                            Skip
+                        </button>
+                        <button type="button" @onclick="NextStep"
+                                disabled="@(selectedSpecies is null)"
+                                class="flex-1 rounded-xl bg-green-600 hover:bg-green-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold py-2.5 shadow-lg shadow-green-600/20 transition-colors">
+                            Next
+                        </button>
+                    </div>
+                </div>
+            }
+            else if (step == 3)
+            {
+                <div class="flex-1 overflow-y-auto px-5 py-5">
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Name <span class="text-red-500">*</span></label>
+                            <input type="text" @bind="newCritter.Name" placeholder="e.g. Mango"
+                                   class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-900 px-3.5 py-2.5 text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-green-500/40 focus:border-green-500 outline-none"/>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Sex <span class="text-slate-400 font-normal">(optional)</span></label>
+                                <select @bind="newCritter.Sex"
+                                        class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-900 px-3.5 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-green-500/40 focus:border-green-500 outline-none">
+                                    <option value="">Unknown</option>
+                                    <option value="Male">Male</option>
+                                    <option value="Female">Female</option>
+                                    <option value="Unsexed">Unsexed</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Date of birth <span class="text-slate-400 font-normal">(optional)</span></label>
+                                <input type="date" @bind="newCritter.DateOfBirth"
+                                       class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-900 px-3.5 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-green-500/40 focus:border-green-500 outline-none"/>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Weight (g) <span class="text-slate-400 font-normal">(optional)</span></label>
+                                <input type="number" @bind="newCritter.Weight" min="0" step="0.1" placeholder="e.g. 250"
+                                       class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-900 px-3.5 py-2.5 text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-green-500/40 focus:border-green-500 outline-none"/>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Date acquired <span class="text-slate-400 font-normal">(optional)</span></label>
+                                <input type="date" @bind="dateAcquiredInput"
+                                       class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-900 px-3.5 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-green-500/40 focus:border-green-500 outline-none"/>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Morph / notes <span class="text-slate-400 font-normal">(optional)</span></label>
+                            <textarea @bind="newCritter.Description" rows="3" placeholder="e.g. Pastel Clown, very docile, acquired from local breeder"
+                                      class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-900 px-3.5 py-2.5 text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-green-500/40 focus:border-green-500 outline-none resize-none"></textarea>
+                        </div>
+
+                        @if (EnclosureId == 0)
+                        {
+                            var compatible = GetCompatibleEnclosures();
+                            var idealType  = GetIdealEnclosureType(selectedSpeciesType);
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Enclosure <span class="text-slate-400 font-normal">(optional)</span></label>
+
+                                @if (compatible.Count == 1 && selectedEnclosureId == compatible[0].Id)
+                                {
+                                    <!-- Auto-assigned -->
+                                    <div class="rounded-xl bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 p-3 flex items-center justify-between gap-3">
+                                        <div>
+                                            <p class="text-sm font-semibold text-green-800 dark:text-green-200">@compatible[0].Name</p>
+                                            <p class="text-xs text-green-600 dark:text-green-400">Auto-assigned — only compatible enclosure</p>
+                                        </div>
+                                        <button type="button" @onclick="() => selectedEnclosureId = 0"
+                                                class="text-xs text-slate-500 hover:underline shrink-0">Change</button>
+                                    </div>
+                                }
+                                else if (compatible.Count > 1 || (compatible.Count == 1 && selectedEnclosureId == 0))
+                                {
+                                    <select @bind="selectedEnclosureId"
+                                            class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-900 px-3.5 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-green-500/40 focus:border-green-500 outline-none">
+                                        <option value="0">No enclosure yet</option>
+                                        @foreach (var enc in compatible)
+                                        {
+                                            <option value="@enc.Id">@enc.Name (@FormatEnclosureType(enc.EnclosureType))</option>
+                                        }
+                                    </select>
+                                    @if (compatible.Count > 0)
+                                    {
+                                        <p class="text-xs text-green-600 dark:text-green-400 mt-1">Showing enclosures compatible with @selectedSpeciesType.</p>
+                                    }
+                                }
+                                else if (availableEnclosures.Count > 0)
+                                {
+                                    <!-- No compatible enclosures — show all as fallback -->
+                                    <div class="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/20 px-3.5 py-2.5 text-xs text-amber-800 dark:text-amber-300 mb-2">
+                                        No @FormatEnclosureType(idealType) found. You can assign any enclosure or skip and create one later.
+                                    </div>
+                                    <select @bind="selectedEnclosureId"
+                                            class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-900 px-3.5 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-green-500/40 focus:border-green-500 outline-none">
+                                        <option value="0">No enclosure yet</option>
+                                        @foreach (var enc in availableEnclosures)
+                                        {
+                                            <option value="@enc.Id">@enc.Name</option>
+                                        }
+                                    </select>
+                                }
+                                else
+                                {
+                                    <div class="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 px-3.5 py-2.5 text-xs text-slate-500 dark:text-slate-400">
+                                        No enclosures yet. A <span class="font-medium">@FormatEnclosureType(idealType)</span> is ideal for this critter — you can create one after saving.
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <div class="mt-4 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 text-red-800 dark:text-red-200 px-4 py-3 text-sm" role="alert">
+                            @errorMessage
+                        </div>
+                    }
+
+                    <div class="mt-5 flex gap-3">
+                        <button type="button" @onclick="PrevStep"
+                                class="flex-1 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-800 text-slate-800 dark:text-slate-200 font-semibold py-2.5 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+                            Back
+                        </button>
+                        <button type="button" @onclick="HandleSubmit"
+                                disabled="@(string.IsNullOrWhiteSpace(newCritter.Name) || isSubmitting)"
+                                class="flex-1 rounded-xl bg-green-600 hover:bg-green-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold py-2.5 shadow-lg shadow-green-600/20 transition-colors">
+                            @(isSubmitting ? "Saving…" : "Save critter")
+                        </button>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool IsVisible { get; set; }
+    [Parameter] public string EnclosureName { get; set; } = "Enclosure";
+    [Parameter] public int EnclosureId { get; set; }
+    [Parameter] public EventCallback<bool> IsVisibleChanged { get; set; }
+    [Parameter] public EventCallback<CritterDto> OnCritterAdded { get; set; }
+
+    [Inject] public SpeciesService SpeciesService { get; set; } = default!;
+    [Inject] public CritterService CritterService { get; set; } = default!;
+    [Inject] public EnclosureService EnclosureService { get; set; } = default!;
+
+    private int step = 1;
+    private SpeciesType selectedSpeciesType = SpeciesType.Reptile;
+    private SpeciesInfo? selectedSpecies;
+    private string speciesQuery = "";
+    private List<SpeciesInfo> filteredSpecies = new();
+    private bool showSuggestions;
+    private bool isSubmitting;
+    private string? errorMessage;
+    private CritterDto newCritter = new();
+    private List<EnclosureProfileDto> availableEnclosures = new();
+    private int selectedEnclosureId;
+    private DateTime? dateAcquiredInput;
+
+    protected override async Task OnInitializedAsync()
+    {
+        ResetModal();
+        try { availableEnclosures = await EnclosureService.GetEnclosuresAsync(); } catch { }
+    }
+
+    private async Task OnSpeciesInputChanged(ChangeEventArgs e)
+    {
+        speciesQuery = e.Value?.ToString() ?? "";
+        if (string.IsNullOrWhiteSpace(speciesQuery))
+        {
+            await LoadInitialSuggestionsAsync();
+            return;
+        }
+        filteredSpecies = await SpeciesService.SearchAsync(speciesQuery, selectedSpeciesType);
+        showSuggestions = filteredSpecies.Any();
+    }
+
+    private async Task LoadInitialSuggestionsAsync()
+    {
+        filteredSpecies = await SpeciesService.SearchAsync("", selectedSpeciesType);
+        showSuggestions = filteredSpecies.Any();
+    }
+
+    private async Task NextStep()
+    {
+        step++;
+        if (step == 2) await LoadInitialSuggestionsAsync();
+        if (step == 3) AutoAssignEnclosure();
+        StateHasChanged();
+    }
+
+    private async Task PrevStep()
+    {
+        step--;
+        if (step == 2) await LoadInitialSuggestionsAsync();
+        StateHasChanged();
+    }
+
+    private void SkipSpecies()
+    {
+        ClearSpecies();
+        step++;
+        AutoAssignEnclosure();
+        StateHasChanged();
+    }
+
+    private void AutoAssignEnclosure()
+    {
+        if (EnclosureId > 0) return;
+        var compatible = GetCompatibleEnclosures();
+        if (compatible.Count == 1)
+            selectedEnclosureId = compatible[0].Id;
+    }
+
+    private List<EnclosureProfileDto> GetCompatibleEnclosures()
+    {
+        var types = GetCompatibleEnclosureTypes(selectedSpeciesType);
+        return availableEnclosures.Where(e => types.Contains(e.EnclosureType)).ToList();
+    }
+
+    private static IReadOnlyList<EnclosureType> GetCompatibleEnclosureTypes(SpeciesType s) => s switch
+    {
+        SpeciesType.Reptile      => [EnclosureType.Terrarium, EnclosureType.Vivarium, EnclosureType.Bin, EnclosureType.RackSystem, EnclosureType.Tank, EnclosureType.Other],
+        SpeciesType.Amphibian    => [EnclosureType.Terrarium, EnclosureType.Vivarium, EnclosureType.Paludarium, EnclosureType.Aquarium, EnclosureType.Other],
+        SpeciesType.Bird         => [EnclosureType.Aviary, EnclosureType.Cage, EnclosureType.Other],
+        SpeciesType.Fish         => [EnclosureType.Aquarium, EnclosureType.Paludarium, EnclosureType.Tank, EnclosureType.Other],
+        SpeciesType.Mammal       => [EnclosureType.Cage, EnclosureType.FreeRoamRoom, EnclosureType.Bin, EnclosureType.Other],
+        SpeciesType.Invertebrate => [EnclosureType.Terrarium, EnclosureType.Insectarium, EnclosureType.Bin, EnclosureType.Other],
+        _                        => (IReadOnlyList<EnclosureType>)Enum.GetValues<EnclosureType>()
+    };
+
+    private static EnclosureType GetIdealEnclosureType(SpeciesType s) => s switch
+    {
+        SpeciesType.Reptile      => EnclosureType.Terrarium,
+        SpeciesType.Amphibian    => EnclosureType.Vivarium,
+        SpeciesType.Bird         => EnclosureType.Aviary,
+        SpeciesType.Fish         => EnclosureType.Aquarium,
+        SpeciesType.Mammal       => EnclosureType.Cage,
+        SpeciesType.Invertebrate => EnclosureType.Insectarium,
+        _                        => EnclosureType.Other
+    };
+
+    private static string FormatEnclosureType(EnclosureType t) => t switch
+    {
+        EnclosureType.RackSystem   => "Rack System",
+        EnclosureType.FreeRoamRoom => "Free Roam Room",
+        _                          => t.ToString()
+    };
+
+    private void SelectSpecies(SpeciesInfo suggestion)
+    {
+        selectedSpecies = suggestion;
+        showSuggestions = false;
+        speciesQuery = suggestion.CommonName;
+        newCritter.Species = suggestion.CommonName;
+        newCritter.SpeciesType = suggestion.Type;
+        newCritter.IconUrl = suggestion.IconUrl;
+        StateHasChanged();
+    }
+
+    private void ClearSpecies()
+    {
+        selectedSpecies = null;
+        speciesQuery = "";
+        filteredSpecies.Clear();
+    }
+
+    private async Task HandleSubmit()
+    {
+        if (string.IsNullOrWhiteSpace(newCritter.Name)) { errorMessage = "Name is required."; return; }
+
+        isSubmitting = true;
+        errorMessage = null;
+        try
+        {
+            newCritter.DateAcquired = dateAcquiredInput ?? DateTime.Today;
+
+            if (EnclosureId > 0)
+                newCritter.EnclosureProfileId = EnclosureId;
+            else if (selectedEnclosureId > 0)
+                newCritter.EnclosureProfileId = selectedEnclosureId;
+            else
+                newCritter.EnclosureProfileId = null;
+
+            if (selectedSpecies is null)
+            {
+                newCritter.Species = "Unknown";
+                newCritter.SpeciesType = selectedSpeciesType;
+                newCritter.IconUrl = "img/critters/default.svg";
+            }
+
+            var created = await CritterService.CreateCritterAsync(newCritter);
+            if (OnCritterAdded.HasDelegate)
+                await OnCritterAdded.InvokeAsync(created);
+
+            await IsVisibleChanged.InvokeAsync(false);
+            ResetModal();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Could not save critter: {ex.Message}";
+        }
+        finally
+        {
+            isSubmitting = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task CloseModal()
+    {
+        await IsVisibleChanged.InvokeAsync(false);
+        ResetModal();
+    }
+
+    private void ResetModal()
+    {
+        step = 1;
+        selectedSpecies = null;
+        speciesQuery = "";
+        filteredSpecies.Clear();
+        newCritter = new CritterDto();
+        showSuggestions = false;
+        isSubmitting = false;
+        errorMessage = null;
+        selectedEnclosureId = 0;
+        dateAcquiredInput = null;
+    }
+}

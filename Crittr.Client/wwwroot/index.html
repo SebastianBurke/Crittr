@@ -3,36 +3,52 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Crittr — track exotic pets, enclosures, and feedings in one place." />
+    <meta name="theme-color" content="#059669" />
     <title>Crittr</title>
     <base href="/" />
+    <!-- Apply saved theme before render to avoid flash -->
+    <script>
+        (function () {
+            try {
+                var theme = localStorage.getItem('theme');
+                if (theme === 'dark') document.documentElement.classList.add('dark');
+            } catch (e) {}
+        })();
+        function setTheme(theme) {
+            if (theme === 'dark') document.documentElement.classList.add('dark');
+            else document.documentElement.classList.remove('dark');
+            try { localStorage.setItem('theme', theme); } catch (e) {}
+        }
+    </script>
 
-    <!-- Tailwind CSS -->
-    <link href="css/output.css" rel="stylesheet" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet" />
 
-    <!-- Flowbite -->
+    <link href="_content/Crittr.App/css/output.css" rel="stylesheet" />
+    <link href="_content/Crittr.App/css/crittr-v1.css" rel="stylesheet" />
+
     <script src="https://unpkg.com/flowbite@latest/dist/flowbite.min.js" defer></script>
-    
-    <!-- Anime.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
 
-    <!-- Favicon -->
-    <link rel="icon" type="image/png" href="./img/icons/Crittr.ico" />
-    
+    <link rel="icon" type="image/png" href="_content/Crittr.App/img/icons/Crittr.ico" />
+
 </head>
 
-<body class="bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-100 min-h-screen antialiased">
+<body class="min-h-screen antialiased bg-white text-slate-900 dark:bg-gray-950 dark:text-slate-100 overflow-x-hidden" style="font-family: 'DM Sans', ui-sans-serif, system-ui, sans-serif;">
 
-<div id="app">
-    <div class="flex h-screen items-center justify-center">
-        <div class="flex flex-col items-center gap-3 text-center">
-            <svg class="animate-spin h-10 w-10 text-green-600" xmlns="http://www.w3.org/2000/svg" fill="none"
-                 viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-                <path class="opacity-75" fill="currentColor"
-                      d="M4 12a8 8 0 018-8v4l3-3-3-3v4a10 10 0 00-10 10h4z" />
-            </svg>
-            <p id="loadingText" class="text-base font-medium text-green-700"></p>
-        </div>
+<div id="app" class="min-h-screen w-full">
+    <div class="flex min-h-screen items-center justify-center">
+    <div class="flex flex-col items-center gap-3 text-center">
+        <svg class="animate-spin h-10 w-10 text-green-600" xmlns="http://www.w3.org/2000/svg" fill="none"
+             viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+            <path class="opacity-75" fill="currentColor"
+                  d="M4 12a8 8 0 018-8v4l3-3-3-3v4a10 10 0 00-10 10h4z" />
+        </svg>
+        <p id="loadingText" class="text-base font-medium text-green-700 dark:text-green-400"></p>
+    </div>
     </div>
 </div>
 
@@ -44,9 +60,9 @@
 </div>
 
 <script src="_framework/blazor.webassembly.js"></script>
-<script src="js/critterMotion.js"></script>
+<script src="_content/Crittr.App/js/critterMotion.js"></script>
 <script type="module">
-    import { cycleLoadingText } from './js/loadingText.js';
+    import { cycleLoadingText } from '/_content/Crittr.App/js/loadingText.js';
     cycleLoadingText('loadingText');
 </script>
 </body>

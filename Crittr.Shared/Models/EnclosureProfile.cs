@@ -1,3 +1,5 @@
+using Crittr.Shared.Models.Enums;
+
 namespace Crittr.Shared.Models;
 
 public class EnclosureProfile
@@ -5,6 +7,7 @@ public class EnclosureProfile
     public int Id { get; set; }
     public string OwnerId { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
+    public EnclosureType EnclosureType { get; set; } = EnclosureType.Terrarium;
     public double Length { get; set; } // in centimeters
     public double Width { get; set; } // in centimeters
     public double Height { get; set; } // in centimeters
