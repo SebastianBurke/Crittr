@@ -62,11 +62,10 @@ Crittr is a full-stack **Blazor WebAssembly + ASP.NET Core** app designed for ke
 
 All accounts are created automatically on server startup.
 
-| Email                | Password     | Notes                                           |
-|----------------------|--------------|-------------------------------------------------|
-| demo@critterapp.com  | Demo123!     | Has sample critters / enclosures pre-loaded     |
-| demo@reptilecare.com | Demo123!     | Empty account                                   |
-| demo@demo.com        | Password123! | Empty account for quick login tests             |
+| Email            | Password  | Notes                                                              |
+|------------------|-----------|--------------------------------------------------------------------|
+| demo@crittr.ca   | Test123!  | One of every enclosure type, each with a species-matched critter   |
+| empty@crittr.ca  | Test123!  | Blank account — no enclosures, no critters                         |
 
 ---
 

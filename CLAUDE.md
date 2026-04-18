@@ -132,13 +132,12 @@ dotnet build Crittr.App
 6. On prod: `ssh root@165.22.226.103` → `cd /root/Crittr && git pull && systemctl restart crittr-server crittr-client`
 
 ## Demo Accounts (auto-seeded on startup)
-| Email | Password |
-|-------|----------|
-| demo@critterapp.com | Demo123! |
-| demo@reptilecare.com | Demo123! |
-| demo@demo.com | Password123! |
+| Email           | Password | Notes                                                            |
+|-----------------|----------|------------------------------------------------------------------|
+| demo@crittr.ca  | Test123! | One of every enclosure type, each with a species-matched critter |
+| empty@crittr.ca | Test123! | Blank account — no enclosures, no critters                       |
 
-Sample critters/enclosures are attached to `demo@critterapp.com`.
+Sample data attaches to `demo@crittr.ca`. Seeding is skipped if any critters already exist in the DB.
 
 ## Architecture Notes
 

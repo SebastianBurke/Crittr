@@ -145,26 +145,24 @@ using (var scope = app.Services.CreateScope())
 {
     var seeder = scope.ServiceProvider.GetRequiredService<DataSeeder>();
     await seeder.SeedAsync(sampleDataOwnerId);
-    await seeder.FixEnclosureTypesAsync();
 }
 
 app.Run();
 
 /// <summary>
-/// Ensures documented demo accounts exist. Sample critters/enclosures attach to <c>demo@critterapp.com</c>.
+/// Ensures demo accounts exist. Sample data attaches to <c>demo@crittr.ca</c>.
 /// </summary>
 static async Task<string> SeedDemoUsers(WebApplication app)
 {
     using var scope = app.Services.CreateScope();
     var userManager = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
 
-    await EnsureDemoUserAsync(userManager, "demo@critterapp.com", "Demo123!");
-    await EnsureDemoUserAsync(userManager, "demo@reptilecare.com", "Demo123!");
-    await EnsureDemoUserAsync(userManager, "demo@demo.com", "Password123!");
+    await EnsureDemoUserAsync(userManager, "demo@crittr.ca", "Test123!");
+    await EnsureDemoUserAsync(userManager, "empty@crittr.ca", "Test123!");
 
-    var owner = await userManager.FindByEmailAsync("demo@critterapp.com");
+    var owner = await userManager.FindByEmailAsync("demo@crittr.ca");
     if (owner is null)
-        throw new InvalidOperationException("demo@critterapp.com was not found after seeding.");
+        throw new InvalidOperationException("demo@crittr.ca was not found after seeding.");
 
     return owner.Id;
 
