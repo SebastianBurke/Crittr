@@ -4,6 +4,8 @@ Crittr is a full-stack **Blazor WebAssembly + ASP.NET Core** app designed for ke
 
 **Current release: v1.0.0** — accounts, enclosures & critters, per-critter **feeding log** (API + UI), Blazor Hybrid (MAUI) shell sharing the same UI library (`Crittr.App`).
 
+**Live at [https://crittr.ca](https://crittr.ca)**
+
 ---
 
 ## 🚀 Features (v1)
@@ -40,11 +42,12 @@ Crittr is a full-stack **Blazor WebAssembly + ASP.NET Core** app designed for ke
 | ✅     | iNaturalist species autocomplete         | Images + common names                              |
 | ✅     | MAUI Blazor Hybrid shell                 | Shares `Crittr.App` with the WASM client           |
 | ✅     | Full rename to `Crittr`                  | Namespaces, UI labels, routes                      |
+| ✅     | Systemd auto-start                       | Both dev and prod servers restart on reboot        |
+| ✅     | Tailscale remote access                  | Dev server accessible from anywhere                |
+| ✅     | Nginx + domain + SSL                     | Live at https://crittr.ca (Let's Encrypt)          |
 | 🔜     | Notifications & reminders                | Feeding / shedding / task alerts — next up         |
-| 🔜     | Systemd auto-start                       | Servers restart automatically on reboot            |
-| 🔜     | Tailscale remote access                  | Access app outside home network                    |
 | 🧠     | Ollama AI integration                    | Species care tips, smart logging via local llama3  |
-| 🌐     | Nginx + domain                           | Public deployment                                  |
+| 🔜     | Auto-deploy pipeline                     | Deploy on git push                                 |
 
 ---
 
@@ -60,23 +63,22 @@ All accounts are created automatically on server startup.
 
 ---
 
-## 🛳️ Ship v1 (publish checklist)
+## 🚢 Deploying to Production
 
-1. **API (`Crittr.Server`)**
-   - Set `Jwt:Key` to a long random secret (env var or user secrets), not the dev placeholder.
-   - Set `ConnectionStrings:DefaultConnection` for production (or migrate off SQLite if you need concurrency).
-   - In `appsettings.Production.json`, set `Cors:AllowedOrigins` to the exact HTTPS origin(s) of your hosted WASM app.
-   - Run with `ASPNETCORE_ENVIRONMENT=Production` (the dev-only `UseUrls` block is skipped automatically).
+Production runs on DigitalOcean (Toronto) behind Nginx + Let's Encrypt.
 
-2. **Web client (`Crittr.Client`)**
-   - Before `dotnet publish`, set `wwwroot/appsettings.json` → `ApiBaseUrl` to your public API URL.
-   - Or let CI copy `appsettings.Production.json` over `appsettings.json` for release builds.
+```bash
+ssh root@165.22.226.103
+cd /root/Crittr
+git pull
+systemctl restart crittr-server crittr-client
+```
 
-3. **MAUI (`Crittr.Maui`)**
-   - Update `ApiConfiguration.cs` so `ApiBaseUrl` points at the production API.
-
-4. **CSS**
-   - From `Crittr.App`, run `npm install && npm run build:css` so `wwwroot/css/output.css` is current before publishing.
+**Server config notes:**
+- `ASPNETCORE_ENVIRONMENT=Production` is set in the systemd unit files
+- `appsettings.json` → `ApiBaseUrl` is `https://crittr.ca/` on the prod server
+- Nginx routes `/api/` → port 5099 (backend), `/` → port 5267 (frontend)
+- SSL cert auto-renews via Certbot (expires 2026-07-17)
 
 ---
 

@@ -1,7 +1,12 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit -m ' *)",
+      "Bash(git config *)",
+      "Bash(git push *)",
+      "Bash(git -C /home/sbsudo/Crittr status)",
+      "Bash(git -C /home/sbsudo/Crittr diff)"
     ]
   }
 }

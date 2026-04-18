@@ -6,9 +6,9 @@ Exotic pet companion app for reptile/critter keepers. Full-stack Blazor WebAssem
 ## Dev Server Environment
 - Ubuntu Server 24.04 LTS (headless, no GUI) — hostname: sudoserver
 - PC specs: NVIDIA RTX 2070 (8GB VRAM), 1TB Crucial SATA SSD
-- Server IP: 192.168.0.38 / username: sbsudo
-- SSH: `ssh sbsudo@192.168.0.38` (passwordless — SSH key installed)
-- VS Code Remote SSH connected to server; C# Dev Kit installed
+- LAN IP: 192.168.0.38 / Tailscale IP: 100.64.80.93 / username: sbsudo
+- SSH: `ssh sbsudo@100.64.80.93` (Tailscale, passwordless — SSH key installed)
+- VS Code Remote SSH connected via Tailscale (`Host sudoserver → 100.64.80.93`); C# Dev Kit installed
 
 ### Software Stack
 - .NET 8 SDK + .NET 9 SDK (both installed via `dotnet-install.sh` at `~/.dotnet`)
@@ -17,6 +17,7 @@ Exotic pet companion app for reptile/critter keepers. Full-stack Blazor WebAssem
 - Node.js v24.15.0 (via nvm), npm 11.12.1
 - Docker Engine 29.4.0 (sbsudo in docker group)
 - NVIDIA drivers + CUDA 13.2 (GPU recognized by Ollama)
+- Tailscale (connected — enables remote access from anywhere)
 - tmux, git, curl, build-essential
 - Claude Code (npm global, installed on both server and MacBook)
 
@@ -30,27 +31,48 @@ export DOTNET_ROOT=$HOME/.dotnet
 ```
 VS Code `settings.json`: `"dotnet.dotnetPath": "/home/sbsudo/.dotnet/dotnet"`
 
-## Running via tmux (persistent sessions)
+## Dev Server — Services (systemd)
+Both app services auto-start on reboot via systemd — no manual tmux needed.
 ```bash
-tmux attach -t crittr-server   # backend  (cd ~/Crittr/Crittr.Server && dotnet run)
-tmux attach -t crittr-client   # frontend (cd ~/Crittr/Crittr.Client && dotnet run)
+sudo systemctl status crittr-server   # or crittr-client
+sudo journalctl -u crittr-server -f   # live logs
+sudo journalctl -u crittr-client -f
 ```
-Access from any device on local network:
-- Client: http://192.168.0.38:5267
-- API: http://192.168.0.38:5099
-
-> **Note:** Servers must be started manually after reboot — systemd auto-start not yet configured.
+Dev server live URLs (accessible from anywhere via Tailscale):
+- Client: http://100.64.80.93:5267
+- API: http://100.64.80.93:5099
+- LAN fallback: http://192.168.0.38:5267
 
 ## Local AI (Ollama)
-- Running on server at http://192.168.0.38:11434
-- Model: llama3 (4.7 GB, GPU-accelerated via CUDA)
-- Starts automatically as a systemd service on boot — no tmux needed
+- Running on dev server at http://100.64.80.93:11434
+- Model: llama3 (4.7 GB, GPU-accelerated via CUDA on RTX 2070)
+- Starts automatically as a systemd service on boot
 - Query: `ollama run llama3`
-- Not yet wired into Crittr; future AI features will call `http://localhost:11434` from `Crittr.Server`
+- Not yet wired into Crittr; future AI features will call this from `Crittr.Server`
+
+## Production Server (DigitalOcean)
+- Provider: DigitalOcean — $8/month (2GB RAM, 1 CPU, 50GB SSD), Toronto (TOR1)
+- OS: Ubuntu 24.04 LTS — SSH: `ssh root@165.22.226.103`
+- Public URL: **https://crittr.ca** (and https://www.crittr.ca)
+- Nginx reverse proxy: `/api/` → port 5099, `/` → port 5267
+- SSL: Let's Encrypt via Certbot — expires 2026-07-17 (auto-renews)
+- DNS: Porkbun — A records for crittr.ca and www.crittr.ca → 165.22.226.103
+- Both `crittr-server` and `crittr-client` run as systemd services (`ASPNETCORE_ENVIRONMENT=Production`)
+- `appsettings.json` ApiBaseUrl: `https://crittr.ca/`
+
+### Deploying to Production
+```bash
+ssh root@165.22.226.103
+cd /root/Crittr
+git pull
+systemctl restart crittr-server crittr-client
+```
 
 ## Current Status (last updated: April 18 2026)
-- App running locally on dev server
+- App live at https://crittr.ca
 - Auth, enclosures, critters, feeding log all working
+- Systemd auto-start configured on both dev and prod servers
+- Tailscale connected — dev server accessible from anywhere
 - MAUI project present in solution but excluded from server build (iOS SDK unavailable on Linux)
   - MAUI errors shown in VS Code are cosmetic/expected — do not affect the web app
 - Next: build notification/reminder feature
@@ -58,10 +80,9 @@ Access from any device on local network:
 ## Roadmap (discussed April 18 2026)
 1. Walk through app as a user — find bugs and missing features
 2. Build notification/reminder feature (pure C# practice, no AI)
-3. Wire Ollama into Crittr (species care tips, smart logging, etc.)
-4. Configure systemd services so servers auto-start on reboot
-5. Set up Tailscale for remote access outside the home network
-6. Nginx reverse proxy + domain for public deployment
+3. Wire Ollama into Crittr via Tailscale (prod → dev server at 100.64.80.93:11434)
+4. Add Tailscale to prod server so it can reach Ollama on dev server
+5. Set up a proper deployment pipeline (auto-deploy on git push)
 
 ## Solution Structure
 ```
@@ -90,7 +111,7 @@ cd Crittr.Client && dotnet run
 | WASM client | http://localhost:5267 |
 
 The client reads its API base URL from `Crittr.Client/wwwroot/appsettings.json` → `ApiBaseUrl`.
-Currently set to the LAN IP (`http://192.168.0.38:5099`) for mobile testing.
+Dev is set to `http://100.64.80.93:5099/` (Tailscale). Prod is set to `https://crittr.ca/`.
 Falls back to `https://localhost:7282/` if the file is absent.
 
 ## Build
@@ -101,12 +122,12 @@ dotnet build Crittr.App
 ```
 
 ## Dev Workflow
-1. Open MacBook → VS Code auto-reconnects via Remote SSH
-2. Verify tmux sessions are running (`tmux ls`)
-3. Open http://192.168.0.38:5267 in browser
-4. Edit code in VS Code (files live on the server)
-5. Run `claude` from `~/Crittr` in VS Code terminal for AI assistance
-6. Commit: `git add . && git commit -m "message" && git push`
+1. Open MacBook → VS Code auto-reconnects to sudoserver via Tailscale Remote SSH
+2. Open http://100.64.80.93:5267 in browser (services auto-start on boot)
+3. Edit code in VS Code (files live on the dev server)
+4. Run `claude` from `~/Crittr` in VS Code terminal for AI assistance
+5. Commit & deploy: `git add . && git commit -m "message" && git push`
+6. On prod: `ssh root@165.22.226.103` → `cd /root/Crittr && git pull && systemctl restart crittr-server crittr-client`
 
 ## Demo Accounts (auto-seeded on startup)
 | Email | Password |
