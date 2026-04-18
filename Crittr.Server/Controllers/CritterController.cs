@@ -7,6 +7,7 @@ using Crittr.Server.Data;
 using Crittr.Server.Services.Interfaces;
 using Crittr.Shared.DTOs;
 using Crittr.Shared.Models;
+using Crittr.Shared.Utilities;
 
 namespace Crittr.Server.Controllers;
 
@@ -109,10 +110,21 @@ public class CritterController : ControllerBase
     }
 
     [HttpPost("dto")]
-    public async Task<ActionResult<CritterDto>> CreateFromDto([FromBody] CritterDto dto)
+    public async Task<ActionResult<CritterDto>> CreateFromDto([FromBody] CritterDto dto, [FromQuery] bool force = false)
     {
         var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         if (userId == null) return Unauthorized();
+
+        if (!force && dto.EnclosureProfileId.HasValue)
+        {
+            var enclosure = await _db.EnclosureProfiles.FindAsync(dto.EnclosureProfileId.Value);
+            if (enclosure != null && !EnclosureCompatibility.IsCompatible(dto.SpeciesType, enclosure.EnclosureType))
+            {
+                var ideal = EnclosureCompatibility.FormatEnclosureType(EnclosureCompatibility.GetIdealEnclosureType(dto.SpeciesType));
+                var actual = EnclosureCompatibility.FormatEnclosureType(enclosure.EnclosureType);
+                return UnprocessableEntity(new { error = "incompatible", message = $"A {dto.SpeciesType} is not suited for a {actual}. Consider {EnclosureCompatibility.GetEnclosureRequirementLabel(dto.SpeciesType)} (e.g. a {ideal}). Use ?force=true to override." });
+            }
+        }
 
         var critter = new Critter
         {
@@ -158,14 +170,28 @@ public class CritterController : ControllerBase
     public record AssignEnclosureRequest(int? EnclosureId);
 
     [HttpPatch("{id}/enclosure")]
-    public async Task<IActionResult> AssignEnclosure(int id, [FromBody] AssignEnclosureRequest request)
+    public async Task<IActionResult> AssignEnclosure(int id, [FromBody] AssignEnclosureRequest request, [FromQuery] bool force = false)
     {
         var existing = await _critterService.GetByIdAsync(id);
         if (existing is null) return NotFound();
         if (existing.UserId != CurrentUserId) return Forbid();
 
-        if (request.EnclosureId.HasValue && !await OwnsEnclosureAsync(request.EnclosureId.Value))
-            return Forbid();
+        if (request.EnclosureId.HasValue)
+        {
+            if (!await OwnsEnclosureAsync(request.EnclosureId.Value))
+                return Forbid();
+
+            if (!force)
+            {
+                var enclosure = await _db.EnclosureProfiles.FindAsync(request.EnclosureId.Value);
+                if (enclosure != null && !EnclosureCompatibility.IsCompatible(existing.SpeciesType, enclosure.EnclosureType))
+                {
+                    var ideal = EnclosureCompatibility.FormatEnclosureType(EnclosureCompatibility.GetIdealEnclosureType(existing.SpeciesType));
+                    var actual = EnclosureCompatibility.FormatEnclosureType(enclosure.EnclosureType);
+                    return UnprocessableEntity(new { error = "incompatible", message = $"A {existing.SpeciesType} is not suited for a {actual}. Consider {EnclosureCompatibility.GetEnclosureRequirementLabel(existing.SpeciesType)} (e.g. a {ideal}). Use ?force=true to override." });
+                }
+            }
+        }
 
         existing.EnclosureProfileId = request.EnclosureId;
         await _critterService.UpdateAsync(existing);

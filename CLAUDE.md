@@ -69,8 +69,10 @@ systemctl restart crittr-server crittr-client
 ```
 
 ## Current Status (last updated: April 18 2026)
-- App live at https://crittr.ca
+- App live at https://crittr.ca — **v1.1.0**
 - Auth, enclosures, critters, feeding log all working
+- Enclosure type system in place: compatibility matrix, themed canvases, 3-step creation wizard
+- Bug fix: enclosure type was not being persisted to DB (always defaulted to Terrarium)
 - Systemd auto-start configured on both dev and prod servers
 - Tailscale connected — dev server accessible from anywhere
 - MAUI project present in solution but excluded from server build (iOS SDK unavailable on Linux)
@@ -78,7 +80,7 @@ systemctl restart crittr-server crittr-client
 - Next: build notification/reminder feature
 
 ## Roadmap (discussed April 18 2026)
-1. Walk through app as a user — find bugs and missing features
+1. ~~Walk through app as a user — find bugs and missing features~~ ✅
 2. Build notification/reminder feature (pure C# practice, no AI)
 3. Wire Ollama into Crittr via Tailscale (prod → dev server at 100.64.80.93:11434)
 4. Add Tailscale to prod server so it can reach Ollama on dev server
@@ -148,10 +150,25 @@ Sample critters/enclosures are attached to `demo@critterapp.com`.
 ### Client Services (Crittr.App)
 - `AuthService` — login, logout, register
 - `CritterService` — CRUD for critters
-- `EnclosureService` — CRUD for enclosures
+- `EnclosureService` — CRUD for enclosures (includes `GetCompatibleAsync(speciesType)`)
 - `FeedingService` — feeding log CRUD
 - `SheddingService`, `MeasurementService`, `HealthService`, `ScheduledTaskService` — supporting logs
 - `SpeciesService` — iNaturalist species search autocomplete
+
+### Enclosure Type System (`Crittr.Shared/Utilities/EnclosureCompatibility.cs`)
+Static utility with the species ↔ enclosure compatibility matrix. Key methods:
+- `FormatEnclosureType(t)` — display name (e.g. `RackSystem` → "Rack System")
+- `GetIdealEnclosureType(species)` — best enclosure type for a species
+- `GetCompatibleEnclosureTypes(species)` / `GetCompatibleSpeciesTypes(enclosure)` — compatibility lookups
+- `IsCompatible(species, enclosure)` — boolean check
+Used by the critter wizard, enclosure wizard, and server-side filtering (`GET /api/enclosure/dto/compatible`).
+
+### Enclosure Theming (`Crittr.App/EnclosureTheme.cs`)
+Static helpers that return Tailwind class strings and SVG `MarkupString` overlays keyed to `EnclosureType`:
+- `CanvasBg(t)` / `CanvasBorder(t)` — gradient + border classes for the dashboard canvas
+- `CanvasOverlay(t)` — decorative inline SVG (bubbles for aquatic, leaves for green, bars for cage, etc.)
+- `HeroBg(t)` / `HeroOverlay(t)` — used on the enclosure detail page hero section
+- `TypeBadge(t)` — coloured badge classes for enclosure type labels
 
 ### Static Assets
 Razor Class Library assets are served under `_content/Crittr.App/`. Always use `AppAssets.Resolve(path)` to reference critter icons and images — it handles both relative RCL paths and absolute external URLs.

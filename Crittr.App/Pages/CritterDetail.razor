@@ -4,8 +4,10 @@
 @using Crittr.Shared.DTOs
 @using Crittr.Shared.Models
 @using Crittr.Shared.Models.Enums
+@using Crittr.Shared.Utilities
 @inject CritterService CritterService
 @inject FeedingService FeedingService
+@inject EnclosureService EnclosureService
 @inject Blazored.LocalStorage.ILocalStorageService LocalStorage
 
 <PageTitle>@(critter?.Name ?? "Critter") — Crittr</PageTitle>
@@ -51,9 +53,37 @@
 
         @if (critter.EnclosureProfileId is null)
         {
+            var requiresLabel = EnclosureCompatibility.GetEnclosureRequirementLabel(critter.SpeciesType);
             <div class="mb-5 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 px-4 py-3 flex items-center justify-between gap-3">
-                <p class="text-sm text-amber-800 dark:text-amber-200">This critter has no enclosure assigned.</p>
-                <a href="/" class="text-sm font-semibold text-amber-700 dark:text-amber-300 hover:underline shrink-0">Assign on dashboard →</a>
+                <div class="min-w-0">
+                    <p class="text-sm font-semibold text-amber-800 dark:text-amber-200">@critter.Name needs @requiresLabel</p>
+                    <p class="text-xs text-amber-700 dark:text-amber-400 mt-0.5">No enclosure assigned — assign or create one on the dashboard.</p>
+                </div>
+                <a href="/" class="text-sm font-semibold text-amber-700 dark:text-amber-300 hover:underline shrink-0">Go to dashboard →</a>
+            </div>
+        }
+        else if (enclosureDto is not null)
+        {
+            var compatible = EnclosureCompatibility.IsCompatible(critter.SpeciesType, enclosureDto.EnclosureType);
+            <div class="mb-5 rounded-xl border @(compatible ? "border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/20" : "border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/20") px-4 py-3 flex items-center justify-between gap-3">
+                <div class="min-w-0">
+                    @if (compatible)
+                    {
+                        <p class="text-sm font-medium text-green-800 dark:text-green-200">
+                            ✓ Compatible with
+                            <a href="@($"/enclosure/{enclosureDto.Id}")" class="font-semibold hover:underline">@enclosureDto.Name</a>
+                            <span class="text-green-600 dark:text-green-400 font-normal ml-1">(@EnclosureCompatibility.FormatEnclosureType(enclosureDto.EnclosureType))</span>
+                        </p>
+                    }
+                    else
+                    {
+                        <p class="text-sm font-medium text-amber-800 dark:text-amber-200">
+                            ⚠ <a href="@($"/enclosure/{enclosureDto.Id}")" class="font-semibold hover:underline">@enclosureDto.Name</a> may not be ideal for a @critter.SpeciesType
+                        </p>
+                        <p class="text-xs text-amber-700 dark:text-amber-400 mt-0.5">Consider @EnclosureCompatibility.GetEnclosureRequirementLabel(critter.SpeciesType).</p>
+                    }
+                </div>
+                <a href="@($"/enclosure/{enclosureDto.Id}")" class="text-xs font-medium text-slate-500 dark:text-slate-400 hover:underline shrink-0">View enclosure →</a>
             </div>
         }
 
@@ -193,6 +223,7 @@
     private bool isLoading = true;
     private bool isSaving;
     private CritterDto? critter;
+    private EnclosureProfileDto? enclosureDto;
     private List<FeedingRecordDto> feedings = new();
     private string? formError;
     private int? deletingId;
@@ -231,10 +262,16 @@
         if (critter is null)
         {
             feedings.Clear();
+            enclosureDto = null;
             return;
         }
 
         feedings = await FeedingService.GetByCritterIdAsync(CritterId);
+
+        if (critter.EnclosureProfileId.HasValue)
+            enclosureDto = await EnclosureService.GetEnclosureByIdAsync(critter.EnclosureProfileId.Value);
+        else
+            enclosureDto = null;
     }
 
     private async Task SaveFeedingAsync()

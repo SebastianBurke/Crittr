@@ -1,6 +1,7 @@
 @using Crittr.App.Services
 @using Crittr.Shared.DTOs
 @using Crittr.Shared.Models.Enums
+@using Crittr.Shared.Utilities
 
 @if (IsVisible)
 {
@@ -26,13 +27,22 @@
             {
                 <div class="flex-1 overflow-y-auto px-5 py-5">
                     <p class="text-sm text-slate-600 dark:text-slate-400 mb-4">What kind of critter are you adding?</p>
+
+                    @if (EnclosureTypeFilter.HasValue)
+                    {
+                        <div class="mb-3 rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/20 px-3.5 py-2.5 text-xs text-blue-800 dark:text-blue-300">
+                            Showing species compatible with a <strong>@EnclosureCompatibility.FormatEnclosureType(EnclosureTypeFilter.Value)</strong>.
+                        </div>
+                    }
+
                     <select @bind="selectedSpeciesType"
                             class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-900 px-3.5 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-green-500/40 focus:border-green-500 outline-none">
-                        @foreach (var type in Enum.GetValues<SpeciesType>())
+                        @foreach (var type in GetAvailableSpeciesTypes())
                         {
                             <option value="@type">@type</option>
                         }
                     </select>
+
                     <button type="button" @onclick="NextStep"
                             class="mt-5 w-full rounded-xl bg-green-600 hover:bg-green-700 text-white font-semibold py-2.5 shadow-lg shadow-green-600/20 transition-colors">
                         Next
@@ -42,7 +52,13 @@
             else if (step == 2)
             {
                 <div class="flex-1 flex flex-col overflow-hidden px-5 py-5">
-                    <p class="shrink-0 text-sm text-slate-600 dark:text-slate-400 mb-3">Search for the species of @selectedSpeciesType.</p>
+                    <p class="shrink-0 text-sm text-slate-600 dark:text-slate-400 mb-3">
+                        Search for the species of @selectedSpeciesType.
+                        @if (EnclosureTypeFilter.HasValue)
+                        {
+                            <span class="text-blue-600 dark:text-blue-400"> Showing species that thrive in a @EnclosureCompatibility.FormatEnclosureType(EnclosureTypeFilter.Value).</span>
+                        }
+                    </p>
 
                     @if (selectedSpecies is null)
                     {
@@ -177,7 +193,8 @@
                         @if (EnclosureId == 0)
                         {
                             var compatible = GetCompatibleEnclosures();
-                            var idealType  = GetIdealEnclosureType(selectedSpeciesType);
+                            var idealType  = EnclosureCompatibility.GetIdealEnclosureType(selectedSpeciesType);
+                            var requiresLabel = EnclosureCompatibility.GetEnclosureRequirementLabel(selectedSpeciesType);
                             <div>
                                 <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Enclosure <span class="text-slate-400 font-normal">(optional)</span></label>
 
@@ -193,26 +210,24 @@
                                                 class="text-xs text-slate-500 hover:underline shrink-0">Change</button>
                                     </div>
                                 }
-                                else if (compatible.Count > 1 || (compatible.Count == 1 && selectedEnclosureId == 0))
+                                else if (compatible.Count > 0)
                                 {
                                     <select @bind="selectedEnclosureId"
                                             class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-900 px-3.5 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-green-500/40 focus:border-green-500 outline-none">
                                         <option value="0">No enclosure yet</option>
                                         @foreach (var enc in compatible)
                                         {
-                                            <option value="@enc.Id">@enc.Name (@FormatEnclosureType(enc.EnclosureType))</option>
+                                            <option value="@enc.Id">@enc.Name (@EnclosureCompatibility.FormatEnclosureType(enc.EnclosureType))</option>
                                         }
                                     </select>
-                                    @if (compatible.Count > 0)
-                                    {
-                                        <p class="text-xs text-green-600 dark:text-green-400 mt-1">Showing enclosures compatible with @selectedSpeciesType.</p>
-                                    }
+                                    <p class="text-xs text-green-600 dark:text-green-400 mt-1">Showing enclosures compatible with @selectedSpeciesType.</p>
                                 }
                                 else if (availableEnclosures.Count > 0)
                                 {
-                                    <!-- No compatible enclosures — show all as fallback -->
-                                    <div class="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/20 px-3.5 py-2.5 text-xs text-amber-800 dark:text-amber-300 mb-2">
-                                        No @FormatEnclosureType(idealType) found. You can assign any enclosure or skip and create one later.
+                                    <!-- Has enclosures but none are compatible — show warning + all as fallback -->
+                                    <div class="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/20 px-3.5 py-2.5 mb-2">
+                                        <p class="text-xs font-semibold text-amber-800 dark:text-amber-300">Needs @requiresLabel</p>
+                                        <p class="text-xs text-amber-700 dark:text-amber-400 mt-0.5">None of your enclosures match. You can assign one anyway or skip and create the right one after saving.</p>
                                     </div>
                                     <select @bind="selectedEnclosureId"
                                             class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-900 px-3.5 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-green-500/40 focus:border-green-500 outline-none">
@@ -225,8 +240,14 @@
                                 }
                                 else
                                 {
-                                    <div class="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 px-3.5 py-2.5 text-xs text-slate-500 dark:text-slate-400">
-                                        No enclosures yet. A <span class="font-medium">@FormatEnclosureType(idealType)</span> is ideal for this critter — you can create one after saving.
+                                    <!-- No enclosures at all — guide toward creating one -->
+                                    <div class="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/20 px-3.5 py-3">
+                                        <p class="text-sm font-semibold text-amber-800 dark:text-amber-200">
+                                            @(string.IsNullOrWhiteSpace(newCritter.Name) ? "This critter" : newCritter.Name) needs @requiresLabel
+                                        </p>
+                                        <p class="text-xs text-amber-700 dark:text-amber-400 mt-1">
+                                            You don't have one yet. Save this critter now and we'll walk you through creating the right enclosure next.
+                                        </p>
                                     </div>
                                 }
                             </div>
@@ -248,7 +269,7 @@
                         <button type="button" @onclick="HandleSubmit"
                                 disabled="@(string.IsNullOrWhiteSpace(newCritter.Name) || isSubmitting)"
                                 class="flex-1 rounded-xl bg-green-600 hover:bg-green-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold py-2.5 shadow-lg shadow-green-600/20 transition-colors">
-                            @(isSubmitting ? "Saving…" : "Save critter")
+                            @SubmitLabel
                         </button>
                     </div>
                 </div>
@@ -263,6 +284,13 @@
     [Parameter] public int EnclosureId { get; set; }
     [Parameter] public EventCallback<bool> IsVisibleChanged { get; set; }
     [Parameter] public EventCallback<CritterDto> OnCritterAdded { get; set; }
+
+    /// When set, step 1 only shows species types compatible with this enclosure type.
+    [Parameter] public EnclosureType? EnclosureTypeFilter { get; set; }
+
+    /// Fired after saving when the critter has no enclosure and needs one created.
+    /// Passes the ideal EnclosureType so the parent can pre-select it in CreateEnclosureModal.
+    [Parameter] public EventCallback<EnclosureType?> OnNeedsEnclosure { get; set; }
 
     [Inject] public SpeciesService SpeciesService { get; set; } = default!;
     [Inject] public CritterService CritterService { get; set; } = default!;
@@ -281,10 +309,39 @@
     private int selectedEnclosureId;
     private DateTime? dateAcquiredInput;
 
+    private bool WillNeedEnclosure =>
+        EnclosureId == 0 &&
+        selectedEnclosureId == 0 &&
+        !GetCompatibleEnclosures().Any(e => e.Id == selectedEnclosureId) &&
+        availableEnclosures.Count == 0;
+
+    private string SubmitLabel
+    {
+        get
+        {
+            if (isSubmitting) return "Saving…";
+            return WillNeedEnclosure ? "Save & create enclosure →" : "Save critter";
+        }
+    }
+
     protected override async Task OnInitializedAsync()
     {
         ResetModal();
+        // Pre-select a compatible species type when coming from an enclosure
+        if (EnclosureTypeFilter.HasValue)
+        {
+            var compatible = EnclosureCompatibility.GetCompatibleSpeciesTypes(EnclosureTypeFilter.Value);
+            if (compatible.Count > 0 && !compatible.Contains(selectedSpeciesType))
+                selectedSpeciesType = compatible[0];
+        }
         try { availableEnclosures = await EnclosureService.GetEnclosuresAsync(); } catch { }
+    }
+
+    private IReadOnlyList<SpeciesType> GetAvailableSpeciesTypes()
+    {
+        if (!EnclosureTypeFilter.HasValue) return Enum.GetValues<SpeciesType>();
+        var compatible = EnclosureCompatibility.GetCompatibleSpeciesTypes(EnclosureTypeFilter.Value);
+        return compatible.Count > 0 ? compatible : (IReadOnlyList<SpeciesType>)Enum.GetValues<SpeciesType>();
     }
 
     private async Task OnSpeciesInputChanged(ChangeEventArgs e)
@@ -338,38 +395,9 @@
 
     private List<EnclosureProfileDto> GetCompatibleEnclosures()
     {
-        var types = GetCompatibleEnclosureTypes(selectedSpeciesType);
+        var types = EnclosureCompatibility.GetCompatibleEnclosureTypes(selectedSpeciesType);
         return availableEnclosures.Where(e => types.Contains(e.EnclosureType)).ToList();
     }
-
-    private static IReadOnlyList<EnclosureType> GetCompatibleEnclosureTypes(SpeciesType s) => s switch
-    {
-        SpeciesType.Reptile      => [EnclosureType.Terrarium, EnclosureType.Vivarium, EnclosureType.Bin, EnclosureType.RackSystem, EnclosureType.Tank, EnclosureType.Other],
-        SpeciesType.Amphibian    => [EnclosureType.Terrarium, EnclosureType.Vivarium, EnclosureType.Paludarium, EnclosureType.Aquarium, EnclosureType.Other],
-        SpeciesType.Bird         => [EnclosureType.Aviary, EnclosureType.Cage, EnclosureType.Other],
-        SpeciesType.Fish         => [EnclosureType.Aquarium, EnclosureType.Paludarium, EnclosureType.Tank, EnclosureType.Other],
-        SpeciesType.Mammal       => [EnclosureType.Cage, EnclosureType.FreeRoamRoom, EnclosureType.Bin, EnclosureType.Other],
-        SpeciesType.Invertebrate => [EnclosureType.Terrarium, EnclosureType.Insectarium, EnclosureType.Bin, EnclosureType.Other],
-        _                        => (IReadOnlyList<EnclosureType>)Enum.GetValues<EnclosureType>()
-    };
-
-    private static EnclosureType GetIdealEnclosureType(SpeciesType s) => s switch
-    {
-        SpeciesType.Reptile      => EnclosureType.Terrarium,
-        SpeciesType.Amphibian    => EnclosureType.Vivarium,
-        SpeciesType.Bird         => EnclosureType.Aviary,
-        SpeciesType.Fish         => EnclosureType.Aquarium,
-        SpeciesType.Mammal       => EnclosureType.Cage,
-        SpeciesType.Invertebrate => EnclosureType.Insectarium,
-        _                        => EnclosureType.Other
-    };
-
-    private static string FormatEnclosureType(EnclosureType t) => t switch
-    {
-        EnclosureType.RackSystem   => "Rack System",
-        EnclosureType.FreeRoamRoom => "Free Roam Room",
-        _                          => t.ToString()
-    };
 
     private void SelectSpecies(SpeciesInfo suggestion)
     {
@@ -416,6 +444,16 @@
             var created = await CritterService.CreateCritterAsync(newCritter);
             if (OnCritterAdded.HasDelegate)
                 await OnCritterAdded.InvokeAsync(created);
+
+            // If critter was saved without an enclosure, fire the guidance callback
+            if (newCritter.EnclosureProfileId == null && OnNeedsEnclosure.HasDelegate)
+            {
+                var idealType = EnclosureCompatibility.GetIdealEnclosureType(selectedSpeciesType);
+                await IsVisibleChanged.InvokeAsync(false);
+                ResetModal();
+                await OnNeedsEnclosure.InvokeAsync(idealType);
+                return;
+            }
 
             await IsVisibleChanged.InvokeAsync(false);
             ResetModal();

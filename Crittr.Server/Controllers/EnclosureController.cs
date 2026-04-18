@@ -5,6 +5,7 @@ using Crittr.Server.Services;
 using Crittr.Server.Services.Interfaces;
 using Crittr.Shared.DTOs;
 using Crittr.Shared.Models;
+using Crittr.Shared.Models.Enums;
 
 namespace Crittr.Server.Controllers;
 
@@ -71,6 +72,7 @@ public class EnclosureController : ControllerBase
         var model = new EnclosureProfile
         {
             Name = dto.Name,
+            EnclosureType = dto.EnclosureType,
             SubstrateType = dto.SubstrateType,
             Length = dto.Length,
             Width = dto.Width,
@@ -105,6 +107,29 @@ public class EnclosureController : ControllerBase
         var success = await _enclosureService.DeleteAsync(id);
         if (!success)
             return NotFound();
+
+        return NoContent();
+    }
+
+    [HttpGet("dto/compatible")]
+    public async Task<ActionResult<List<EnclosureProfileDto>>> GetCompatible([FromQuery] SpeciesType speciesType)
+    {
+        var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (userId == null) return Unauthorized();
+
+        return await _enclosureService.GetCompatibleByUserIdAsync(userId, speciesType);
+    }
+
+    [HttpPut("dto/{id}")]
+    public async Task<IActionResult> UpdateFromDto(int id, [FromBody] EnclosureProfileDto dto)
+    {
+        if (id != dto.Id) return BadRequest();
+
+        var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (userId == null) return Unauthorized();
+
+        var success = await _enclosureService.UpdateFromDtoAsync(dto, userId);
+        if (!success) return NotFound();
 
         return NoContent();
     }

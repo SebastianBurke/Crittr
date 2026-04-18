@@ -1,0 +1,391 @@
+@page "/enclosure/{EnclosureId:int}"
+@using Crittr.App.Pages.Shared.Components
+@using Crittr.App.Services
+@using Crittr.Shared.DTOs
+@using Crittr.Shared.Models.Enums
+@using Crittr.Shared.Utilities
+@inject EnclosureService EnclosureService
+@inject CritterService CritterService
+@inject NavigationManager Navigation
+@inject Blazored.LocalStorage.ILocalStorageService LocalStorage
+
+<PageTitle>@(enclosure?.Name ?? "Enclosure") — Crittr</PageTitle>
+
+<div class="max-w-3xl mx-auto px-4">
+    @if (!isAuthenticated)
+    {
+        <div class="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-gray-800/80 p-8 text-center">
+            <p class="text-slate-600 dark:text-slate-400">Sign in to view this enclosure.</p>
+            <a href="/login" class="mt-4 inline-block font-semibold text-green-600 dark:text-green-400 hover:underline">Log in</a>
+        </div>
+    }
+    else if (isLoading)
+    {
+        <PageSpinner Message="Loading enclosure…"/>
+    }
+    else if (enclosure is null)
+    {
+        <div class="rounded-2xl border border-red-200 dark:border-red-900/50 bg-red-50/80 dark:bg-red-950/30 p-8 text-center">
+            <p class="text-red-800 dark:text-red-200 font-medium">We couldn't find this enclosure, or you don't have access.</p>
+            <a href="/" class="mt-4 inline-block text-sm font-semibold text-green-600 dark:text-green-400 hover:underline">← Back to dashboard</a>
+        </div>
+    }
+    else
+    {
+        <a href="/" class="inline-flex items-center gap-1 text-sm font-medium text-green-700 dark:text-green-300 hover:underline mb-5">
+            ← Dashboard
+        </a>
+
+        <!-- Hero header with type-themed background -->
+        <div class="rounded-2xl overflow-hidden border border-slate-200/90 dark:border-slate-700 shadow-xl shadow-slate-900/5 dark:shadow-black/20 mb-6">
+
+            <div class="relative bg-gradient-to-br @GetHeroBg(enclosure.EnclosureType) px-5 sm:px-7 pt-5 sm:pt-6 pb-4">
+                @((MarkupString)GetHeroOverlay(enclosure.EnclosureType))
+                <div class="relative z-10">
+                    <span class="inline-flex items-center rounded-lg px-2.5 py-1 text-xs font-semibold @GetTypeBadgeClass(enclosure.EnclosureType) mb-3">
+                        @EnclosureCompatibility.FormatEnclosureType(enclosure.EnclosureType)
+                    </span>
+                    @if (isEditing)
+                    {
+                        <input type="text" @bind="editDto.Name"
+                               class="block w-full text-2xl sm:text-3xl font-bold bg-white/80 dark:bg-gray-900/80 rounded-xl px-3 py-1 text-slate-900 dark:text-white border border-white/50 outline-none focus:ring-2 focus:ring-white/60"/>
+                    }
+                    else
+                    {
+                        <h1 class="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">@enclosure.Name</h1>
+                    }
+
+                    <!-- Stats strip -->
+                    <div class="flex flex-wrap items-center gap-x-4 gap-y-1 mt-3 text-sm text-slate-600 dark:text-slate-300">
+                        <span class="flex items-center gap-1.5">
+                            <svg class="w-4 h-4 text-orange-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 2a4 4 0 00-4 4v8.586A6 6 0 1016 14.586V6a4 4 0 00-4-4z"/></svg>
+                            @enclosure.IdealTemperature°F
+                        </span>
+                        <span class="flex items-center gap-1.5">
+                            <svg class="w-4 h-4 text-blue-500 shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6 10 4 14 4 17a8 8 0 0016 0c0-3-2-7-8-15z"/></svg>
+                            @enclosure.IdealHumidity% humidity
+                        </span>
+                        <span>@enclosure.Length × @enclosure.Width × @enclosure.Height″</span>
+                        @if (!string.IsNullOrWhiteSpace(enclosure.SubstrateType))
+                        {
+                            <span class="bg-white/40 dark:bg-black/20 rounded-md px-2 py-0.5 text-xs">@enclosure.SubstrateType</span>
+                        }
+                        @if (enclosure.HasUVBLighting) { <span class="text-green-700 dark:text-green-300 font-medium text-xs">UVB ✓</span> }
+                        @if (enclosure.HasHeatingElement) { <span class="text-orange-600 dark:text-orange-300 font-medium text-xs">Heat ✓</span> }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Edit / Delete actions bar -->
+            <div class="bg-white dark:bg-gray-900 px-5 sm:px-7 py-3 flex items-center gap-3 border-t border-slate-100 dark:border-slate-800">
+                @if (isEditing)
+                {
+                    <button type="button" @onclick="SaveEdit" disabled="@isSaving"
+                            class="rounded-xl bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white text-sm font-semibold px-4 py-2 transition-colors">
+                        @(isSaving ? "Saving…" : "Save changes")
+                    </button>
+                    <button type="button" @onclick="CancelEdit"
+                            class="rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-800 text-slate-700 dark:text-slate-300 text-sm font-semibold px-4 py-2 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+                        Cancel
+                    </button>
+                }
+                else
+                {
+                    <button type="button" @onclick="BeginEdit"
+                            class="rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-800 text-slate-700 dark:text-slate-300 text-sm font-semibold px-4 py-2 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+                        Edit
+                    </button>
+                    <button type="button" @onclick="ShowDeleteConfirm"
+                            class="rounded-xl border border-red-200 dark:border-red-900 bg-white dark:bg-gray-800 text-red-600 dark:text-red-400 text-sm font-semibold px-4 py-2 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors">
+                        Delete
+                    </button>
+                }
+                @if (!string.IsNullOrEmpty(editError))
+                {
+                    <p class="text-sm text-red-600 dark:text-red-400">@editError</p>
+                }
+            </div>
+        </div>
+
+        <!-- Edit form (expands when editing) -->
+        @if (isEditing)
+        {
+            <div class="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-gray-900 shadow-sm p-5 sm:p-7 mb-6 space-y-4">
+                <h2 class="text-sm font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide">Edit Enclosure</h2>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="col-span-2">
+                        <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Type</label>
+                        <select @bind="editDto.EnclosureType"
+                                class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-slate-900 dark:text-white">
+                            @foreach (var t in Enum.GetValues<EnclosureType>())
+                            {
+                                <option value="@t">@EnclosureCompatibility.FormatEnclosureType(t)</option>
+                            }
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Length (in)</label>
+                        <input type="number" @bind="editDto.Length" step="0.5" min="1" class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-slate-900 dark:text-white"/>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Width (in)</label>
+                        <input type="number" @bind="editDto.Width" step="0.5" min="1" class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-slate-900 dark:text-white"/>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Height (in)</label>
+                        <input type="number" @bind="editDto.Height" step="0.5" min="1" class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-slate-900 dark:text-white"/>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Temp (°F)</label>
+                        <input type="number" @bind="editDto.IdealTemperature" min="0" max="120" class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-slate-900 dark:text-white"/>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Humidity (%)</label>
+                        <input type="number" @bind="editDto.IdealHumidity" min="0" max="100" class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-slate-900 dark:text-white"/>
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Substrate</label>
+                        <input type="text" @bind="editDto.SubstrateType" placeholder="e.g. Coconut fiber" class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-slate-900 dark:text-white"/>
+                    </div>
+                    <div class="col-span-2 flex gap-6">
+                        <label class="flex items-center gap-2 cursor-pointer text-sm text-slate-700 dark:text-slate-300">
+                            <input type="checkbox" @bind="editDto.HasUVBLighting" class="w-4 h-4 rounded border-slate-300 text-green-600"/>
+                            UVB Lighting
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer text-sm text-slate-700 dark:text-slate-300">
+                            <input type="checkbox" @bind="editDto.HasHeatingElement" class="w-4 h-4 rounded border-slate-300 text-green-600"/>
+                            Heating Element
+                        </label>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <!-- Delete confirmation -->
+        @if (showDeleteConfirm)
+        {
+            <div class="rounded-2xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/20 p-5 mb-6">
+                <p class="font-semibold text-red-800 dark:text-red-200 text-sm">Delete "@enclosure.Name"?</p>
+                @if (residentCritters.Count > 0)
+                {
+                    <p class="text-xs text-red-700 dark:text-red-300 mt-1">⚠ @residentCritters.Count critter@(residentCritters.Count == 1 ? "" : "s") will be unhoused.</p>
+                }
+                <div class="flex gap-3 mt-4">
+                    <button type="button" @onclick="ConfirmDelete" disabled="@isDeleting"
+                            class="rounded-xl bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-sm font-semibold px-4 py-2">
+                        @(isDeleting ? "Deleting…" : "Yes, delete")
+                    </button>
+                    <button type="button" @onclick="() => showDeleteConfirm = false"
+                            class="rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-800 text-slate-700 dark:text-slate-300 text-sm font-semibold px-4 py-2">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        }
+
+        <!-- Resident critters -->
+        <div class="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-gray-900 shadow-sm p-5 sm:p-7 mb-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-base font-semibold text-slate-900 dark:text-white">Residents (@residentCritters.Count)</h2>
+                <button type="button" @onclick="OpenAddCritterModal"
+                        class="rounded-xl bg-green-600 hover:bg-green-700 text-white text-xs font-semibold px-3 py-1.5 transition-colors">
+                    + Critter
+                </button>
+            </div>
+
+            @if (residentCritters.Count == 0)
+            {
+                <div class="text-center py-8 text-slate-400">
+                    <p>No critters yet.</p>
+                    <button type="button" @onclick="OpenAddCritterModal"
+                            class="mt-3 rounded-xl bg-green-600 hover:bg-green-700 text-white text-sm font-semibold px-5 py-2">
+                        + Add one
+                    </button>
+                </div>
+            }
+            else
+            {
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    @foreach (var c in residentCritters)
+                    {
+                        var compatible = EnclosureCompatibility.IsCompatible(c.SpeciesType, enclosure.EnclosureType);
+                        <a href="@($"/critter/{c.Id}")"
+                           class="group rounded-xl border @(compatible ? "border-slate-200 dark:border-slate-700" : "border-amber-300 dark:border-amber-700") bg-white dark:bg-gray-800 p-3 flex flex-col items-center gap-2 hover:shadow-md transition-all">
+                            <img src="@AppAssets.Resolve(c.IconUrl)" alt="" class="w-14 h-14 rounded-xl"/>
+                            <div class="text-center min-w-0 w-full">
+                                <p class="font-semibold text-slate-900 dark:text-white text-sm truncate">@c.Name</p>
+                                <p class="text-xs text-slate-500 dark:text-slate-400 truncate">@c.Species</p>
+                                @if (!compatible)
+                                {
+                                    <span class="inline-block mt-1 text-xs text-amber-700 dark:text-amber-400 font-medium">⚠ May not be ideal</span>
+                                }
+                                else
+                                {
+                                    <span class="inline-block mt-1 text-xs text-green-600 dark:text-green-400 font-medium">✓ Compatible</span>
+                                }
+                            </div>
+                        </a>
+                    }
+                </div>
+            }
+        </div>
+
+        <!-- Compatible species info -->
+        <div class="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-gray-900 shadow-sm p-5 sm:p-7 mb-6">
+            <h2 class="text-base font-semibold text-slate-900 dark:text-white mb-3">Compatible species types</h2>
+            <div class="flex flex-wrap gap-2">
+                @foreach (var st in EnclosureCompatibility.GetCompatibleSpeciesTypes(enclosure.EnclosureType))
+                {
+                    <span class="inline-flex items-center rounded-xl border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/20 px-3 py-1 text-sm font-medium text-green-800 dark:text-green-300">
+                        @st
+                    </span>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+<AddCritterModal
+    IsVisible="showAddCritterModal"
+    IsVisibleChanged="v => { showAddCritterModal = v; StateHasChanged(); }"
+    EnclosureName="@(enclosure?.Name ?? "")"
+    EnclosureId="@EnclosureId"
+    EnclosureTypeFilter="@(enclosure?.EnclosureType)"
+    OnCritterAdded="HandleCritterAdded"/>
+
+@code {
+    [Parameter] public int EnclosureId { get; set; }
+
+    private EnclosureProfileDto? enclosure;
+    private EnclosureProfileDto editDto = new();
+    private List<CritterDto> residentCritters = new();
+    private bool isLoading = true;
+    private bool isAuthenticated;
+    private bool isEditing;
+    private bool isSaving;
+    private bool isDeleting;
+    private bool showDeleteConfirm;
+    private bool showAddCritterModal;
+    private string? editError;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            isAuthenticated = await LocalStorage.ContainKeyAsync("authToken");
+            if (isAuthenticated)
+            {
+                enclosure = await EnclosureService.GetEnclosureByIdAsync(EnclosureId);
+                if (enclosure != null)
+                    residentCritters = await CritterService.GetCrittersByEnclosureIdAsync(EnclosureId);
+            }
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void BeginEdit()
+    {
+        editDto = new EnclosureProfileDto
+        {
+            Id = enclosure!.Id,
+            Name = enclosure.Name,
+            EnclosureType = enclosure.EnclosureType,
+            Length = enclosure.Length,
+            Width = enclosure.Width,
+            Height = enclosure.Height,
+            SubstrateType = enclosure.SubstrateType,
+            HasUVBLighting = enclosure.HasUVBLighting,
+            HasHeatingElement = enclosure.HasHeatingElement,
+            IdealTemperature = enclosure.IdealTemperature,
+            IdealHumidity = enclosure.IdealHumidity,
+        };
+        isEditing = true;
+        editError = null;
+    }
+
+    private async Task SaveEdit()
+    {
+        if (string.IsNullOrWhiteSpace(editDto.Name)) { editError = "Name is required."; return; }
+        isSaving = true;
+        editError = null;
+        try
+        {
+            var ok = await EnclosureService.UpdateEnclosureAsync(editDto);
+            if (ok)
+            {
+                enclosure = editDto;
+                isEditing = false;
+            }
+            else
+            {
+                editError = "Could not save changes. Try again.";
+            }
+        }
+        finally
+        {
+            isSaving = false;
+            StateHasChanged();
+        }
+    }
+
+    private void CancelEdit() { isEditing = false; editError = null; }
+
+    private void ShowDeleteConfirm() => showDeleteConfirm = true;
+
+    private async Task ConfirmDelete()
+    {
+        isDeleting = true;
+        try
+        {
+            var ok = await EnclosureService.DeleteEnclosureAsync(EnclosureId);
+            if (ok) Navigation.NavigateTo("/");
+            else editError = "Could not delete enclosure. Try again.";
+        }
+        finally
+        {
+            isDeleting = false;
+            StateHasChanged();
+        }
+    }
+
+    private void OpenAddCritterModal() { showAddCritterModal = true; StateHasChanged(); }
+
+    private async Task HandleCritterAdded(CritterDto _)
+    {
+        residentCritters = await CritterService.GetCrittersByEnclosureIdAsync(EnclosureId);
+        StateHasChanged();
+    }
+
+    private static string GetHeroBg(EnclosureType t) => t switch
+    {
+        EnclosureType.Aquarium or EnclosureType.Tank  => "from-blue-100 via-blue-50 to-white dark:from-blue-950/60 dark:via-blue-900/30 dark:to-gray-900",
+        EnclosureType.Paludarium                       => "from-teal-100 via-teal-50 to-white dark:from-teal-950/60 dark:via-teal-900/30 dark:to-gray-900",
+        EnclosureType.Aviary                           => "from-sky-100 via-sky-50 to-white dark:from-sky-950/60 dark:via-sky-900/30 dark:to-gray-900",
+        EnclosureType.Insectarium                      => "from-amber-100 via-amber-50 to-white dark:from-amber-950/60 dark:via-amber-900/30 dark:to-gray-900",
+        EnclosureType.Cage or EnclosureType.FreeRoamRoom => "from-slate-100 via-slate-50 to-white dark:from-slate-900 dark:via-slate-800 dark:to-gray-900",
+        EnclosureType.RackSystem or EnclosureType.Bin  => "from-zinc-100 via-zinc-50 to-white dark:from-zinc-900 dark:via-zinc-800 dark:to-gray-900",
+        _ => "from-green-100 via-green-50 to-white dark:from-green-950/60 dark:via-green-900/30 dark:to-gray-900",
+    };
+
+    private static string GetTypeBadgeClass(EnclosureType t) => t switch
+    {
+        EnclosureType.Aquarium or EnclosureType.Tank  => "bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800",
+        EnclosureType.Paludarium                       => "bg-teal-100 dark:bg-teal-900/40 text-teal-800 dark:text-teal-300 border border-teal-200 dark:border-teal-800",
+        EnclosureType.Aviary                           => "bg-sky-100 dark:bg-sky-900/40 text-sky-800 dark:text-sky-300 border border-sky-200 dark:border-sky-800",
+        EnclosureType.Insectarium                      => "bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800",
+        EnclosureType.Cage or EnclosureType.FreeRoamRoom => "bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-600",
+        EnclosureType.RackSystem or EnclosureType.Bin  => "bg-zinc-100 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-600",
+        _ => "bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 border border-green-200 dark:border-green-800",
+    };
+
+    private static string GetHeroOverlay(EnclosureType t) => t switch
+    {
+        EnclosureType.Aquarium or EnclosureType.Tank => """<svg class="absolute inset-0 w-full h-full opacity-[0.08] pointer-events-none" viewBox="0 0 400 180" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice"><path d="M0 155 Q100 140 200 155 Q300 170 400 155 L400 180 L0 180 Z" fill="#1d4ed8"/><circle cx="60" cy="90" r="7" fill="#60a5fa" opacity="0.6"/><circle cx="64" cy="75" r="5" fill="#93c5fd" opacity="0.5"/><circle cx="200" cy="70" r="8" fill="#60a5fa" opacity="0.5"/><circle cx="330" cy="85" r="6" fill="#60a5fa" opacity="0.6"/></svg>""",
+        EnclosureType.Terrarium or EnclosureType.Vivarium => """<svg class="absolute inset-0 w-full h-full opacity-[0.07] pointer-events-none" viewBox="0 0 400 180" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice"><ellipse cx="80" cy="170" rx="55" ry="20" fill="#166534"/><ellipse cx="250" cy="172" rx="45" ry="18" fill="#15803d"/><ellipse cx="370" cy="168" rx="50" ry="22" fill="#166534"/><path d="M120 145 Q130 110 145 135" stroke="#4ade80" stroke-width="3" fill="none"/><path d="M270 130 Q285 95 300 120" stroke="#4ade80" stroke-width="3" fill="none"/></svg>""",
+        _ => "",
+    };
+}

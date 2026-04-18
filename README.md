@@ -2,20 +2,24 @@
 
 Crittr is a full-stack **Blazor WebAssembly + ASP.NET Core** app designed for keepers of reptiles and exotic critters. From feeding and growth tracking to fully customizable enclosures, **Crittr brings your pet's world to life.**
 
-**Current release: v1.0.0** — accounts, enclosures & critters, per-critter **feeding log** (API + UI), Blazor Hybrid (MAUI) shell sharing the same UI library (`Crittr.App`).
+**Current release: v1.1.0** — enclosure type system (12 types, compatibility matrix, themed canvases), 3-step enclosure creation wizard, enclosure detail page, and bug fixes. Built on v1.0.0: accounts, enclosures & critters, per-critter **feeding log** (API + UI), Blazor Hybrid (MAUI) shell sharing the same UI library (`Crittr.App`).
 
 **Live at [https://crittr.ca](https://crittr.ca)**
 
 ---
 
-## 🚀 Features (v1)
+## 🚀 Features (v1.1)
 
 - 🔐 Register / log in, JWT in browser storage, per-user data on the API
-- 🏠 Dashboard with enclosure cards, animated critter icons, **critter detail** route
+- 🏠 Dashboard with enclosure carousel, type-themed canvases, animated critter icons
+- 🧩 **12 enclosure types** — Terrarium, Aquarium, Paludarium, Vivarium, Insectarium, Aviary, Cage, Bin, Rack System, Free-Roam Room, Tank, Other
+- 🪄 **3-step enclosure creation wizard** — pick type → configure environment → name it
+- 🐍 Species ↔ enclosure **compatibility matrix** — smart critter filtering per enclosure type
+- 🎨 Per-type **themed canvases** with gradient backgrounds and decorative SVG overlays
 - 🍽️ **Feeding history + log feeding** per critter (owned data only on the API)
-- 📦 Modal flow to add critters (species search via iNaturalist) and enclosures
+- 📦 Multi-step add critter flow (species search via iNaturalist) with enclosure compatibility hints
 - 📱 Mobile-friendly layout; shared **Razor UI** (`Crittr.App`) for both WASM and MAUI Blazor Hybrid
-- 🎨 Emerald / slate theme, DM Sans, polished empty & loading states
+- 🧭 Enclosure detail page with hero section and critter roster
 
 ---
 
@@ -38,13 +42,16 @@ Crittr is a full-stack **Blazor WebAssembly + ASP.NET Core** app designed for ke
 
 | Status | Feature                                  | Notes                                              |
 |--------|------------------------------------------|----------------------------------------------------|
-| ✅     | Auth, enclosures, critters, feeding log  | v1 complete                                        |
+| ✅     | Auth, enclosures, critters, feeding log  | v1.0 complete                                      |
 | ✅     | iNaturalist species autocomplete         | Images + common names                              |
 | ✅     | MAUI Blazor Hybrid shell                 | Shares `Crittr.App` with the WASM client           |
 | ✅     | Full rename to `Crittr`                  | Namespaces, UI labels, routes                      |
 | ✅     | Systemd auto-start                       | Both dev and prod servers restart on reboot        |
 | ✅     | Tailscale remote access                  | Dev server accessible from anywhere                |
 | ✅     | Nginx + domain + SSL                     | Live at https://crittr.ca (Let's Encrypt)          |
+| ✅     | Enclosure type system                    | 12 types, compatibility matrix, themed canvases    |
+| ✅     | 3-step enclosure creation wizard         | Type picker → environment → name                   |
+| ✅     | Enclosure detail page                    | Hero section, critter roster, stats                |
 | 🔜     | Notifications & reminders                | Feeding / shedding / task alerts — next up         |
 | 🧠     | Ollama AI integration                    | Species care tips, smart logging via local llama3  |
 | 🔜     | Auto-deploy pipeline                     | Deploy on git push                                 |

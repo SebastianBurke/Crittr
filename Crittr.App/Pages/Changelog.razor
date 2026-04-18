@@ -9,12 +9,63 @@
         <p class="mt-1 text-slate-500 dark:text-slate-400 text-sm">Release notes and updates for Crittr.</p>
     </div>
 
-    <!-- v1.0.0 -->
-    <div class="relative pl-6 border-l-2 border-green-200 dark:border-green-800">
+    <!-- v1.1.0 -->
+    <div class="relative pl-6 border-l-2 border-green-200 dark:border-green-800 mb-12">
         <div class="absolute -left-2.5 top-0 w-4 h-4 rounded-full bg-green-600 border-2 border-white dark:border-gray-950"></div>
 
         <div class="mb-1 flex items-center gap-3">
             <span class="text-xs font-semibold uppercase tracking-widest text-green-600 dark:text-green-400">Latest</span>
+            <span class="text-xs text-slate-400">April 2026</span>
+        </div>
+
+        <h2 class="text-xl font-bold text-slate-900 dark:text-white mb-4">v1.1.0 — Enclosure Type System</h2>
+
+        <div class="space-y-6 text-sm text-slate-700 dark:text-slate-300">
+
+            <div>
+                <h3 class="font-semibold text-slate-900 dark:text-white mb-2">Enclosure creation wizard</h3>
+                <ul class="space-y-1 list-disc list-inside text-slate-600 dark:text-slate-400">
+                    <li>New 3-step modal: pick a type → set up the environment → name it</li>
+                    <li>12 enclosure types with emoji, description, and smart field presets per type</li>
+                    <li>Aquarium/Tank hides humidity and shows Aquarium Heater instead of Heating Element</li>
+                    <li>Free-Roam Room shows room dimensions with optional 0 values</li>
+                    <li>Blank name auto-fills from the selected type (e.g. "My Aquarium")</li>
+                </ul>
+            </div>
+
+            <div>
+                <h3 class="font-semibold text-slate-900 dark:text-white mb-2">Enclosure type theming</h3>
+                <ul class="space-y-1 list-disc list-inside text-slate-600 dark:text-slate-400">
+                    <li>Dashboard canvas background and border colour match the enclosure type</li>
+                    <li>Decorative SVG overlays: bubbles for aquatic, foliage for terrariums, bars for cages</li>
+                    <li>Enclosure detail page hero section uses per-type gradient and overlay</li>
+                </ul>
+            </div>
+
+            <div>
+                <h3 class="font-semibold text-slate-900 dark:text-white mb-2">Species ↔ enclosure compatibility</h3>
+                <ul class="space-y-1 list-disc list-inside text-slate-600 dark:text-slate-400">
+                    <li>Full compatibility matrix: which species types belong in which enclosure types</li>
+                    <li>Critter wizard filters enclosure list and species options by compatibility</li>
+                    <li>Server endpoint <code class="text-xs bg-slate-100 dark:bg-slate-800 px-1 rounded">GET /api/enclosure/dto/compatible?speciesType=</code> returns only compatible enclosures</li>
+                </ul>
+            </div>
+
+            <div>
+                <h3 class="font-semibold text-slate-900 dark:text-white mb-2">Bug fixes</h3>
+                <ul class="space-y-1 list-disc list-inside text-slate-600 dark:text-slate-400">
+                    <li>Fixed: enclosure type was not saved to the database — all enclosures were stored as Terrarium regardless of what was selected</li>
+                </ul>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- v1.0.0 -->
+    <div class="relative pl-6 border-l-2 border-green-200 dark:border-green-800">
+        <div class="absolute -left-2.5 top-0 w-4 h-4 rounded-full bg-slate-300 dark:bg-slate-600 border-2 border-white dark:border-gray-950"></div>
+
+        <div class="mb-1 flex items-center gap-3">
             <span class="text-xs text-slate-400">March 2025</span>
         </div>
 

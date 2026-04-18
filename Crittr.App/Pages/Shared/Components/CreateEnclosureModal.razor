@@ -1,6 +1,7 @@
 @using Crittr.App.Services
 @using Crittr.Shared.DTOs
 @using Crittr.Shared.Models.Enums
+@using Crittr.Shared.Utilities
 @inject EnclosureService EnclosureService
 
 @if (IsVisible)
@@ -11,7 +12,10 @@
 
             <!-- Header -->
             <div class="sticky top-0 z-10 flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-gray-800 rounded-t-2xl sm:rounded-t-2xl">
-                <h3 class="text-lg font-semibold text-slate-900 dark:text-white">New enclosure</h3>
+                <div>
+                    <h3 class="text-lg font-semibold text-slate-900 dark:text-white">New enclosure</h3>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Step @_step of 3</p>
+                </div>
                 <button type="button" @onclick="Close" aria-label="Close"
                         class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
                     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -20,109 +24,207 @@
                 </button>
             </div>
 
-            <form @onsubmit="HandleSubmit" class="px-5 py-5 space-y-5">
-
-                <!-- Name + Type -->
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Name <span class="text-red-500">*</span></label>
-                        <input type="text" @bind="newEnclosure.Name" placeholder="e.g. Desert Vivarium"
-                               class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-900 px-3.5 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-green-500/40 focus:border-green-500 outline-none"/>
+            @if (_step == 1)
+            {
+                <!-- Step 1: Type picker -->
+                <div class="px-5 py-5">
+                    <p class="text-sm text-slate-600 dark:text-slate-400 mb-4">What type of enclosure are you building?</p>
+                    <div class="grid grid-cols-3 gap-2.5">
+                        @foreach (var t in Enum.GetValues<EnclosureType>())
+                        {
+                            <button type="button" @onclick="() => SelectType(t)"
+                                    class="flex flex-col items-center gap-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-gray-900 hover:border-green-400 hover:bg-green-50 dark:hover:border-green-600 dark:hover:bg-green-950/20 p-3 text-center transition-colors">
+                                <span class="text-2xl">@GetTypeEmoji(t)</span>
+                                <span class="text-xs font-semibold text-slate-800 dark:text-slate-200 leading-tight">@EnclosureCompatibility.FormatEnclosureType(t)</span>
+                                <span class="text-[10px] text-slate-400 dark:text-slate-500 leading-tight">@GetTypeDescription(t)</span>
+                            </button>
+                        }
                     </div>
+                    <button type="button" @onclick="Close"
+                            class="mt-4 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-800 text-slate-800 dark:text-slate-200 font-semibold py-2.5 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+                        Cancel
+                    </button>
+                </div>
+            }
+            else if (_step == 2)
+            {
+                <!-- Step 2: Environment -->
+                <div class="px-5 py-5 space-y-5">
+
+                    @if (PreferredEnclosureType.HasValue)
+                    {
+                        <div class="rounded-xl border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/20 px-3.5 py-2.5 text-xs text-green-800 dark:text-green-300">
+                            Recommended for your <strong>@_recommendedForLabel</strong>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="flex items-center gap-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-gray-900 px-3.5 py-2.5">
+                            <span class="text-xl shrink-0">@GetTypeEmoji(_selectedType)</span>
+                            <div class="min-w-0">
+                                <p class="text-sm font-semibold text-slate-800 dark:text-slate-200">@EnclosureCompatibility.FormatEnclosureType(_selectedType)</p>
+                                <p class="text-xs text-slate-400 dark:text-slate-500">@GetTypeDescription(_selectedType)</p>
+                            </div>
+                        </div>
+                    }
+
+                    <!-- Temperature -->
                     <div>
-                        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Type</label>
-                        <select @bind="newEnclosure.EnclosureType"
-                                class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-900 px-3.5 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-green-500/40 focus:border-green-500 outline-none">
-                            @foreach (var t in Enum.GetValues<EnclosureType>())
-                            {
-                                <option value="@t">@t</option>
-                            }
-                        </select>
-                    </div>
-                </div>
-
-                <!-- Dimensions -->
-                <div>
-                    <p class="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Dimensions (inches)</p>
-                    <div class="grid grid-cols-3 gap-3">
-                        <div>
-                            <label class="block text-xs text-slate-500 dark:text-slate-400 mb-1">Length</label>
-                            <input type="number" @bind="newEnclosure.Length" min="1" step="0.5"
-                                   class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-900 px-3 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-green-500/40 focus:border-green-500 outline-none"/>
-                        </div>
-                        <div>
-                            <label class="block text-xs text-slate-500 dark:text-slate-400 mb-1">Width</label>
-                            <input type="number" @bind="newEnclosure.Width" min="1" step="0.5"
-                                   class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-900 px-3 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-green-500/40 focus:border-green-500 outline-none"/>
-                        </div>
-                        <div>
-                            <label class="block text-xs text-slate-500 dark:text-slate-400 mb-1">Height</label>
-                            <input type="number" @bind="newEnclosure.Height" min="1" step="0.5"
-                                   class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-900 px-3 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-green-500/40 focus:border-green-500 outline-none"/>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Substrate -->
-                <div>
-                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Substrate <span class="text-slate-400 font-normal">(optional)</span></label>
-                    <input type="text" @bind="newEnclosure.SubstrateType" placeholder="e.g. Critter Carpet, Aspen Shavings"
-                           class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-900 px-3.5 py-2.5 text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-green-500/40 focus:border-green-500 outline-none"/>
-                </div>
-
-                <!-- Environment -->
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Temp (°F)</label>
+                        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                            @(_selectedType is EnclosureType.Aquarium or EnclosureType.Tank ? "Water Temp (°F)" : "Ambient Temp (°F)")
+                        </label>
                         <input type="number" @bind="newEnclosure.IdealTemperature" min="0" max="120" step="1"
                                class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-900 px-3.5 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-green-500/40 focus:border-green-500 outline-none"/>
                     </div>
+
+                    <!-- Humidity — hidden for Aquarium/Tank (near 100% by design) -->
+                    @if (_selectedType is not EnclosureType.Aquarium and not EnclosureType.Tank)
+                    {
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Humidity (%)</label>
+                            <input type="number" @bind="newEnclosure.IdealHumidity" min="0" max="100" step="1"
+                                   class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-900 px-3.5 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-green-500/40 focus:border-green-500 outline-none"/>
+                        </div>
+                    }
+
+                    <!-- Dimensions -->
                     <div>
-                        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Humidity (%)</label>
-                        <input type="number" @bind="newEnclosure.IdealHumidity" min="0" max="100" step="1"
-                               class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-900 px-3.5 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-green-500/40 focus:border-green-500 outline-none"/>
+                        <p class="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                            @(_selectedType == EnclosureType.FreeRoamRoom ? "Approximate Room Size (ft)" : "Dimensions (inches)")
+                        </p>
+                        <div class="grid grid-cols-3 gap-3">
+                            <div>
+                                <label class="block text-xs text-slate-500 dark:text-slate-400 mb-1">Length</label>
+                                <input type="number" @bind="newEnclosure.Length" min="0" step="0.5"
+                                       class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-900 px-3 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-green-500/40 focus:border-green-500 outline-none"/>
+                            </div>
+                            <div>
+                                <label class="block text-xs text-slate-500 dark:text-slate-400 mb-1">Width</label>
+                                <input type="number" @bind="newEnclosure.Width" min="0" step="0.5"
+                                       class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-900 px-3 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-green-500/40 focus:border-green-500 outline-none"/>
+                            </div>
+                            <div>
+                                <label class="block text-xs text-slate-500 dark:text-slate-400 mb-1">Height</label>
+                                <input type="number" @bind="newEnclosure.Height" min="0" step="0.5"
+                                       class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-900 px-3 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-green-500/40 focus:border-green-500 outline-none"/>
+                            </div>
+                        </div>
+                        @if (_selectedType == EnclosureType.FreeRoamRoom)
+                        {
+                            <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">Leave as 0 if not applicable.</p>
+                        }
+                    </div>
+
+                    <!-- Substrate — hidden for Aquarium -->
+                    @if (_selectedType is not EnclosureType.Aquarium)
+                    {
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Substrate <span class="text-slate-400 font-normal">(optional)</span></label>
+                            <input type="text" @bind="newEnclosure.SubstrateType"
+                                   placeholder="@GetSubstratePlaceholder(_selectedType)"
+                                   class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-900 px-3.5 py-2.5 text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-green-500/40 focus:border-green-500 outline-none"/>
+                        </div>
+                    }
+
+                    <!-- UVB + Heating -->
+                    @if (_selectedType is EnclosureType.Aquarium or EnclosureType.Tank)
+                    {
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" @bind="newEnclosure.HasHeatingElement"
+                                   class="w-4 h-4 rounded border-slate-300 text-green-600 focus:ring-green-500"/>
+                            <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Aquarium Heater</span>
+                        </label>
+                    }
+                    else
+                    {
+                        <div class="flex gap-6">
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" @bind="newEnclosure.HasUVBLighting"
+                                       class="w-4 h-4 rounded border-slate-300 text-green-600 focus:ring-green-500"/>
+                                <span class="text-sm font-medium text-slate-700 dark:text-slate-300">UVB Lighting</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" @bind="newEnclosure.HasHeatingElement"
+                                       class="w-4 h-4 rounded border-slate-300 text-green-600 focus:ring-green-500"/>
+                                <span class="text-sm font-medium text-slate-700 dark:text-slate-300">
+                                    @(_selectedType is EnclosureType.Paludarium ? "Heating Mat" : "Heating Element")
+                                </span>
+                            </label>
+                        </div>
+                    }
+
+                    @if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <div class="rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 text-red-800 dark:text-red-200 px-4 py-3 text-sm" role="alert">
+                            @errorMessage
+                        </div>
+                    }
+
+                    <div class="flex gap-3 pt-1 pb-safe">
+                        @if (!PreferredEnclosureType.HasValue)
+                        {
+                            <button type="button" @onclick="() => { _step = 1; errorMessage = null; }"
+                                    class="flex-1 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-800 text-slate-800 dark:text-slate-200 font-semibold py-2.5 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+                                Back
+                            </button>
+                        }
+                        else
+                        {
+                            <button type="button" @onclick="Close"
+                                    class="flex-1 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-800 text-slate-800 dark:text-slate-200 font-semibold py-2.5 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+                                Cancel
+                            </button>
+                        }
+                        <button type="button" @onclick="AdvanceToStep3"
+                                class="flex-1 rounded-xl bg-green-600 hover:bg-green-700 text-white font-semibold py-2.5 shadow-lg shadow-green-600/20 transition-colors">
+                            Next
+                        </button>
                     </div>
                 </div>
-
-                <!-- Lighting / Heating -->
-                <div class="flex gap-6">
-                    <label class="flex items-center gap-2 cursor-pointer">
-                        <input type="checkbox" @bind="newEnclosure.HasUVBLighting"
-                               class="w-4 h-4 rounded border-slate-300 text-green-600 focus:ring-green-500"/>
-                        <span class="text-sm font-medium text-slate-700 dark:text-slate-300">UVB Lighting</span>
-                    </label>
-                    <label class="flex items-center gap-2 cursor-pointer">
-                        <input type="checkbox" @bind="newEnclosure.HasHeatingElement"
-                               class="w-4 h-4 rounded border-slate-300 text-green-600 focus:ring-green-500"/>
-                        <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Heating Element</span>
-                    </label>
-                </div>
-
-                @if (!string.IsNullOrEmpty(errorMessage))
-                {
-                    <div class="rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 text-red-800 dark:text-red-200 px-4 py-3 text-sm" role="alert">
-                        @errorMessage
+            }
+            else
+            {
+                <!-- Step 3: Name -->
+                <form @onsubmit="SubmitWithName" class="px-5 py-5 space-y-5">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                            Name your @EnclosureCompatibility.FormatEnclosureType(_selectedType)
+                        </label>
+                        <input type="text" @bind="newEnclosure.Name"
+                               placeholder="My @EnclosureCompatibility.FormatEnclosureType(_selectedType)"
+                               class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-900 px-3.5 py-2.5 text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-green-500/40 focus:border-green-500 outline-none"
+                               autofocus/>
+                        <p class="text-xs text-slate-400 dark:text-slate-500 mt-1.5">Leave blank to use the default name.</p>
                     </div>
-                }
 
-                <!-- Actions -->
-                <div class="flex gap-3 pt-1 pb-safe">
-                    <button type="button" @onclick="Close"
-                            class="flex-1 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-800 text-slate-800 dark:text-slate-200 font-semibold py-2.5 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
-                        Cancel
-                    </button>
-                    <button type="submit" disabled="@isSubmitting"
-                            class="flex-1 rounded-xl bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-2.5 shadow-lg shadow-green-600/20 transition-colors">
-                        @(isSubmitting ? "Creating…" : "Create enclosure")
-                    </button>
-                </div>
-            </form>
+                    @if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <div class="rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 text-red-800 dark:text-red-200 px-4 py-3 text-sm" role="alert">
+                            @errorMessage
+                        </div>
+                    }
+
+                    <div class="flex gap-3 pt-1 pb-safe">
+                        <button type="button" @onclick="() => { _step = 2; errorMessage = null; }"
+                                class="flex-1 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-800 text-slate-800 dark:text-slate-200 font-semibold py-2.5 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+                            Back
+                        </button>
+                        <button type="submit" disabled="@isSubmitting"
+                                class="flex-1 rounded-xl bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-2.5 shadow-lg shadow-green-600/20 transition-colors">
+                            @(isSubmitting ? "Creating…" : $"Create {EnclosureCompatibility.FormatEnclosureType(_selectedType)}")
+                        </button>
+                    </div>
+                </form>
+            }
+
         </div>
     </div>
 }
 
 @code {
     private bool _isVisible;
+    private int _step = 1;
+    private EnclosureType _selectedType = EnclosureType.Terrarium;
 
     [Parameter]
     public bool IsVisible
@@ -133,40 +235,107 @@
             if (_isVisible != value)
             {
                 _isVisible = value;
-                if (_isVisible)
-                {
-                    ResetForm();
-                }
+                if (_isVisible) ResetForm();
             }
         }
     }
 
     [Parameter] public EventCallback<bool> IsVisibleChanged { get; set; }
-
     [Parameter] public EventCallback<EnclosureProfileDto> OnEnclosureCreated { get; set; }
 
-    private EnclosureProfileDto newEnclosure = new EnclosureProfileDto();
-    private bool isSubmitting = false;
-    private string errorMessage = null;
+    /// When set, pre-selects and locks the enclosure type (used by critter-first flow).
+    [Parameter] public EnclosureType? PreferredEnclosureType { get; set; }
 
-    protected override void OnInitialized()
+    /// Human-readable label for the recommended-for badge (e.g. "Reptile").
+    [Parameter] public string? RecommendedForLabel { get; set; }
+
+    private EnclosureProfileDto newEnclosure = new();
+    private bool isSubmitting;
+    private string? errorMessage;
+    private string _recommendedForLabel => RecommendedForLabel ?? "critter";
+
+    protected override void OnInitialized() => ResetForm();
+
+    protected override void OnParametersSet()
     {
-        ResetForm();
+        if (_isVisible && PreferredEnclosureType.HasValue)
+            newEnclosure.EnclosureType = PreferredEnclosureType.Value;
+    }
+
+    private void SelectType(EnclosureType t)
+    {
+        _selectedType = t;
+        newEnclosure.EnclosureType = t;
+        ApplyTypePresets(t);
+        _step = 2;
+    }
+
+    private void ApplyTypePresets(EnclosureType t)
+    {
+        (newEnclosure.IdealTemperature,
+         newEnclosure.IdealHumidity,
+         newEnclosure.SubstrateType,
+         newEnclosure.HasUVBLighting,
+         newEnclosure.HasHeatingElement) = t switch
+        {
+            EnclosureType.Terrarium    => (85d, 50d, "Reptile carpet", true,  true),
+            EnclosureType.Vivarium     => (75d, 70d, "Coconut fiber",   true,  true),
+            EnclosureType.Aquarium     => (78d, 99d, "Gravel",          false, false),
+            EnclosureType.Tank         => (78d, 60d, "Gravel",          false, true),
+            EnclosureType.Paludarium   => (75d, 80d, "ABG mix",         true,  true),
+            EnclosureType.Insectarium  => (72d, 60d, "Coco peat",       false, true),
+            EnclosureType.Aviary       => (70d, 50d, "Bird-safe liner",  false, false),
+            EnclosureType.Cage         => (70d, 40d, "Fleece / paper",   false, false),
+            EnclosureType.RackSystem   => (88d, 40d, "Paper towel",      false, true),
+            EnclosureType.Bin          => (85d, 50d, "Paper towel",      false, true),
+            EnclosureType.FreeRoamRoom => (70d, 40d, null,               false, false),
+            _                          => (75d, 50d, null,               false, false),
+        };
+    }
+
+    private void AdvanceToStep3()
+    {
+        errorMessage = null;
+        if (newEnclosure.IdealTemperature <= 0)
+        {
+            errorMessage = "Temperature must be specified.";
+            return;
+        }
+        if (_selectedType != EnclosureType.FreeRoamRoom &&
+            (newEnclosure.Length <= 0 || newEnclosure.Width <= 0 || newEnclosure.Height <= 0))
+        {
+            errorMessage = "Length, width, and height must be greater than zero.";
+            return;
+        }
+        if (_selectedType is not EnclosureType.Aquarium and not EnclosureType.Tank &&
+            (newEnclosure.IdealHumidity < 0 || newEnclosure.IdealHumidity > 100))
+        {
+            errorMessage = "Humidity must be between 0 and 100%.";
+            return;
+        }
+        _step = 3;
+    }
+
+    private async Task SubmitWithName()
+    {
+        if (string.IsNullOrWhiteSpace(newEnclosure.Name))
+            newEnclosure.Name = $"My {EnclosureCompatibility.FormatEnclosureType(_selectedType)}";
+        await HandleSubmit();
     }
 
     private void ResetForm()
     {
-        // Reset form values
+        _step = PreferredEnclosureType.HasValue ? 2 : 1;
+        var type = PreferredEnclosureType ?? EnclosureType.Terrarium;
+        _selectedType = type;
         newEnclosure = new EnclosureProfileDto
         {
-            HasUVBLighting = true, // Default values
-            HasHeatingElement = true,
-            IdealTemperature = 85,
-            IdealHumidity = 50,
+            EnclosureType = type,
             Length = 36,
-            Width = 18,
-            Height = 18
+            Width  = 18,
+            Height = 18,
         };
+        ApplyTypePresets(type);
         errorMessage = null;
     }
 
@@ -177,36 +346,30 @@
             isSubmitting = true;
             errorMessage = null;
 
-            // Basic validation
             if (string.IsNullOrWhiteSpace(newEnclosure.Name))
             {
                 errorMessage = "Enclosure name is required.";
                 return;
             }
-
-            if (newEnclosure.Length <= 0 || newEnclosure.Width <= 0 || newEnclosure.Height <= 0)
+            if (_selectedType != EnclosureType.FreeRoamRoom &&
+                (newEnclosure.Length <= 0 || newEnclosure.Width <= 0 || newEnclosure.Height <= 0))
             {
                 errorMessage = "Length, width, and height must be greater than zero.";
                 return;
             }
-
             if (newEnclosure.IdealTemperature <= 0)
             {
                 errorMessage = "Ideal temperature must be specified.";
                 return;
             }
-
             if (newEnclosure.IdealHumidity < 0 || newEnclosure.IdealHumidity > 100)
             {
                 errorMessage = "Ideal humidity must be between 0 and 100%.";
                 return;
             }
 
-            // Submit to service
-            var createdEnclosure = await EnclosureService.CreateEnclosureAsync(newEnclosure);
-
-            // Success - notify parent
-            await OnEnclosureCreated.InvokeAsync(createdEnclosure);
+            var created = await EnclosureService.CreateEnclosureAsync(newEnclosure);
+            await OnEnclosureCreated.InvokeAsync(created);
             await Close();
         }
         catch (Exception ex)
@@ -227,4 +390,49 @@
         StateHasChanged();
     }
 
+    private static string GetTypeEmoji(EnclosureType t) => t switch
+    {
+        EnclosureType.Terrarium    => "🦎",
+        EnclosureType.Aquarium     => "🐠",
+        EnclosureType.Paludarium   => "🌿",
+        EnclosureType.Vivarium     => "🌱",
+        EnclosureType.Insectarium  => "🪲",
+        EnclosureType.Aviary       => "🦜",
+        EnclosureType.Cage         => "🐭",
+        EnclosureType.Bin          => "📦",
+        EnclosureType.RackSystem   => "🗄️",
+        EnclosureType.FreeRoamRoom => "🏠",
+        EnclosureType.Tank         => "🫙",
+        _                          => "🔧"
+    };
+
+    private static string GetTypeDescription(EnclosureType t) => t switch
+    {
+        EnclosureType.Terrarium    => "Dry to tropical land",
+        EnclosureType.Aquarium     => "Fully aquatic",
+        EnclosureType.Paludarium   => "Half land, half water",
+        EnclosureType.Vivarium     => "Bioactive living habitat",
+        EnclosureType.Insectarium  => "Ventilated bug enclosure",
+        EnclosureType.Aviary       => "Flight space for birds",
+        EnclosureType.Cage         => "Secure wire enclosure",
+        EnclosureType.Bin          => "Plastic tub setup",
+        EnclosureType.RackSystem   => "Multi-tub breeder rack",
+        EnclosureType.FreeRoamRoom => "Supervised open room",
+        EnclosureType.Tank         => "General-purpose tank",
+        _                          => "Custom build"
+    };
+
+    private static string GetSubstratePlaceholder(EnclosureType t) => t switch
+    {
+        EnclosureType.Terrarium    => "e.g. Reptile carpet, Aspen",
+        EnclosureType.Vivarium     => "e.g. Coconut fiber, ABG mix",
+        EnclosureType.Paludarium   => "e.g. ABG mix, Sphagnum moss",
+        EnclosureType.Insectarium  => "e.g. Coco peat, Vermiculite",
+        EnclosureType.Aviary       => "e.g. Bird-safe paper liner",
+        EnclosureType.Cage         => "e.g. Fleece, Carefresh",
+        EnclosureType.Bin          => "e.g. Paper towel, Aspen",
+        EnclosureType.RackSystem   => "e.g. Paper towel",
+        EnclosureType.Tank         => "e.g. Gravel, Sand",
+        _                          => "e.g. substrate type"
+    };
 }

@@ -3,6 +3,8 @@ using Crittr.Server.Data;
 using Crittr.Server.Services.Interfaces;
 using Crittr.Shared.DTOs;
 using Crittr.Shared.Models;
+using Crittr.Shared.Models.Enums;
+using Crittr.Shared.Utilities;
 
 namespace Crittr.Server.Services;
 
@@ -138,5 +140,45 @@ public class EnclosureService : IEnclosureService
         await _db.SaveChangesAsync();
         return true;
     }
-    
+
+    public async Task<List<EnclosureProfileDto>> GetCompatibleByUserIdAsync(string userId, SpeciesType speciesType)
+    {
+        var compatibleTypes = EnclosureCompatibility.GetCompatibleEnclosureTypes(speciesType);
+        return await _db.EnclosureProfiles
+            .Where(e => e.OwnerId == userId && compatibleTypes.Contains(e.EnclosureType))
+            .Select(e => new EnclosureProfileDto
+            {
+                Id = e.Id,
+                Name = e.Name,
+                EnclosureType = e.EnclosureType,
+                SubstrateType = e.SubstrateType,
+                Length = e.Length,
+                Width = e.Width,
+                Height = e.Height,
+                HasUVBLighting = e.HasUVBLighting,
+                HasHeatingElement = e.HasHeatingElement,
+                IdealTemperature = e.IdealTemperature,
+                IdealHumidity = e.IdealHumidity
+            }).ToListAsync();
+    }
+
+    public async Task<bool> UpdateFromDtoAsync(EnclosureProfileDto dto, string ownerId)
+    {
+        var existing = await _db.EnclosureProfiles.FindAsync(dto.Id);
+        if (existing == null || existing.OwnerId != ownerId) return false;
+
+        existing.Name = dto.Name;
+        existing.EnclosureType = dto.EnclosureType;
+        existing.Length = dto.Length;
+        existing.Width = dto.Width;
+        existing.Height = dto.Height;
+        existing.SubstrateType = dto.SubstrateType;
+        existing.HasUVBLighting = dto.HasUVBLighting;
+        existing.HasHeatingElement = dto.HasHeatingElement;
+        existing.IdealTemperature = dto.IdealTemperature;
+        existing.IdealHumidity = dto.IdealHumidity;
+
+        await _db.SaveChangesAsync();
+        return true;
+    }
 }
