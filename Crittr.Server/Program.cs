@@ -157,8 +157,8 @@ static async Task<string> SeedDemoUsers(WebApplication app)
     using var scope = app.Services.CreateScope();
     var userManager = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
 
-    await EnsureDemoUserAsync(userManager, "demo@crittr.ca", "Test123!");
-    await EnsureDemoUserAsync(userManager, "empty@crittr.ca", "Test123!");
+    await EnsureDemoUserAsync(userManager, "demo@crittr.ca", "Demo123!");
+    await EnsureDemoUserAsync(userManager, "empty@crittr.ca", "Demo123!");
 
     var owner = await userManager.FindByEmailAsync("demo@crittr.ca");
     if (owner is null)

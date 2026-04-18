@@ -64,8 +64,8 @@ All accounts are created automatically on server startup.
 
 | Email            | Password  | Notes                                                              |
 |------------------|-----------|--------------------------------------------------------------------|
-| demo@crittr.ca   | Test123!  | One of every enclosure type, each with a species-matched critter   |
-| empty@crittr.ca  | Test123!  | Blank account — no enclosures, no critters                         |
+| demo@crittr.ca   | Demo123!  | One of every enclosure type, each with a species-matched critter   |
+| empty@crittr.ca  | Demo123!  | Blank account — no enclosures, no critters                         |
 
 ---
 

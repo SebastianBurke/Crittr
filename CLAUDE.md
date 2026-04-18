@@ -134,8 +134,8 @@ dotnet build Crittr.App
 ## Demo Accounts (auto-seeded on startup)
 | Email           | Password | Notes                                                            |
 |-----------------|----------|------------------------------------------------------------------|
-| demo@crittr.ca  | Test123! | One of every enclosure type, each with a species-matched critter |
-| empty@crittr.ca | Test123! | Blank account — no enclosures, no critters                       |
+| demo@crittr.ca  | Demo123! | One of every enclosure type, each with a species-matched critter |
+| empty@crittr.ca | Demo123! | Blank account — no enclosures, no critters                       |
 
 Sample data attaches to `demo@crittr.ca`. Seeding is skipped if any critters already exist in the DB.
 
