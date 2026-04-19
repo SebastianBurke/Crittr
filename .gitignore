@@ -11,3 +11,4 @@ obj/
 *.sqlite
 .env
 node_modules/
+Crittr.Client/wwwroot/appsettings.json
