@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Crittr.Server.Data;
 using Crittr.Server.Services.Interfaces;
 using Crittr.Shared.DTOs;
+using Crittr.Shared.Models.Enums;
 using IFeedingService = Crittr.Server.Services.Interfaces.IFeedingService;
 using ICritterService = Crittr.Server.Services.Interfaces.ICritterService;
 
@@ -16,6 +17,8 @@ public class CritterService : ICritterService
     private readonly IMeasurementService _measurementService;
     private readonly IHealthService _healthService;
     private readonly IScheduledTaskService _scheduledTaskService;
+    private readonly IHealthAnalyticsEngine _analyticsEngine;
+    private readonly SpeciesCatalogService _catalog;
 
     public CritterService(
         ApplicationDbContext db,
@@ -23,7 +26,9 @@ public class CritterService : ICritterService
         ISheddingService sheddingService,
         IMeasurementService measurementService,
         IHealthService healthService,
-        IScheduledTaskService scheduledTaskService)
+        IScheduledTaskService scheduledTaskService,
+        IHealthAnalyticsEngine analyticsEngine,
+        SpeciesCatalogService catalog)
     {
         _db = db;
         _feedingService = feedingService;
@@ -31,6 +36,8 @@ public class CritterService : ICritterService
         _measurementService = measurementService;
         _healthService = healthService;
         _scheduledTaskService = scheduledTaskService;
+        _analyticsEngine = analyticsEngine;
+        _catalog = catalog;
     }
 
     public async Task<List<Critter>> GetAllAsync()
@@ -58,7 +65,7 @@ public class CritterService : ICritterService
 
     public async Task<List<CritterDto>> GetAllDtosByEnclosureIdAsync(int enclosureId)
     {
-        return await _db.Critters
+        var dtos = await _db.Critters
             .Where(r => r.EnclosureProfileId == enclosureId)
             .Select(r => new CritterDto
             {
@@ -77,28 +84,31 @@ public class CritterService : ICritterService
                 IconUrl = r.IconUrl,
                 RecentHealthScore = r.HealthScores
                     .OrderByDescending(h => h.AssessmentDate)
-                    .Select(h => h.Score)
+                    .Select(h => (int?)h.Score)
                     .FirstOrDefault(),
                 LastFeedingDate = r.FeedingRecords
+                    .Where(f => f.WasEaten)
                     .OrderByDescending(f => f.FeedingDate)
-                    .Select(f => f.FeedingDate)
+                    .Select(f => (DateTime?)f.FeedingDate)
                     .FirstOrDefault(),
                 LastWeightDate = r.MeasurementRecords
                     .OrderByDescending(m => m.MeasurementDate)
-                    .Select(m => m.MeasurementDate)
+                    .Select(m => (DateTime?)m.MeasurementDate)
                     .FirstOrDefault(),
                 LastSheddingDate = r.SheddingRecords
                     .OrderByDescending(s => s.CompletionDate)
-                    .Select(s => s.CompletionDate)
+                    .Select(s => (DateTime?)s.CompletionDate)
                     .FirstOrDefault(),
                 PendingTasksCount = r.ScheduledTasks.Count(t => !t.IsCompleted)
             })
             .ToListAsync();
+        ComputeConditions(dtos);
+        return dtos;
     }
 
     public async Task<List<CritterDto>> GetAllDtosAsync()
     {
-        return await _db.Critters
+        var dtos = await _db.Critters
             .Select(r => new CritterDto
             {
                 Id = r.Id,
@@ -116,28 +126,31 @@ public class CritterService : ICritterService
                 IconUrl = r.IconUrl,
                 RecentHealthScore = r.HealthScores
                     .OrderByDescending(h => h.AssessmentDate)
-                    .Select(h => h.Score)
+                    .Select(h => (int?)h.Score)
                     .FirstOrDefault(),
                 LastFeedingDate = r.FeedingRecords
+                    .Where(f => f.WasEaten)
                     .OrderByDescending(f => f.FeedingDate)
-                    .Select(f => f.FeedingDate)
+                    .Select(f => (DateTime?)f.FeedingDate)
                     .FirstOrDefault(),
                 LastWeightDate = r.MeasurementRecords
                     .OrderByDescending(m => m.MeasurementDate)
-                    .Select(m => m.MeasurementDate)
+                    .Select(m => (DateTime?)m.MeasurementDate)
                     .FirstOrDefault(),
                 LastSheddingDate = r.SheddingRecords
                     .OrderByDescending(s => s.CompletionDate)
-                    .Select(s => s.CompletionDate)
+                    .Select(s => (DateTime?)s.CompletionDate)
                     .FirstOrDefault(),
                 PendingTasksCount = r.ScheduledTasks.Count(t => !t.IsCompleted)
             })
             .ToListAsync();
+        ComputeConditions(dtos);
+        return dtos;
     }
-    
+
     public async Task<List<CritterDto>> GetUnassignedCrittersByUserAsync(string userId)
     {
-        return await _db.Critters
+        var dtos = await _db.Critters
             .Where(c => c.UserId == userId && c.EnclosureProfileId == null)
             .Select(r => new CritterDto
             {
@@ -156,23 +169,26 @@ public class CritterService : ICritterService
                 IconUrl = r.IconUrl,
                 RecentHealthScore = r.HealthScores
                     .OrderByDescending(h => h.AssessmentDate)
-                    .Select(h => h.Score)
+                    .Select(h => (int?)h.Score)
                     .FirstOrDefault(),
                 LastFeedingDate = r.FeedingRecords
+                    .Where(f => f.WasEaten)
                     .OrderByDescending(f => f.FeedingDate)
-                    .Select(f => f.FeedingDate)
+                    .Select(f => (DateTime?)f.FeedingDate)
                     .FirstOrDefault(),
                 LastWeightDate = r.MeasurementRecords
                     .OrderByDescending(m => m.MeasurementDate)
-                    .Select(m => m.MeasurementDate)
+                    .Select(m => (DateTime?)m.MeasurementDate)
                     .FirstOrDefault(),
                 LastSheddingDate = r.SheddingRecords
                     .OrderByDescending(s => s.CompletionDate)
-                    .Select(s => s.CompletionDate)
+                    .Select(s => (DateTime?)s.CompletionDate)
                     .FirstOrDefault(),
                 PendingTasksCount = r.ScheduledTasks.Count(t => !t.IsCompleted)
             })
             .ToListAsync();
+        ComputeConditions(dtos);
+        return dtos;
     }
 
     public async Task<List<Critter>> GetAllByUserAsync(string userId)
@@ -248,6 +264,19 @@ public class CritterService : ICritterService
         return dtos;
     }
 
+    private void ComputeConditions(List<CritterDto> dtos)
+    {
+        foreach (var dto in dtos)
+        {
+            if (dto.EnclosureProfileId == null) { dto.Condition = CritterCondition.Unknown; continue; }
+            // EF's FirstOrDefault on a non-nullable DateTime column can return DateTime.MinValue when no rows match.
+            // Treat any suspiciously early date as "no data".
+            if (dto.LastFeedingDate.HasValue && dto.LastFeedingDate.Value.Year < 2000) dto.LastFeedingDate = null;
+            if (dto.LastSheddingDate.HasValue && dto.LastSheddingDate.Value.Year < 2000) dto.LastSheddingDate = null;
+            dto.Condition = _analyticsEngine.ComputeCondition(dto, _catalog.GetCareProfileByCommonName(dto.Species));
+        }
+    }
+
     private async Task<CritterDto> CreateDtoFromCritter(Critter critter)
     {
         var dto = new CritterDto
@@ -279,6 +308,15 @@ public class CritterService : ICritterService
             dto.Weight = lastMeasurement.Weight;
             dto.Length = lastMeasurement.Length;
         }
+
+        if (critter.EnclosureProfileId == null)
+        {
+            dto.Condition = CritterCondition.Unknown;
+            return dto;
+        }
+
+        var careProfile = _catalog.GetCareProfileByCommonName(critter.Species);
+        dto.Condition = _analyticsEngine.ComputeCondition(dto, careProfile);
 
         return dto;
     }

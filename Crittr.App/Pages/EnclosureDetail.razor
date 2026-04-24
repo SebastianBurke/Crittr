@@ -57,21 +57,11 @@
 
                     <!-- Stats strip -->
                     <div class="flex flex-wrap items-center gap-x-4 gap-y-1 mt-3 text-sm text-slate-600 dark:text-slate-300">
-                        <span class="flex items-center gap-1.5">
-                            <svg class="w-4 h-4 text-orange-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 2a4 4 0 00-4 4v8.586A6 6 0 1016 14.586V6a4 4 0 00-4-4z"/></svg>
-                            @enclosure.IdealTemperature°F
-                        </span>
-                        <span class="flex items-center gap-1.5">
-                            <svg class="w-4 h-4 text-blue-500 shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6 10 4 14 4 17a8 8 0 0016 0c0-3-2-7-8-15z"/></svg>
-                            @enclosure.IdealHumidity% humidity
-                        </span>
                         <span>@enclosure.Length × @enclosure.Width × @enclosure.Height″</span>
                         @if (!string.IsNullOrWhiteSpace(enclosure.SubstrateType))
                         {
                             <span class="bg-white/40 dark:bg-black/20 rounded-md px-2 py-0.5 text-xs">@enclosure.SubstrateType</span>
                         }
-                        @if (enclosure.HasUVBLighting) { <span class="text-green-700 dark:text-green-300 font-medium text-xs">UVB ✓</span> }
-                        @if (enclosure.HasHeatingElement) { <span class="text-orange-600 dark:text-orange-300 font-medium text-xs">Heat ✓</span> }
                     </div>
                 </div>
             </div>
@@ -136,27 +126,9 @@
                         <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Height (in)</label>
                         <input type="number" @bind="editDto.Height" step="0.5" min="1" class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-slate-900 dark:text-white"/>
                     </div>
-                    <div>
-                        <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Temp (°F)</label>
-                        <input type="number" @bind="editDto.IdealTemperature" min="0" max="120" class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-slate-900 dark:text-white"/>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Humidity (%)</label>
-                        <input type="number" @bind="editDto.IdealHumidity" min="0" max="100" class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-slate-900 dark:text-white"/>
-                    </div>
                     <div class="col-span-2">
                         <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Substrate</label>
                         <input type="text" @bind="editDto.SubstrateType" placeholder="e.g. Coconut fiber" class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-slate-900 dark:text-white"/>
-                    </div>
-                    <div class="col-span-2 flex gap-6">
-                        <label class="flex items-center gap-2 cursor-pointer text-sm text-slate-700 dark:text-slate-300">
-                            <input type="checkbox" @bind="editDto.HasUVBLighting" class="w-4 h-4 rounded border-slate-300 text-green-600"/>
-                            UVB Lighting
-                        </label>
-                        <label class="flex items-center gap-2 cursor-pointer text-sm text-slate-700 dark:text-slate-300">
-                            <input type="checkbox" @bind="editDto.HasHeatingElement" class="w-4 h-4 rounded border-slate-300 text-green-600"/>
-                            Heating Element
-                        </label>
                     </div>
                 </div>
             </div>
@@ -210,22 +182,39 @@
                     @foreach (var c in residentCritters)
                     {
                         var compatible = EnclosureCompatibility.IsCompatible(c.SpeciesType, enclosure.EnclosureType);
-                        <a href="@($"/critter/{c.Id}")"
-                           class="group rounded-xl border @(compatible ? "border-slate-200 dark:border-slate-700" : "border-amber-300 dark:border-amber-700") bg-white dark:bg-gray-800 p-3 flex flex-col items-center gap-2 hover:shadow-md transition-all">
-                            <img src="@AppAssets.Resolve(c.IconUrl)" alt="" class="w-14 h-14 rounded-xl"/>
-                            <div class="text-center min-w-0 w-full">
-                                <p class="font-semibold text-slate-900 dark:text-white text-sm truncate">@c.Name</p>
-                                <p class="text-xs text-slate-500 dark:text-slate-400 truncate">@c.Species</p>
-                                @if (!compatible)
-                                {
-                                    <span class="inline-block mt-1 text-xs text-amber-700 dark:text-amber-400 font-medium">⚠ May not be ideal</span>
-                                }
-                                else
-                                {
-                                    <span class="inline-block mt-1 text-xs text-green-600 dark:text-green-400 font-medium">✓ Compatible</span>
-                                }
-                            </div>
-                        </a>
+                        <div class="rounded-xl border @(compatible ? "border-slate-200 dark:border-slate-700" : "border-amber-300 dark:border-amber-700") bg-white dark:bg-gray-800 p-3 flex flex-col items-center gap-1 transition-all">
+                            <a href="@($"/critter/{c.Id}")" class="flex flex-col items-center gap-2 w-full hover:opacity-75 transition-opacity">
+                                <img src="@AppAssets.Resolve(c.IconUrl)" alt="" class="w-14 h-14 rounded-xl"/>
+                                <div class="text-center min-w-0 w-full">
+                                    <p class="font-semibold text-slate-900 dark:text-white text-sm truncate">@c.Name</p>
+                                    <p class="text-xs text-slate-500 dark:text-slate-400 truncate">@c.Species</p>
+                                    @if (!compatible)
+                                    {
+                                        <span class="inline-block mt-1 text-xs text-amber-700 dark:text-amber-400 font-medium">⚠ May not be ideal</span>
+                                    }
+                                </div>
+                            </a>
+                            @if (unhouseConfirmId == c.Id)
+                            {
+                                <div class="flex gap-2 mt-1">
+                                    <button type="button" @onclick="() => ConfirmUnhouseAsync(c.Id)" disabled="@isUnhousing"
+                                            class="text-xs font-semibold text-red-600 dark:text-red-400 hover:underline disabled:opacity-50">
+                                        @(isUnhousing ? "…" : "Confirm")
+                                    </button>
+                                    <button type="button" @onclick="() => unhouseConfirmId = null"
+                                            class="text-xs text-slate-400 dark:text-slate-500 hover:underline">
+                                        Cancel
+                                    </button>
+                                </div>
+                            }
+                            else
+                            {
+                                <button type="button" @onclick="() => unhouseConfirmId = c.Id"
+                                        class="text-xs text-slate-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400 transition-colors mt-1">
+                                    Remove
+                                </button>
+                            }
+                        </div>
                     }
                 </div>
             }
@@ -268,6 +257,8 @@
     private bool showDeleteConfirm;
     private bool showAddCritterModal;
     private string? editError;
+    private int? unhouseConfirmId;
+    private bool isUnhousing;
 
     protected override async Task OnInitializedAsync()
     {
@@ -298,10 +289,6 @@
             Width = enclosure.Width,
             Height = enclosure.Height,
             SubstrateType = enclosure.SubstrateType,
-            HasUVBLighting = enclosure.HasUVBLighting,
-            HasHeatingElement = enclosure.HasHeatingElement,
-            IdealTemperature = enclosure.IdealTemperature,
-            IdealHumidity = enclosure.IdealHumidity,
         };
         isEditing = true;
         editError = null;
@@ -353,6 +340,29 @@
     }
 
     private void OpenAddCritterModal() { showAddCritterModal = true; StateHasChanged(); }
+
+    private async Task ConfirmUnhouseAsync(int critterId)
+    {
+        isUnhousing = true;
+        try
+        {
+            var ok = await CritterService.AssignEnclosureAsync(critterId, null);
+            if (ok)
+            {
+                residentCritters = residentCritters.Where(c => c.Id != critterId).ToList();
+                unhouseConfirmId = null;
+            }
+            else
+            {
+                editError = "Could not remove critter. Try again.";
+            }
+        }
+        finally
+        {
+            isUnhousing = false;
+            StateHasChanged();
+        }
+    }
 
     private async Task HandleCritterAdded(CritterDto _)
     {

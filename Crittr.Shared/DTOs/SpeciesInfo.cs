@@ -9,4 +9,5 @@ public class SpeciesInfo
     public SpeciesType Type { get; set; }
     public string IconUrl { get; set; } = default!;
     public List<EnclosureType> CompatibleEnclosureTypes { get; set; } = new();
+    public SpeciesCareProfile? CareProfile { get; set; }
 }

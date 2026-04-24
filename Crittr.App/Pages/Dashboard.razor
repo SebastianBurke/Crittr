@@ -8,6 +8,7 @@
 @inject EnclosureService EnclosureService
 @inject Blazored.LocalStorage.ILocalStorageService localStorage
 @inject IJSRuntime JSRuntime
+@inject NavigationManager NavigationManager
 
 <PageTitle>Dashboard — Crittr</PageTitle>
 
@@ -97,60 +98,65 @@
                         <!-- min-w-full resolves against the overflow container (block ancestor), not the flex parent -->
                         <div class="w-full shrink-0">
                             <div class="mx-auto px-4 sm:px-8">
-                                <div class="rounded-2xl sm:rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-gray-900 shadow-xl sm:shadow-2xl overflow-hidden">
+                                <div class="rounded-2xl sm:rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-gray-900 shadow-xl sm:shadow-2xl overflow-hidden"
+                                     data-drop-zone
+                                     @ondragover:preventDefault
+                                     @ondragover="HandleDragOver"
+                                     @ondragenter="() => OnDragEnter(enclosure.Id)"
+                                     @ondragleave="() => OnDragLeave(enclosure.Id)"
+                                     @ondrop="() => OnDropCritter(enclosure)">
 
-                                    <!-- Header bar -->
-                                    <div class="flex items-center justify-between gap-2 px-4 sm:px-6 pt-4 sm:pt-6 pb-3">
-                                        <div class="min-w-0 flex-1">
-                                            <a href="@($"/enclosure/{enclosure.Id}")"
-                                               class="text-lg sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight truncate block hover:text-green-700 dark:hover:text-green-400 transition-colors">@enclosure.Name</a>
-                                            <p class="text-xs sm:text-sm text-slate-400 mt-0.5">@EnclosureCompatibility.FormatEnclosureType(enclosure.EnclosureType)</p>
-                                        </div>
-                                        <button type="button"
-                                                class="shrink-0 rounded-xl bg-green-600 hover:bg-green-700 text-white text-xs sm:text-sm font-semibold px-3 sm:px-4 py-2 shadow-md transition-colors whitespace-nowrap"
-                                                @onclick="() => AddCritterToEnclosure(enclosure)">
-                                            + Critter
-                                        </button>
-                                    </div>
-
-                                    <!-- Stats strip -->
-                                    <div class="flex flex-wrap items-center gap-x-5 gap-y-1 px-4 sm:px-6 pb-3 text-xs text-slate-500 dark:text-slate-400">
-                                        <span class="flex items-center gap-1">
-                                            <svg class="w-3.5 h-3.5 text-orange-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 2a4 4 0 00-4 4v8.586A6 6 0 1016 14.586V6a4 4 0 00-4-4z"/></svg>
-                                            @enclosure.IdealTemperature°F
-                                        </span>
-                                        <span class="flex items-center gap-1">
-                                            <svg class="w-3.5 h-3.5 text-blue-400 shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6 10 4 14 4 17a8 8 0 0016 0c0-3-2-7-8-15z"/></svg>
-                                            @enclosure.IdealHumidity%
-                                        </span>
-                                        <span class="hidden sm:flex items-center gap-1">
-                                            <svg class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
-                                            @enclosure.Length×@enclosure.Width×@enclosure.Height″
-                                        </span>
-                                        @if (!string.IsNullOrWhiteSpace(enclosure.SubstrateType))
-                                        {
-                                            <span class="bg-slate-100 dark:bg-slate-700 rounded px-1.5 py-0.5 truncate max-w-[9rem]">@enclosure.SubstrateType</span>
-                                        }
-                                        @if (enclosure.HasUVBLighting) { <span class="text-green-600 dark:text-green-400 font-medium">UVB ✓</span> }
-                                        @if (enclosure.HasHeatingElement) { <span class="text-orange-500 dark:text-orange-400 font-medium">Heat ✓</span> }
-                                    </div>
+                                    <!-- Header bar — entire section is a link to enclosure detail -->
+                                    <a href="@($"/enclosure/{enclosure.Id}")"
+                                       class="block px-4 sm:px-6 pt-4 sm:pt-6 pb-3 transition-colors group">
+                                        <p class="text-lg sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight truncate group-hover:text-green-600 dark:group-hover:text-green-400 transition-colors">@enclosure.Name</p>
+                                        <p class="text-xs sm:text-sm text-slate-400 mt-0.5">@EnclosureCompatibility.FormatEnclosureType(enclosure.EnclosureType)</p>
+                                    </a>
 
                                     <!-- Critter canvas — full bleed, tall -->
                                     @{
                                         var enclosureCritters = critters.Where(r => r.EnclosureProfileId == enclosure.Id).ToList();
                                     }
                                     <div class="relative w-full overflow-hidden bg-gradient-to-b @EnclosureTheme.CanvasBg(enclosure.EnclosureType) border-t @EnclosureTheme.CanvasBorder(enclosure.EnclosureType)"
-                                         style="aspect-ratio: 2 / 1;">
+                                         style="aspect-ratio: 2 / 1;"
+                                         data-critter-canvas>
                                         @EnclosureTheme.CanvasOverlay(enclosure.EnclosureType)
+
+                                        @* Drag-and-drop overlay *@
+                                        @if (draggingCritter != null)
+                                        {
+                                            var canDrop = EnclosureCompatibility.IsCompatible(draggingCritter.SpeciesType, enclosure.EnclosureType);
+                                            var isHovered = dropTargetEnclosureId == enclosure.Id;
+                                            @if (isHovered && canDrop)
+                                            {
+                                                <div class="absolute inset-0 z-10 flex items-center justify-center bg-green-500/10 animate-pulse pointer-events-none">
+                                                    <div class="bg-white/95 dark:bg-gray-900/95 rounded-xl px-4 py-2 shadow-lg border border-green-200 dark:border-green-700">
+                                                        <p class="text-sm font-semibold text-green-700 dark:text-green-400">Drop to add @draggingCritter.Name ✓</p>
+                                                    </div>
+                                                </div>
+                                            }
+                                            else if (isHovered && !canDrop)
+                                            {
+                                                <div class="absolute inset-0 z-10 flex items-center justify-center bg-red-500/5 pointer-events-none">
+                                                    <div class="bg-white/95 dark:bg-gray-900/95 rounded-xl px-4 py-2 shadow-lg border border-red-200 dark:border-red-800">
+                                                        <p class="text-sm font-semibold text-red-600 dark:text-red-400">Not compatible</p>
+                                                    </div>
+                                                </div>
+                                            }
+                                            else if (canDrop)
+                                            {
+                                                <div class="absolute inset-0 z-10 border-2 border-green-400/50 animate-pulse pointer-events-none" />
+                                            }
+                                        }
+
                                         @if (enclosureCritters.Count == 0)
                                         {
-                                            <div class="absolute inset-0 flex flex-col items-center justify-center gap-3 px-4 text-center">
-                                                <p class="text-slate-400">No critters here yet.</p>
-                                                <button type="button"
-                                                        class="rounded-xl bg-green-600 hover:bg-green-700 text-white text-sm font-semibold px-5 py-2"
-                                                        @onclick="() => AddCritterToEnclosure(enclosure)">
-                                                    + Add one
-                                                </button>
+                                            <div class="absolute inset-0 flex flex-col items-center justify-center gap-2 px-4 text-center">
+                                                <p class="text-slate-400 text-sm">No critters here yet.</p>
+                                                <a href="@($"/enclosure/{enclosure.Id}")"
+                                                   class="text-xs text-green-600 dark:text-green-400 font-medium hover:underline">
+                                                    Open enclosure to add one →
+                                                </a>
                                             </div>
                                         }
                                         @foreach (var critter in enclosureCritters)
@@ -158,17 +164,22 @@
                                             <a href="@($"/critter/{critter.Id}")"
                                                class="absolute group focus:outline-none rounded-lg transition-transform hover:scale-110"
                                                style="top:@(GetCritterPosition(critter.Id).top)%; left:@(GetCritterPosition(critter.Id).left)%;">
-                                                <img id="critter-@critter.Id"
-                                                     src="@AppAssets.Resolve(critter.IconUrl)"
-                                                     class="w-16 h-16 drop-shadow-lg"
-                                                     alt="@critter.Name"/>
-                                                <div class="absolute hidden sm:block opacity-0 group-hover:opacity-100 transition-opacity duration-200
-                                                            bg-white text-slate-900 text-xs p-2.5 rounded-xl shadow-xl w-40 mt-2 z-10 pointer-events-none border border-slate-100
-                                                            left-1/2 -translate-x-1/2">
-                                                    <span class="font-semibold block text-sm">@critter.Name</span>
-                                                    <span class="text-slate-500 text-xs">@critter.Species</span>
-                                                    <span class="block mt-1 text-green-700 text-xs">Last fed: @(critter.LastFeedingDate?.ToShortDateString() ?? "—")</span>
-                                                    <span class="text-green-600 font-medium text-xs mt-1 block">Tap to open →</span>
+                                                <div class="relative" id="critter-@critter.Id">
+                                                    <img src="@AppAssets.Resolve(critter.IconUrl)"
+                                                         class="w-16 h-16 drop-shadow-lg"
+                                                         alt="@critter.Name"/>
+                                                    @if (critter.Condition == CritterCondition.Unknown)
+                                                    {
+                                                        <span class="absolute -bottom-1 -right-1 text-sm leading-none select-none font-bold text-slate-400/80 drop-shadow-sm"
+                                                              title="Not yet assessed">?</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="absolute -bottom-1 -right-1 text-sm leading-none select-none drop-shadow"
+                                                              title="@ConditionLabel(critter.Condition)">
+                                                            @ConditionEmoji(critter.Condition)
+                                                        </span>
+                                                    }
                                                 </div>
                                             </a>
                                         }
@@ -179,25 +190,25 @@
                         </div>
                     }
 
-                    <!-- Final slide: Add critter / Add enclosure -->
+                    <!-- Final slide: Add enclosure or critter -->
                     <div class="min-w-full">
                         <div class="mx-auto px-4 sm:px-8">
-                            <div class="rounded-3xl border-2 border-dashed border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/20 flex flex-col items-center justify-center text-center gap-5"
+                            <div class="rounded-3xl border-2 border-dashed border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/20 flex flex-col items-center justify-center text-center gap-4"
                                  style="aspect-ratio: 2 / 1;">
                                 <div>
-                                    <h3 class="text-lg font-semibold text-slate-800 dark:text-white">What would you like to add?</h3>
-                                    <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Swipe back to browse your enclosures.</p>
+                                    <h3 class="text-lg font-semibold text-slate-800 dark:text-white">Add something new</h3>
+                                    <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Swipe back to browse your existing enclosures.</p>
                                 </div>
-                                <div class="flex flex-col gap-3 w-full max-w-xs">
+                                <div class="flex flex-col sm:flex-row gap-3">
                                     <button type="button"
-                                            class="w-full rounded-xl bg-green-600 hover:bg-green-700 text-white font-semibold px-6 py-3 shadow-md transition-colors"
-                                            @onclick="BeginPetFirstFlow">
-                                        + Add critter
-                                    </button>
-                                    <button type="button"
-                                            class="w-full rounded-xl bg-slate-100 border border-slate-300 hover:bg-slate-200 text-slate-800 font-semibold px-6 py-3 transition-colors"
+                                            class="rounded-xl bg-green-600 hover:bg-green-700 text-white font-semibold px-6 py-3 shadow-md transition-colors"
                                             @onclick="ShowAddEnclosureModal">
                                         + Create enclosure
+                                    </button>
+                                    <button type="button"
+                                            class="rounded-xl border border-green-400 dark:border-green-700 bg-white dark:bg-gray-900 text-green-700 dark:text-green-400 font-semibold px-6 py-3 shadow-sm hover:bg-green-50 dark:hover:bg-green-950/30 transition-colors"
+                                            @onclick="() => showCritterModal = true">
+                                        + Add critter
                                     </button>
                                 </div>
                             </div>
@@ -232,58 +243,34 @@
 
         </div><!-- end LEFT column -->
 
-        <!-- RIGHT: Homeless critters sidebar -->
+        <!-- RIGHT: Homeless critters sidebar (drag onto an enclosure to assign) -->
         @if (critters.Any(c => c.EnclosureProfileId == null))
         {
             <div class="mt-8 lg:mt-0 lg:w-72 lg:shrink-0">
                 <div class="rounded-2xl border border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800 p-4">
                     <h2 class="text-sm font-semibold text-amber-900 dark:text-amber-200">Without an enclosure</h2>
-                    <p class="text-xs text-amber-700 dark:text-amber-400 mt-0.5 mb-3">Assign a home or tap to view.</p>
+                    <p class="text-xs text-amber-700 dark:text-amber-400 mt-0.5 mb-3">Critters without a home yet. Drag one onto a compatible enclosure to assign it, or tap to open their profile.</p>
 
-                    <div class="space-y-3">
+                    <div class="grid grid-cols-3 gap-2.5 lg:grid-cols-1 lg:gap-2.5">
                         @foreach (var critter in critters.Where(c => c.EnclosureProfileId == null))
                         {
-                            <div class="rounded-xl border border-amber-200 dark:border-amber-800 bg-white dark:bg-gray-900 p-3">
-                                <div class="flex items-center gap-2.5 mb-2.5">
-                                    <img src="@AppAssets.Resolve(critter.IconUrl)" alt="" class="w-10 h-10 rounded-lg shrink-0"/>
-                                    <div class="min-w-0 flex-1">
-                                        <p class="font-semibold text-slate-900 dark:text-white text-sm truncate">@critter.Name</p>
-                                        <p class="text-xs text-slate-500 dark:text-slate-400 truncate">@critter.Species</p>
-                                    </div>
-                                    <a href="@($"/critter/{critter.Id}")"
-                                       class="shrink-0 text-xs font-medium text-slate-500 hover:underline">
-                                        View
-                                    </a>
-                                </div>
-
-                                @if (enclosures.Count > 0)
+                            var fits    = FitsCurrentEnclosure(critter);
+                            var focused = FocusedEnclosure != null;
+                            var cardBorder = fits    ? "border-green-400 dark:border-green-500"
+                                           : focused ? "border-slate-200 dark:border-slate-700 opacity-40 grayscale"
+                                                     : "border-amber-200 dark:border-amber-800";
+                            <div class="relative rounded-xl border bg-white dark:bg-gray-900 p-2.5 cursor-grab active:cursor-grabbing transition-all select-none text-center @cardBorder"
+                                 draggable="true"
+                                 @ondragstart="() => OnDragStart(critter)"
+                                 @ondragend="OnDragEnd"
+                                 @onclick="() => GoToCritter(critter.Id)">
+                                @if (fits)
                                 {
-                                    <div class="flex gap-2 min-w-0">
-                                        <select value="@assignEnclosureIds.GetValueOrDefault(critter.Id, 0)"
-                                                @onchange="e => SetAssignId(critter.Id, e)"
-                                                class="flex-1 min-w-0 w-0 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-800 px-2.5 py-1.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-green-500 truncate">
-                                            <option value="0">Pick enclosure…</option>
-                                            @foreach (var enc in enclosures)
-                                            {
-                                                <option value="@enc.Id">@enc.Name</option>
-                                            }
-                                        </select>
-                                        <button type="button"
-                                                class="shrink-0 rounded-xl bg-green-600 hover:bg-green-700 text-white text-xs font-semibold px-3 py-1.5 transition-colors disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
-                                                disabled="@(assignEnclosureIds.GetValueOrDefault(critter.Id, 0) == 0)"
-                                                @onclick="() => AssignCritterToEnclosureAsync(critter.Id)">
-                                            Assign
-                                        </button>
-                                    </div>
+                                    <div class="absolute inset-0 rounded-xl ring-2 ring-green-400/60 dark:ring-green-500/50 animate-pulse pointer-events-none" />
                                 }
-                                else
-                                {
-                                    <button type="button"
-                                            class="w-full rounded-xl bg-green-600 hover:bg-green-700 text-white text-xs font-semibold px-3 py-1.5"
-                                            @onclick="() => PromptEnclosureForCritter(critter)">
-                                        + Create enclosure
-                                    </button>
-                                }
+                                <img src="@AppAssets.Resolve(critter.IconUrl)" alt="" class="w-10 h-10 rounded-lg mx-auto mb-1.5 pointer-events-none"/>
+                                <p class="font-semibold text-slate-900 dark:text-white text-xs truncate">@critter.Name</p>
+                                <p class="text-[10px] text-slate-500 dark:text-slate-400 truncate">@critter.Species</p>
                             </div>
                         }
                     </div>
@@ -296,43 +283,43 @@
     }
 </div>
 
+@* Tooltip cards rendered at root level — outside every overflow:hidden and CSS-transformed ancestor *@
+@if (isAuthenticated && !isLoading)
+{
+    @foreach (var critter in critters)
+    {
+        <div id="tooltip-@critter.Id"
+             class="fixed z-40 w-44 bg-white text-slate-900 text-xs p-2.5 rounded-xl shadow-xl pointer-events-none border border-slate-100 transition-opacity duration-200 opacity-0 hidden sm:block"
+             style="top:0;left:-9999px;">
+            <span class="font-semibold block text-sm">@critter.Name</span>
+            <span class="text-slate-500 text-xs block">@critter.Species</span>
+            @if (critter.Condition != CritterCondition.Unknown)
+            {
+                <span class="block mt-1 text-xs font-medium @ConditionTextClass(critter.Condition)">
+                    @ConditionEmoji(critter.Condition) @ConditionLabel(critter.Condition)
+                </span>
+            }
+            @if (critter.LastFeedingDate is { } d && d.Year >= 2000)
+            {
+                <span class="block mt-1 text-green-700 text-xs">Last fed: @d.ToShortDateString()</span>
+            }
+            <span class="text-green-600 font-medium text-xs mt-1 block">Tap to open →</span>
+        </div>
+    }
+}
+
 <CreateEnclosureModal IsVisible="showEnclosureModal"
                       IsVisibleChanged="HandleEnclosureModalVisibilityChanged"
                       OnEnclosureCreated="HandleEnclosureCreated"
                       PreferredEnclosureType="preferredEnclosureType"
+                      CompatibleEnclosureTypes="pendingCompatibleTypes"
                       RecommendedForLabel="@recommendedForLabel"/>
 
-<AddCritterModal
-    IsVisible="showCritterModal"
-    IsVisibleChanged="HandleCritterModalVisibilityChanged"
-    EnclosureName="@currentEnclosureName"
-    EnclosureId="@currentEnclosureId"
-    EnclosureTypeFilter="enclosureTypeFilter"
-    OnCritterAdded="HandleCritterAdded"
-    OnNeedsEnclosure="HandleNeedsEnclosure"/>
-
-@if (showPostCreationPrompt && postCreationEnclosure != null)
-{
-    <div class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-sm px-4">
-        <div class="rounded-2xl bg-white dark:bg-gray-800 border border-slate-200 dark:border-slate-700 shadow-2xl p-4 flex items-center gap-4">
-            <div class="flex-1 min-w-0">
-                <p class="text-sm font-semibold text-slate-900 dark:text-white truncate">@postCreationEnclosure.Name is ready!</p>
-                <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Add a critter to it?</p>
-            </div>
-            <button type="button"
-                    class="shrink-0 rounded-xl bg-green-600 hover:bg-green-700 text-white text-sm font-semibold px-4 py-2 transition-colors"
-                    @onclick="AcceptPostCreationPrompt">
-                + Critter
-            </button>
-            <button type="button"
-                    class="shrink-0 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
-                    aria-label="Dismiss"
-                    @onclick="() => showPostCreationPrompt = false">
-                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
-            </button>
-        </div>
-    </div>
-}
+<AddCritterModal IsVisible="showCritterModal"
+                 IsVisibleChanged="v => { showCritterModal = v; StateHasChanged(); }"
+                 OnCritterAdded="HandleCritterAdded"
+                 EnclosureId="0"
+                 EnclosureName=""/>
 
 @code {
     private bool isLoading = true;
@@ -345,16 +332,17 @@
     private string? loadError;
 
     private bool showEnclosureModal;
-    private bool showCritterModal;
-    private string currentEnclosureName = "";
-    private int currentEnclosureId;
     private EnclosureType? preferredEnclosureType;
     private string? recommendedForLabel;
-    private EnclosureType? enclosureTypeFilter;
-    private bool showPostCreationPrompt;
-    private EnclosureProfileDto? postCreationEnclosure;
+    private IReadOnlyList<EnclosureType>? pendingCompatibleTypes;
 
-    private Dictionary<int, int> assignEnclosureIds = new();
+    private bool showCritterModal;
+
+    // Drag-and-drop state
+    private CritterDto? draggingCritter;
+    private int? dropTargetEnclosureId;
+    private int _dragEnterCount;
+
     private double _touchStartX;
 
     protected override async Task OnInitializedAsync()
@@ -380,27 +368,8 @@
     {
         var delta = _touchStartX - e.ChangedTouches[0].ClientX;
         int total = enclosures.Count + 1;
-        if (delta > 50 && currentCardIndex < total - 1) currentCardIndex++;
-        else if (delta < -50 && currentCardIndex > 0) currentCardIndex--;
-        StateHasChanged();
-    }
-
-    private async Task HandleCritterAdded(CritterDto newCritter)
-    {
-        try
-        {
-            await LoadData();
-            if (newCritter.EnclosureProfileId.HasValue)
-            {
-                int idx = enclosures.FindIndex(e => e.Id == newCritter.EnclosureProfileId.Value);
-                if (idx >= 0) NavigateToCard(idx);
-            }
-            StateHasChanged();
-        }
-        catch
-        {
-            loadError = "Could not refresh after adding a critter. Try reloading.";
-        }
+        if (delta > 50 && currentCardIndex < total - 1) NavigateToCard(currentCardIndex + 1);
+        else if (delta < -50 && currentCardIndex > 0) NavigateToCard(currentCardIndex - 1);
     }
 
     private async Task LoadData()
@@ -410,15 +379,19 @@
         {
             enclosures = await EnclosureService.GetEnclosuresAsync();
             critters.Clear();
-            assignEnclosureIds.Clear();
 
             foreach (var enc in enclosures)
                 critters.AddRange(await CritterService.GetCrittersByEnclosureIdAsync(enc.Id));
 
             var unassigned = await CritterService.GetUnassignedCrittersAsync();
             critters.AddRange(unassigned);
-            foreach (var c in unassigned)
-                assignEnclosureIds.TryAdd(c.Id, 0);
+
+            var storedId = await localStorage.GetItemAsync<int>("crittr_last_enc");
+            if (storedId > 0)
+            {
+                var idx = enclosures.FindIndex(e => e.Id == storedId);
+                if (idx >= 0) currentCardIndex = idx;
+            }
 
             if (currentCardIndex > enclosures.Count)
                 currentCardIndex = enclosures.Count;
@@ -439,6 +412,8 @@
         if (index >= 0 && index < total)
         {
             currentCardIndex = index;
+            if (index < enclosures.Count)
+                _ = localStorage.SetItemAsync("crittr_last_enc", enclosures[index].Id);
             StateHasChanged();
         }
     }
@@ -454,7 +429,6 @@
 
     private async Task HandleEnclosureCreated(EnclosureProfileDto newEnclosure)
     {
-        bool hadPending = pendingCritters.Count > 0;
         foreach (var draft in pendingCritters)
         {
             draft.EnclosureProfileId = newEnclosure.Id;
@@ -462,104 +436,128 @@
         }
         pendingCritters.Clear();
         preferredEnclosureType = null;
+        pendingCompatibleTypes = null;
         recommendedForLabel = null;
         await LoadData();
         currentCardIndex = enclosures.FindIndex(e => e.Id == newEnclosure.Id);
         if (currentCardIndex < 0) currentCardIndex = Math.Max(0, enclosures.Count - 1);
         showEnclosureModal = false;
-
-        // Offer to add a compatible critter if the enclosure was created standalone
-        if (!hadPending)
-        {
-            postCreationEnclosure = newEnclosure;
-            showPostCreationPrompt = true;
-        }
         StateHasChanged();
     }
 
-    private void AcceptPostCreationPrompt()
+    private async Task HandleCritterAdded(CritterDto critter)
     {
-        if (postCreationEnclosure is null) return;
-        showPostCreationPrompt = false;
-        enclosureTypeFilter = postCreationEnclosure.EnclosureType;
-        currentEnclosureName = postCreationEnclosure.Name;
-        currentEnclosureId = postCreationEnclosure.Id;
-        postCreationEnclosure = null;
-        showCritterModal = true;
+        showCritterModal = false;
+        await LoadData();
         StateHasChanged();
     }
 
-    private void HandleNeedsEnclosure(EnclosureType? idealType)
-    {
-        preferredEnclosureType = idealType;
-        recommendedForLabel = idealType.HasValue
-            ? EnclosureCompatibility.GetCompatibleSpeciesTypes(idealType.Value).FirstOrDefault().ToString()
-            : null;
-        showEnclosureModal = true;
-        StateHasChanged();
-    }
-
-    private void AddCritterToEnclosure(EnclosureProfileDto enclosure)
-    {
-        currentEnclosureName = enclosure.Name;
-        currentEnclosureId = enclosure.Id;
-        enclosureTypeFilter = enclosure.EnclosureType;
-        showCritterModal = true;
-        StateHasChanged();
-    }
-
-    private void BeginPetFirstFlow()
-    {
-        currentEnclosureName = "";
-        currentEnclosureId = 0;
-        enclosureTypeFilter = null;
-        showCritterModal = true;
-        StateHasChanged();
-    }
-
-    private Task HandleCritterModalVisibilityChanged(bool visible)
-    {
-        showCritterModal = visible;
-        StateHasChanged();
-        return Task.CompletedTask;
-    }
-
-    private void SetAssignId(int critterId, ChangeEventArgs e)
-    {
-        assignEnclosureIds[critterId] = int.TryParse(e.Value?.ToString(), out var id) ? id : 0;
-    }
-
-    private async Task AssignCritterToEnclosureAsync(int critterId)
-    {
-        if (!assignEnclosureIds.TryGetValue(critterId, out var enclosureId) || enclosureId == 0)
-            return;
-        var success = await CritterService.AssignEnclosureAsync(critterId, enclosureId);
-        if (success) await LoadData();
-        else loadError = "Could not assign enclosure. Try again.";
-        StateHasChanged();
-    }
+    private void GoToCritter(int critterId) => NavigationManager.NavigateTo("/critter/" + critterId);
 
     private void PromptEnclosureForCritter(CritterDto homelessCritter)
     {
         pendingCritters.Add(homelessCritter);
-        preferredEnclosureType = EnclosureCompatibility.GetIdealEnclosureType(homelessCritter.SpeciesType);
-        recommendedForLabel = homelessCritter.SpeciesType.ToString();
+        pendingCompatibleTypes = EnclosureCompatibility.GetCompatibleEnclosureTypes(homelessCritter.SpeciesType);
+        preferredEnclosureType = null;
+        recommendedForLabel = homelessCritter.Name;
         showEnclosureModal = true;
     }
+
+    // ── Enclosure focus helpers ────────────────────────────────────────────────
+
+    private EnclosureProfileDto? FocusedEnclosure =>
+        currentCardIndex < enclosures.Count ? enclosures[currentCardIndex] : null;
+
+    private bool FitsCurrentEnclosure(CritterDto critter) =>
+        FocusedEnclosure is { } enc &&
+        EnclosureCompatibility.IsCompatible(critter.SpeciesType, enc.EnclosureType);
+
+    // ── Drag-and-drop ──────────────────────────────────────────────────────────
+
+    // Persisted alongside draggingCritter so OnDropCritter can read them even
+    // if OnDragEnd fires and nulls draggingCritter before the drop task runs.
+    private int _dragCritterId;
+    private SpeciesType _dragCritterSpecies;
+
+    private void HandleDragOver(DragEventArgs _) { }  // empty handler — required for @ondragover:preventDefault to register
+
+    private void OnDragStart(CritterDto critter)
+    {
+        draggingCritter = critter;
+        _dragCritterId = critter.Id;
+        _dragCritterSpecies = critter.SpeciesType;
+        dropTargetEnclosureId = null;
+        _dragEnterCount = 0;
+        StateHasChanged();
+    }
+
+    private void OnDragEnd()
+    {
+        draggingCritter = null;
+        dropTargetEnclosureId = null;
+        _dragEnterCount = 0;
+        StateHasChanged();
+    }
+
+    private void OnDragEnter(int enclosureId)
+    {
+        if (dropTargetEnclosureId != enclosureId) _dragEnterCount = 0;
+        dropTargetEnclosureId = enclosureId;
+        _dragEnterCount++;
+        StateHasChanged();
+    }
+
+    private void OnDragLeave(int enclosureId)
+    {
+        if (dropTargetEnclosureId != enclosureId) return;
+        _dragEnterCount--;
+        if (_dragEnterCount <= 0) { dropTargetEnclosureId = null; _dragEnterCount = 0; }
+        StateHasChanged();
+    }
+
+    private async Task OnDropCritter(EnclosureProfileDto enclosure)
+    {
+        // Use the persistent fields — draggingCritter may already be null if
+        // OnDragEnd fired before this async handler was scheduled.
+        var critterId = _dragCritterId;
+        var critterSpecies = _dragCritterSpecies;
+        if (critterId == 0) return;
+
+        draggingCritter = null;
+        dropTargetEnclosureId = null;
+        _dragEnterCount = 0;
+        _dragCritterId = 0;
+
+        if (!EnclosureCompatibility.IsCompatible(critterSpecies, enclosure.EnclosureType)) return;
+        var success = await CritterService.AssignEnclosureAsync(critterId, enclosure.Id);
+        if (!success) loadError = "Could not assign critter. Try again.";
+        await LoadData();
+        StateHasChanged();
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
             dotNetHelper = DotNetObjectReference.Create(this);
 
-        if (!isLoading && isAuthenticated && enclosures.Count > 0 && currentCardIndex < enclosures.Count)
+        if (!isLoading && isAuthenticated && enclosures.Count > 0)
         {
-            var ids = critters
-                .Where(r => r.EnclosureProfileId == enclosures[currentCardIndex].Id)
-                .Select(r => $"critter-{r.Id}")
-                .ToArray();
-            if (ids.Length > 0)
-                await JSRuntime.InvokeVoidAsync("animateAllCritters", (object)ids);
+            try { await JSRuntime.InvokeVoidAsync("initDropZones"); } catch { }
+
+            if (currentCardIndex < enclosures.Count)
+            {
+                var ids = critters
+                    .Where(r => r.EnclosureProfileId == enclosures[currentCardIndex].Id)
+                    .Select(r => $"critter-{r.Id}")
+                    .ToArray();
+                if (ids.Length > 0)
+                {
+                    await JSRuntime.InvokeVoidAsync("animateAllCritters", (object)ids);
+                    await JSRuntime.InvokeVoidAsync("initCritterTooltips", (object)ids);
+                }
+            }
         }
     }
 
@@ -575,5 +573,35 @@
         }
         return pos;
     }
+
+    private static string ConditionEmoji(CritterCondition condition) => condition switch
+    {
+        CritterCondition.Thriving  => "😊",
+        CritterCondition.Good      => "🙂",
+        CritterCondition.Fair      => "😐",
+        CritterCondition.Attention => "⚠️",
+        CritterCondition.Critical  => "🚨",
+        _                          => "?"
+    };
+
+    private static string ConditionLabel(CritterCondition condition) => condition switch
+    {
+        CritterCondition.Thriving  => "Thriving",
+        CritterCondition.Good      => "Good",
+        CritterCondition.Fair      => "Fair",
+        CritterCondition.Attention => "Needs attention",
+        CritterCondition.Critical  => "Critical",
+        _                          => "Not yet assessed"
+    };
+
+    private static string ConditionTextClass(CritterCondition condition) => condition switch
+    {
+        CritterCondition.Thriving  => "text-green-600",
+        CritterCondition.Good      => "text-green-500",
+        CritterCondition.Fair      => "text-amber-500",
+        CritterCondition.Attention => "text-orange-600",
+        CritterCondition.Critical  => "text-red-600",
+        _                          => "text-slate-400"
+    };
 
 }

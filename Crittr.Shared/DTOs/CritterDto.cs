@@ -26,4 +26,5 @@ public class CritterDto
     public DateTime? LastSheddingDate { get; set; }
     public int? RecentHealthScore { get; set; }
     public int PendingTasksCount { get; set; }
+    public CritterCondition Condition { get; set; } = CritterCondition.Unknown;
 }

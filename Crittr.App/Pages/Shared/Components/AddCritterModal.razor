@@ -35,18 +35,16 @@
                         </div>
                     }
 
-                    <select @bind="selectedSpeciesType"
-                            class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-900 px-3.5 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-green-500/40 focus:border-green-500 outline-none">
+                    <div class="grid grid-cols-3 gap-2.5">
                         @foreach (var type in GetAvailableSpeciesTypes())
                         {
-                            <option value="@type">@type</option>
+                            <button type="button" @onclick="() => PickSpeciesType(type)"
+                                    class="flex flex-col items-center gap-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-gray-900 hover:border-green-400 hover:bg-green-50 dark:hover:border-green-600 dark:hover:bg-green-950/20 p-3 text-center transition-colors">
+                                <span class="text-2xl leading-none">@SpeciesTypeEmoji(type)</span>
+                                <span class="text-xs font-medium text-slate-700 dark:text-slate-300 leading-tight">@type</span>
+                            </button>
                         }
-                    </select>
-
-                    <button type="button" @onclick="NextStep"
-                            class="mt-5 w-full rounded-xl bg-green-600 hover:bg-green-700 text-white font-semibold py-2.5 shadow-lg shadow-green-600/20 transition-colors">
-                        Next
-                    </button>
+                    </div>
                 </div>
             }
             else if (step == 2)
@@ -130,10 +128,6 @@
                         <button type="button" @onclick="async () => { ClearSpecies(); await PrevStep(); }"
                                 class="flex-1 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-800 text-slate-800 dark:text-slate-200 font-semibold py-2.5 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
                             Back
-                        </button>
-                        <button type="button" @onclick="SkipSpecies"
-                                class="rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-800 text-slate-500 dark:text-slate-400 text-sm font-medium px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
-                            Skip
                         </button>
                         <button type="button" @onclick="NextStep"
                                 disabled="@(selectedSpecies is null)"
@@ -220,7 +214,7 @@
                                             <option value="@enc.Id">@enc.Name (@EnclosureCompatibility.FormatEnclosureType(enc.EnclosureType))</option>
                                         }
                                     </select>
-                                    <p class="text-xs text-green-600 dark:text-green-400 mt-1">Showing enclosures compatible with @selectedSpeciesType.</p>
+                                    <p class="text-xs text-green-600 dark:text-green-400 mt-1">Showing enclosures compatible with @(selectedSpecies?.CommonName ?? selectedSpeciesType.ToString()).</p>
                                 }
                                 else if (availableEnclosures.Count > 0)
                                 {
@@ -377,14 +371,6 @@
         StateHasChanged();
     }
 
-    private void SkipSpecies()
-    {
-        ClearSpecies();
-        step++;
-        AutoAssignEnclosure();
-        StateHasChanged();
-    }
-
     private void AutoAssignEnclosure()
     {
         if (EnclosureId > 0) return;
@@ -395,9 +381,28 @@
 
     private List<EnclosureProfileDto> GetCompatibleEnclosures()
     {
-        var types = EnclosureCompatibility.GetCompatibleEnclosureTypes(selectedSpeciesType);
+        IReadOnlyList<EnclosureType> types = selectedSpecies?.CompatibleEnclosureTypes is { Count: > 0 } speciesTypes
+            ? speciesTypes
+            : EnclosureCompatibility.GetCompatibleEnclosureTypes(selectedSpeciesType);
         return availableEnclosures.Where(e => types.Contains(e.EnclosureType)).ToList();
     }
+
+    private async Task PickSpeciesType(SpeciesType type)
+    {
+        selectedSpeciesType = type;
+        await NextStep();
+    }
+
+    private static string SpeciesTypeEmoji(SpeciesType t) => t switch
+    {
+        SpeciesType.Reptile      => "🦎",
+        SpeciesType.Amphibian    => "🐸",
+        SpeciesType.Fish         => "🐟",
+        SpeciesType.Bird         => "🐦",
+        SpeciesType.Mammal       => "🐭",
+        SpeciesType.Invertebrate => "🕷️",
+        _                        => "🐾"
+    };
 
     private void SelectSpecies(SpeciesInfo suggestion)
     {

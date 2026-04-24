@@ -34,7 +34,6 @@ public class DataSeeder
             Length = 48, Width = 24, Height = 24,
             SubstrateType = "Sand/clay mix",
             HasUVBLighting = true, HasHeatingElement = true,
-            IdealTemperature = 85, IdealHumidity = 30,
             OwnerId = user.Id
         };
         var aquarium = new EnclosureProfile
@@ -44,7 +43,6 @@ public class DataSeeder
             Length = 36, Width = 18, Height = 18,
             SubstrateType = "Fine gravel",
             HasUVBLighting = false, HasHeatingElement = false,
-            IdealTemperature = 78, IdealHumidity = 99,
             OwnerId = user.Id
         };
         var paludarium = new EnclosureProfile
@@ -54,7 +52,6 @@ public class DataSeeder
             Length = 36, Width = 18, Height = 36,
             SubstrateType = "ABG mix",
             HasUVBLighting = true, HasHeatingElement = true,
-            IdealTemperature = 75, IdealHumidity = 80,
             OwnerId = user.Id
         };
         var vivarium = new EnclosureProfile
@@ -64,7 +61,6 @@ public class DataSeeder
             Length = 24, Width = 18, Height = 36,
             SubstrateType = "Coconut fiber",
             HasUVBLighting = true, HasHeatingElement = true,
-            IdealTemperature = 75, IdealHumidity = 70,
             OwnerId = user.Id
         };
         var insectarium = new EnclosureProfile
@@ -73,8 +69,7 @@ public class DataSeeder
             EnclosureType = EnclosureType.Insectarium,
             Length = 12, Width = 12, Height = 18,
             SubstrateType = "Coco peat",
-            HasUVBLighting = false, HasHeatingElement = true,
-            IdealTemperature = 72, IdealHumidity = 60,
+            HasUVBLighting = false, HasHeatingElement = false,
             OwnerId = user.Id
         };
         var aviary = new EnclosureProfile
@@ -84,7 +79,6 @@ public class DataSeeder
             Length = 36, Width = 24, Height = 48,
             SubstrateType = "Bird-safe paper liner",
             HasUVBLighting = false, HasHeatingElement = false,
-            IdealTemperature = 70, IdealHumidity = 50,
             OwnerId = user.Id
         };
         var cage = new EnclosureProfile
@@ -94,7 +88,6 @@ public class DataSeeder
             Length = 24, Width = 16, Height = 24,
             SubstrateType = "Fleece / Carefresh",
             HasUVBLighting = false, HasHeatingElement = false,
-            IdealTemperature = 70, IdealHumidity = 40,
             OwnerId = user.Id
         };
         var bin = new EnclosureProfile
@@ -104,7 +97,6 @@ public class DataSeeder
             Length = 36, Width = 18, Height = 12,
             SubstrateType = "Paper towel",
             HasUVBLighting = false, HasHeatingElement = true,
-            IdealTemperature = 85, IdealHumidity = 50,
             OwnerId = user.Id
         };
         var rackSystem = new EnclosureProfile
@@ -114,7 +106,6 @@ public class DataSeeder
             Length = 36, Width = 18, Height = 6,
             SubstrateType = "Paper towel",
             HasUVBLighting = false, HasHeatingElement = true,
-            IdealTemperature = 88, IdealHumidity = 40,
             OwnerId = user.Id
         };
         var freeRoam = new EnclosureProfile
@@ -124,7 +115,6 @@ public class DataSeeder
             Length = 12, Width = 10, Height = 8,
             SubstrateType = null,
             HasUVBLighting = false, HasHeatingElement = false,
-            IdealTemperature = 70, IdealHumidity = 40,
             OwnerId = user.Id
         };
         var tank = new EnclosureProfile
@@ -134,7 +124,6 @@ public class DataSeeder
             Length = 24, Width = 12, Height = 16,
             SubstrateType = "Gravel",
             HasUVBLighting = false, HasHeatingElement = false,
-            IdealTemperature = 68, IdealHumidity = 99,
             OwnerId = user.Id
         };
         var other = new EnclosureProfile
@@ -144,7 +133,6 @@ public class DataSeeder
             Length = 36, Width = 18, Height = 18,
             SubstrateType = "Fine sand",
             HasUVBLighting = false, HasHeatingElement = false,
-            IdealTemperature = 64, IdealHumidity = 99,
             OwnerId = user.Id
         };
 
@@ -321,15 +309,67 @@ public class DataSeeder
             rat, cornSnake, ballPython, rabbit, goldfish, axolotl);
         await _dbContext.SaveChangesAsync();
 
-        // A few feeding records to make the demo feel alive
+        // Feeding records with 2026 dates — designed to produce a visible spread of condition badges:
+        // Draco (beardie, freq=2d): fed today → Thriving 😊
+        // Blaze (betta, freq=1d): fed 2 days ago → Good 🙂
+        // Leaf (tree frog, freq=3d): fed 2 days ago → Thriving 😊
+        // Ficus (crested gecko, freq=2d): fed 6 days ago → Fair 😐
+        // Duchess (rose tarantula, freq=14d, natural faster): fed 23 days ago → Thriving 😊 (ratio < 4, no penalty)
+        // Sunny (cockatiel, freq=1d): fed today → Thriving 😊
+        // Biscuit (rat, freq=1d): fed 4 days ago → Attention ⚠️ (3× overdue)
+        // Candy (corn snake, freq=7d): fed 14 days ago → Good 🙂 (ratio=1)
+        // Monty (ball python, freq=10d, natural faster): fed 9 days ago → Thriving 😊
+        // Clover (rabbit, freq=1d): fed 2 days ago → Good 🙂
+        // Bubbles (goldfish, freq=1d): fed 3 days ago → Fair 😐
+        // Noodle (axolotl, freq=2d): fed 2 days ago → Thriving 😊
         _dbContext.FeedingRecords.AddRange(
-            new FeedingRecord { CritterId = beardie.Id,   FeedingDate = new DateTime(2025, 4, 16), FoodItem = "Dubia roaches", Quantity = 10, ItemType = Insect,  WasEaten = true },
-            new FeedingRecord { CritterId = beardie.Id,   FeedingDate = new DateTime(2025, 4, 12), FoodItem = "Dubia roaches", Quantity = 10, ItemType = Insect,  WasEaten = true },
-            new FeedingRecord { CritterId = ballPython.Id, FeedingDate = new DateTime(2025, 4, 10), FoodItem = "Small rat",     Quantity = 1,  ItemType = Rodent,  WasEaten = true },
-            new FeedingRecord { CritterId = ballPython.Id, FeedingDate = new DateTime(2025, 3, 27), FoodItem = "Small rat",     Quantity = 1,  ItemType = Rodent,  WasEaten = true },
-            new FeedingRecord { CritterId = cornSnake.Id,  FeedingDate = new DateTime(2025, 4, 14), FoodItem = "Pinky mouse",   Quantity = 1,  ItemType = Rodent,  WasEaten = true },
-            new FeedingRecord { CritterId = gecko.Id,      FeedingDate = new DateTime(2025, 4, 17), FoodItem = "CGD mix",       Quantity = 1,  ItemType = Other,   WasEaten = true },
-            new FeedingRecord { CritterId = cockatiel.Id,  FeedingDate = new DateTime(2025, 4, 18), FoodItem = "Millet spray",  Quantity = 1,  ItemType = Other,   WasEaten = true }
+            // Draco — Thriving
+            new FeedingRecord { CritterId = beardie.Id,    FeedingDate = new DateTime(2026, 4, 24), FoodItem = "Dubia roaches", Quantity = 10, ItemType = Insect, WasEaten = true },
+            new FeedingRecord { CritterId = beardie.Id,    FeedingDate = new DateTime(2026, 4, 22), FoodItem = "Dubia roaches", Quantity = 10, ItemType = Insect, WasEaten = true },
+            new FeedingRecord { CritterId = beardie.Id,    FeedingDate = new DateTime(2026, 4, 20), FoodItem = "Collard greens", Quantity = 1, ItemType = Other,  WasEaten = true },
+            // Blaze — Good
+            new FeedingRecord { CritterId = betta.Id,      FeedingDate = new DateTime(2026, 4, 22), FoodItem = "Betta pellets", Quantity = 1, ItemType = Other, WasEaten = true },
+            new FeedingRecord { CritterId = betta.Id,      FeedingDate = new DateTime(2026, 4, 21), FoodItem = "Betta pellets", Quantity = 1, ItemType = Other, WasEaten = true },
+            new FeedingRecord { CritterId = betta.Id,      FeedingDate = new DateTime(2026, 4, 20), FoodItem = "Bloodworms",    Quantity = 1, ItemType = Other, WasEaten = true },
+            // Leaf — Thriving
+            new FeedingRecord { CritterId = frog.Id,       FeedingDate = new DateTime(2026, 4, 22), FoodItem = "Crickets",   Quantity = 5, ItemType = Insect, WasEaten = true },
+            new FeedingRecord { CritterId = frog.Id,       FeedingDate = new DateTime(2026, 4, 19), FoodItem = "Crickets",   Quantity = 5, ItemType = Insect, WasEaten = true },
+            new FeedingRecord { CritterId = frog.Id,       FeedingDate = new DateTime(2026, 4, 16), FoodItem = "Mealworms",  Quantity = 3, ItemType = Insect, WasEaten = true },
+            // Ficus — Fair (6 days since last feed, freq=2)
+            new FeedingRecord { CritterId = gecko.Id,      FeedingDate = new DateTime(2026, 4, 18), FoodItem = "CGD mix",    Quantity = 1, ItemType = Other, WasEaten = true },
+            new FeedingRecord { CritterId = gecko.Id,      FeedingDate = new DateTime(2026, 4, 16), FoodItem = "Crickets",   Quantity = 4, ItemType = Insect, WasEaten = true },
+            new FeedingRecord { CritterId = gecko.Id,      FeedingDate = new DateTime(2026, 4, 14), FoodItem = "CGD mix",    Quantity = 1, ItemType = Other, WasEaten = true },
+            // Duchess — Thriving (natural faster, 23 days is within acceptable range)
+            new FeedingRecord { CritterId = tarantula.Id,  FeedingDate = new DateTime(2026, 4, 1),  FoodItem = "Crickets",   Quantity = 2, ItemType = Insect, WasEaten = true },
+            new FeedingRecord { CritterId = tarantula.Id,  FeedingDate = new DateTime(2026, 3, 18), FoodItem = "Dubia roaches", Quantity = 2, ItemType = Insect, WasEaten = true },
+            // Sunny — Thriving
+            new FeedingRecord { CritterId = cockatiel.Id,  FeedingDate = new DateTime(2026, 4, 24), FoodItem = "Pellets + fresh veg", Quantity = 1, ItemType = Other, WasEaten = true },
+            new FeedingRecord { CritterId = cockatiel.Id,  FeedingDate = new DateTime(2026, 4, 23), FoodItem = "Millet spray",         Quantity = 1, ItemType = Other, WasEaten = true },
+            new FeedingRecord { CritterId = cockatiel.Id,  FeedingDate = new DateTime(2026, 4, 22), FoodItem = "Pellets + fresh veg", Quantity = 1, ItemType = Other, WasEaten = true },
+            // Biscuit — Attention (4 days overdue for a daily animal)
+            new FeedingRecord { CritterId = rat.Id,        FeedingDate = new DateTime(2026, 4, 20), FoodItem = "Lab blocks",   Quantity = 1, ItemType = Other, WasEaten = true },
+            new FeedingRecord { CritterId = rat.Id,        FeedingDate = new DateTime(2026, 4, 19), FoodItem = "Lab blocks",   Quantity = 1, ItemType = Other, WasEaten = true },
+            new FeedingRecord { CritterId = rat.Id,        FeedingDate = new DateTime(2026, 4, 17), FoodItem = "Fresh vegetables", Quantity = 1, ItemType = Other, WasEaten = true },
+            // Candy — Good (14 days since last feed, freq=7; ratio=1, -20 pts)
+            new FeedingRecord { CritterId = cornSnake.Id,  FeedingDate = new DateTime(2026, 4, 10), FoodItem = "Pinky mouse",  Quantity = 1, ItemType = Rodent, WasEaten = true },
+            new FeedingRecord { CritterId = cornSnake.Id,  FeedingDate = new DateTime(2026, 4, 3),  FoodItem = "Pinky mouse",  Quantity = 1, ItemType = Rodent, WasEaten = true },
+            new FeedingRecord { CritterId = cornSnake.Id,  FeedingDate = new DateTime(2026, 3, 27), FoodItem = "Pinky mouse",  Quantity = 1, ItemType = Rodent, WasEaten = true },
+            // Monty — Thriving (9 days, freq=10; not yet overdue)
+            new FeedingRecord { CritterId = ballPython.Id, FeedingDate = new DateTime(2026, 4, 15), FoodItem = "Small rat",    Quantity = 1, ItemType = Rodent, WasEaten = true },
+            new FeedingRecord { CritterId = ballPython.Id, FeedingDate = new DateTime(2026, 4, 5),  FoodItem = "Small rat",    Quantity = 1, ItemType = Rodent, WasEaten = true },
+            new FeedingRecord { CritterId = ballPython.Id, FeedingDate = new DateTime(2026, 3, 26), FoodItem = "Small rat",    Quantity = 1, ItemType = Rodent, WasEaten = true },
+            // Clover — Good (2 days, freq=1; ratio=1, -20 pts)
+            new FeedingRecord { CritterId = rabbit.Id,     FeedingDate = new DateTime(2026, 4, 22), FoodItem = "Timothy hay + pellets", Quantity = 1, ItemType = Other, WasEaten = true },
+            new FeedingRecord { CritterId = rabbit.Id,     FeedingDate = new DateTime(2026, 4, 21), FoodItem = "Timothy hay + pellets", Quantity = 1, ItemType = Other, WasEaten = true },
+            new FeedingRecord { CritterId = rabbit.Id,     FeedingDate = new DateTime(2026, 4, 20), FoodItem = "Bell pepper + greens",  Quantity = 1, ItemType = Other, WasEaten = true },
+            // Bubbles — Fair (3 days, freq=1; ratio=2, -40 pts)
+            new FeedingRecord { CritterId = goldfish.Id,   FeedingDate = new DateTime(2026, 4, 21), FoodItem = "Goldfish pellets", Quantity = 1, ItemType = Other, WasEaten = true },
+            new FeedingRecord { CritterId = goldfish.Id,   FeedingDate = new DateTime(2026, 4, 20), FoodItem = "Bloodworms",       Quantity = 1, ItemType = Other, WasEaten = true },
+            new FeedingRecord { CritterId = goldfish.Id,   FeedingDate = new DateTime(2026, 4, 19), FoodItem = "Goldfish pellets", Quantity = 1, ItemType = Other, WasEaten = true },
+            // Noodle — Thriving (2 days, freq=2; exactly on schedule)
+            new FeedingRecord { CritterId = axolotl.Id,    FeedingDate = new DateTime(2026, 4, 22), FoodItem = "Nightcrawlers", Quantity = 2, ItemType = Other, WasEaten = true },
+            new FeedingRecord { CritterId = axolotl.Id,    FeedingDate = new DateTime(2026, 4, 20), FoodItem = "Brine shrimp",  Quantity = 1, ItemType = Other, WasEaten = true },
+            new FeedingRecord { CritterId = axolotl.Id,    FeedingDate = new DateTime(2026, 4, 18), FoodItem = "Nightcrawlers", Quantity = 2, ItemType = Other, WasEaten = true }
         );
 
         await _dbContext.SaveChangesAsync();

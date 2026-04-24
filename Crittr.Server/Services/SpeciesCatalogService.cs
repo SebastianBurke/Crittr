@@ -112,7 +112,236 @@ public class SpeciesCatalogService
         new SpeciesInfo { CommonName = "Vinegaroon",               ScientificName = "Mastigoproctus giganteus",    Type = SpeciesType.Invertebrate, IconUrl = "img/critters/default.svg", CompatibleEnclosureTypes = new() { EnclosureType.Terrarium, EnclosureType.Insectarium } },
     };
 
-    public Task<List<SpeciesInfo>> GetAllAsync() => Task.FromResult(_species);
+    // Care profiles keyed by scientific name
+    private static readonly Dictionary<string, SpeciesCareProfile> _careProfiles = new()
+    {
+        // ── Reptiles ─────────────────────────────────────────────────────────
+        ["Eublepharis macularius"]       = new() { FeedingFrequencyDays = 2,  SheddingIntervalDays = 35,  IdealTempMinC = 25, IdealTempMaxC = 32, IdealHumidityMin = 30, IdealHumidityMax = 40, IsNocturnal = true,  NaturalFastingNormal = false, FeedingNotes = "Adults every 2–3 days; juveniles daily." },
+        ["Python regius"]                = new() { FeedingFrequencyDays = 10, SheddingIntervalDays = 42,  IdealTempMinC = 27, IdealTempMaxC = 32, IdealHumidityMin = 60, IdealHumidityMax = 80, IsNocturnal = true,  NaturalFastingNormal = true,  FeedingNotes = "Every 7–14 days. Known to fast for months — don't panic." },
+        ["Pogona vitticeps"]             = new() { FeedingFrequencyDays = 2,  SheddingIntervalDays = 35,  IdealTempMinC = 26, IdealTempMaxC = 38, IdealHumidityMin = 30, IdealHumidityMax = 40, IsNocturnal = false, NaturalFastingNormal = false, FeedingNotes = "Juveniles daily; adults every 2 days. Mix of insects and greens." },
+        ["Correlophus ciliatus"]         = new() { FeedingFrequencyDays = 2,  SheddingIntervalDays = 35,  IdealTempMinC = 22, IdealTempMaxC = 26, IdealHumidityMin = 60, IdealHumidityMax = 80, IsNocturnal = true,  NaturalFastingNormal = false, FeedingNotes = "Every other day. Crested gecko diet + live insects." },
+        ["Pantherophis guttatus"]        = new() { FeedingFrequencyDays = 7,  SheddingIntervalDays = 42,  IdealTempMinC = 24, IdealTempMaxC = 29, IdealHumidityMin = 40, IdealHumidityMax = 60, IsNocturnal = false, NaturalFastingNormal = false, FeedingNotes = "Adults every 7–10 days. Juveniles every 5–7 days." },
+        ["Tiliqua scincoides"]           = new() { FeedingFrequencyDays = 2,  SheddingIntervalDays = 42,  IdealTempMinC = 24, IdealTempMaxC = 35, IdealHumidityMin = 40, IdealHumidityMax = 60, IsNocturnal = false, NaturalFastingNormal = false, FeedingNotes = "Every 2–3 days. Omnivore — varied diet important." },
+        ["Chamaeleo calyptratus"]        = new() { FeedingFrequencyDays = 1,  SheddingIntervalDays = 28,  IdealTempMinC = 24, IdealTempMaxC = 32, IdealHumidityMin = 50, IdealHumidityMax = 70, IsNocturnal = false, NaturalFastingNormal = false, FeedingNotes = "Daily feedings. Gut-loaded insects. Drip system for water." },
+        ["Furcifer pardalis"]            = new() { FeedingFrequencyDays = 1,  SheddingIntervalDays = 28,  IdealTempMinC = 24, IdealTempMaxC = 29, IdealHumidityMin = 60, IdealHumidityMax = 80, IsNocturnal = false, NaturalFastingNormal = false, FeedingNotes = "Daily. Free-range insects or tong feeding." },
+        ["Trioceros jacksonii"]          = new() { FeedingFrequencyDays = 1,  SheddingIntervalDays = 28,  IdealTempMinC = 21, IdealTempMaxC = 27, IdealHumidityMin = 60, IdealHumidityMax = 80, IsNocturnal = false, NaturalFastingNormal = false, FeedingNotes = "Daily. Prefers cooler temps — avoid overheating." },
+        ["Iguana iguana"]                = new() { FeedingFrequencyDays = 1,  SheddingIntervalDays = 42,  IdealTempMinC = 26, IdealTempMaxC = 38, IdealHumidityMin = 60, IdealHumidityMax = 80, IsNocturnal = false, NaturalFastingNormal = false, FeedingNotes = "Daily leafy greens and vegetables. Strictly herbivore." },
+        ["Physignathus cocincinus"]      = new() { FeedingFrequencyDays = 2,  SheddingIntervalDays = 35,  IdealTempMinC = 26, IdealTempMaxC = 32, IdealHumidityMin = 60, IdealHumidityMax = 80, IsNocturnal = false, NaturalFastingNormal = false, FeedingNotes = "Every 2 days. Insects primarily, some greens." },
+        ["Uromastyx ornata"]             = new() { FeedingFrequencyDays = 1,  SheddingIntervalDays = 42,  IdealTempMinC = 27, IdealTempMaxC = 43, IdealHumidityMin = 10, IdealHumidityMax = 25, IsNocturnal = false, NaturalFastingNormal = false, FeedingNotes = "Daily leafy greens and seeds. Needs very hot basking spot." },
+        ["Salvator merianae"]            = new() { FeedingFrequencyDays = 2,  SheddingIntervalDays = 42,  IdealTempMinC = 24, IdealTempMaxC = 35, IdealHumidityMin = 60, IdealHumidityMax = 80, IsNocturnal = false, NaturalFastingNormal = false, FeedingNotes = "Every 1–2 days. Omnivore — insects, eggs, fruit, greens." },
+        ["Varanus acanthurus"]           = new() { FeedingFrequencyDays = 2,  SheddingIntervalDays = 35,  IdealTempMinC = 28, IdealTempMaxC = 40, IdealHumidityMin = 40, IdealHumidityMax = 60, IsNocturnal = false, NaturalFastingNormal = false, FeedingNotes = "Every 1–2 days. Insects and small prey." },
+        ["Varanus exanthematicus"]       = new() { FeedingFrequencyDays = 3,  SheddingIntervalDays = 42,  IdealTempMinC = 26, IdealTempMaxC = 40, IdealHumidityMin = 40, IdealHumidityMax = 60, IsNocturnal = false, NaturalFastingNormal = false, FeedingNotes = "Every 2–3 days. Varied prey — avoid obesity." },
+        ["Rhacodactylus auriculatus"]    = new() { FeedingFrequencyDays = 2,  SheddingIntervalDays = 35,  IdealTempMinC = 22, IdealTempMaxC = 26, IdealHumidityMin = 60, IdealHumidityMax = 80, IsNocturnal = true,  NaturalFastingNormal = false, FeedingNotes = "Every other day. CGD diet and occasional insects." },
+        ["Hemitheconyx caudicinctus"]    = new() { FeedingFrequencyDays = 2,  SheddingIntervalDays = 35,  IdealTempMinC = 25, IdealTempMaxC = 30, IdealHumidityMin = 50, IdealHumidityMax = 70, IsNocturnal = true,  NaturalFastingNormal = false, FeedingNotes = "Every 2–3 days. Similar care to leopard geckos." },
+        ["Phelsuma grandis"]             = new() { FeedingFrequencyDays = 1,  SheddingIntervalDays = 28,  IdealTempMinC = 26, IdealTempMaxC = 30, IdealHumidityMin = 60, IdealHumidityMax = 80, IsNocturnal = false, NaturalFastingNormal = false, FeedingNotes = "Daily insects and fruit/nectar mix." },
+        ["Gekko gecko"]                  = new() { FeedingFrequencyDays = 2,  SheddingIntervalDays = 35,  IdealTempMinC = 25, IdealTempMaxC = 30, IdealHumidityMin = 70, IdealHumidityMax = 90, IsNocturnal = true,  NaturalFastingNormal = false, FeedingNotes = "Every 2–3 days. Large, vocal — handle with care." },
+        ["Eryx colubrinus loveridgei"]   = new() { FeedingFrequencyDays = 7,  SheddingIntervalDays = 42,  IdealTempMinC = 25, IdealTempMaxC = 32, IdealHumidityMin = 30, IdealHumidityMax = 50, IsNocturnal = true,  NaturalFastingNormal = false, FeedingNotes = "Every 7–10 days. Burrower — needs deep substrate." },
+        ["Heterodon nasicus"]            = new() { FeedingFrequencyDays = 7,  SheddingIntervalDays = 42,  IdealTempMinC = 24, IdealTempMaxC = 29, IdealHumidityMin = 30, IdealHumidityMax = 50, IsNocturnal = false, NaturalFastingNormal = true,  FeedingNotes = "Every 5–7 days. May dramatically refuse food — normal." },
+        ["Boa constrictor"]              = new() { FeedingFrequencyDays = 14, SheddingIntervalDays = 42,  IdealTempMinC = 26, IdealTempMaxC = 32, IdealHumidityMin = 60, IdealHumidityMax = 80, IsNocturnal = true,  NaturalFastingNormal = true,  FeedingNotes = "Every 10–14 days adults. Longer fasts are normal." },
+        ["Morelia spilota"]              = new() { FeedingFrequencyDays = 10, SheddingIntervalDays = 42,  IdealTempMinC = 24, IdealTempMaxC = 30, IdealHumidityMin = 50, IdealHumidityMax = 70, IsNocturnal = true,  NaturalFastingNormal = false, FeedingNotes = "Every 7–10 days. Ambush predator." },
+        ["Morelia viridis"]              = new() { FeedingFrequencyDays = 10, SheddingIntervalDays = 42,  IdealTempMinC = 26, IdealTempMaxC = 30, IdealHumidityMin = 70, IdealHumidityMax = 90, IsNocturnal = true,  NaturalFastingNormal = true,  FeedingNotes = "Every 7–14 days. Can be seasonal fasters." },
+        ["Python brongersmai"]           = new() { FeedingFrequencyDays = 14, SheddingIntervalDays = 42,  IdealTempMinC = 26, IdealTempMaxC = 30, IdealHumidityMin = 80, IdealHumidityMax = 90, IsNocturnal = true,  NaturalFastingNormal = true,  FeedingNotes = "Every 10–14 days. High humidity critical." },
+        ["Lampropeltis getula"]          = new() { FeedingFrequencyDays = 7,  SheddingIntervalDays = 42,  IdealTempMinC = 24, IdealTempMaxC = 29, IdealHumidityMin = 40, IdealHumidityMax = 60, IsNocturnal = false, NaturalFastingNormal = false, FeedingNotes = "Every 5–7 days." },
+        ["Lampropeltis triangulum"]      = new() { FeedingFrequencyDays = 7,  SheddingIntervalDays = 42,  IdealTempMinC = 24, IdealTempMaxC = 29, IdealHumidityMin = 40, IdealHumidityMax = 60, IsNocturnal = false, NaturalFastingNormal = false, FeedingNotes = "Every 5–7 days." },
+        ["Testudo horsfieldii"]          = new() { FeedingFrequencyDays = 1,  SheddingIntervalDays = null, IdealTempMinC = 24, IdealTempMaxC = 35, IdealHumidityMin = 30, IdealHumidityMax = 50, IsNocturnal = false, NaturalFastingNormal = false, FeedingNotes = "Daily leafy greens and weeds. Tortoises don't shed." },
+        ["Testudo hermanni"]             = new() { FeedingFrequencyDays = 1,  SheddingIntervalDays = null, IdealTempMinC = 24, IdealTempMaxC = 32, IdealHumidityMin = 40, IdealHumidityMax = 60, IsNocturnal = false, NaturalFastingNormal = false, FeedingNotes = "Daily leafy greens." },
+        ["Centrochelys sulcata"]         = new() { FeedingFrequencyDays = 1,  SheddingIntervalDays = null, IdealTempMinC = 25, IdealTempMaxC = 38, IdealHumidityMin = 30, IdealHumidityMax = 50, IsNocturnal = false, NaturalFastingNormal = false, FeedingNotes = "Daily grasses and hay. Gets very large." },
+        ["Trachemys scripta elegans"]    = new() { FeedingFrequencyDays = 1,  SheddingIntervalDays = null, IdealTempMinC = 22, IdealTempMaxC = 28, IdealHumidityMin = 60, IdealHumidityMax = 80, IsNocturnal = false, NaturalFastingNormal = false, FeedingNotes = "Daily. Needs large water area and basking platform." },
+        ["Terrapene carolina"]           = new() { FeedingFrequencyDays = 2,  SheddingIntervalDays = null, IdealTempMinC = 22, IdealTempMaxC = 27, IdealHumidityMin = 60, IdealHumidityMax = 80, IsNocturnal = false, NaturalFastingNormal = false, FeedingNotes = "Every 1–2 days. Omnivore." },
+
+        // ── Amphibians ───────────────────────────────────────────────────────
+        ["Ambystoma mexicanum"]          = new() { FeedingFrequencyDays = 2,  SheddingIntervalDays = null, IdealTempMinC = 14, IdealTempMaxC = 20, IdealHumidityMin = 80, IdealHumidityMax = 100, IsNocturnal = false, NaturalFastingNormal = false, FeedingNotes = "Every 2–3 days. Fully aquatic — no dry land needed." },
+        ["Ceratophrys ornata"]           = new() { FeedingFrequencyDays = 3,  SheddingIntervalDays = 21,  IdealTempMinC = 25, IdealTempMaxC = 30, IdealHumidityMin = 60, IdealHumidityMax = 80, IsNocturnal = false, NaturalFastingNormal = false, FeedingNotes = "Every 2–3 days. Ambush predator — will eat anything that moves." },
+        ["Litoria caerulea"]             = new() { FeedingFrequencyDays = 3,  SheddingIntervalDays = 14,  IdealTempMinC = 22, IdealTempMaxC = 28, IdealHumidityMin = 60, IdealHumidityMax = 80, IsNocturnal = true,  NaturalFastingNormal = false, FeedingNotes = "Every 2–3 days. Hardy and friendly." },
+        ["Agalychnis callidryas"]        = new() { FeedingFrequencyDays = 3,  SheddingIntervalDays = 14,  IdealTempMinC = 24, IdealTempMaxC = 28, IdealHumidityMin = 80, IdealHumidityMax = 90, IsNocturnal = true,  NaturalFastingNormal = false, FeedingNotes = "Every 2–3 days at night." },
+        ["Dendrobates tinctorius"]       = new() { FeedingFrequencyDays = 1,  SheddingIntervalDays = 14,  IdealTempMinC = 22, IdealTempMaxC = 28, IdealHumidityMin = 80, IdealHumidityMax = 100, IsNocturnal = false, NaturalFastingNormal = false, FeedingNotes = "Daily micro-insects (springtails, fruit flies)." },
+        ["Pyxicephalus adspersus"]       = new() { FeedingFrequencyDays = 3,  SheddingIntervalDays = 21,  IdealTempMinC = 24, IdealTempMaxC = 30, IdealHumidityMin = 60, IdealHumidityMax = 80, IsNocturnal = false, NaturalFastingNormal = false, FeedingNotes = "Every 2–3 days. Will eat mice and large prey." },
+        ["Bombina orientalis"]           = new() { FeedingFrequencyDays = 2,  SheddingIntervalDays = 14,  IdealTempMinC = 20, IdealTempMaxC = 26, IdealHumidityMin = 60, IdealHumidityMax = 80, IsNocturnal = false, NaturalFastingNormal = false, FeedingNotes = "Every 2 days." },
+        ["Dyscophus antongilii"]         = new() { FeedingFrequencyDays = 3,  SheddingIntervalDays = 14,  IdealTempMinC = 20, IdealTempMaxC = 26, IdealHumidityMin = 60, IdealHumidityMax = 80, IsNocturnal = true,  NaturalFastingNormal = false, FeedingNotes = "Every 2–3 days." },
+        ["Ambystoma tigrinum"]           = new() { FeedingFrequencyDays = 3,  SheddingIntervalDays = 21,  IdealTempMinC = 18, IdealTempMaxC = 24, IdealHumidityMin = 70, IdealHumidityMax = 90, IsNocturnal = false, NaturalFastingNormal = false, FeedingNotes = "Every 2–3 days. Needs moist substrate." },
+        ["Salamandra salamandra"]        = new() { FeedingFrequencyDays = 3,  SheddingIntervalDays = 21,  IdealTempMinC = 15, IdealTempMaxC = 22, IdealHumidityMin = 80, IdealHumidityMax = 90, IsNocturnal = true,  NaturalFastingNormal = false, FeedingNotes = "Every 2–3 days. Prefers cool temperatures." },
+
+        // ── Birds ────────────────────────────────────────────────────────────
+        ["Nymphicus hollandicus"]        = new() { FeedingFrequencyDays = 1,  SheddingIntervalDays = null, IdealTempMinC = 20, IdealTempMaxC = 25, IdealHumidityMin = 40, IdealHumidityMax = 60, IsNocturnal = false, NaturalFastingNormal = false, FeedingNotes = "Fresh food, seeds, and pellets daily. Water always available." },
+        ["Melopsittacus undulatus"]      = new() { FeedingFrequencyDays = 1,  SheddingIntervalDays = null, IdealTempMinC = 18, IdealTempMaxC = 26, IdealHumidityMin = 40, IdealHumidityMax = 60, IsNocturnal = false, NaturalFastingNormal = false, FeedingNotes = "Seeds, pellets, and fresh greens daily." },
+        ["Psittacus erithacus"]          = new() { FeedingFrequencyDays = 1,  SheddingIntervalDays = null, IdealTempMinC = 20, IdealTempMaxC = 25, IdealHumidityMin = 50, IdealHumidityMax = 70, IsNocturnal = false, NaturalFastingNormal = false, FeedingNotes = "Pellets, fresh fruits, vegetables. Very intelligent — needs enrichment." },
+        ["Ara ararauna"]                 = new() { FeedingFrequencyDays = 1,  SheddingIntervalDays = null, IdealTempMinC = 20, IdealTempMaxC = 25, IdealHumidityMin = 50, IdealHumidityMax = 70, IsNocturnal = false, NaturalFastingNormal = false, FeedingNotes = "Pellets, nuts, fruits, and vegetables daily." },
+        ["Pyrrhura molinae"]             = new() { FeedingFrequencyDays = 1,  SheddingIntervalDays = null, IdealTempMinC = 20, IdealTempMaxC = 25, IdealHumidityMin = 45, IdealHumidityMax = 65, IsNocturnal = false, NaturalFastingNormal = false, FeedingNotes = "Daily pellets and fresh food." },
+        ["Aratinga solstitialis"]        = new() { FeedingFrequencyDays = 1,  SheddingIntervalDays = null, IdealTempMinC = 20, IdealTempMaxC = 25, IdealHumidityMin = 45, IdealHumidityMax = 65, IsNocturnal = false, NaturalFastingNormal = false, FeedingNotes = "Daily. Very vocal." },
+        ["Agapornis roseicollis"]        = new() { FeedingFrequencyDays = 1,  SheddingIntervalDays = null, IdealTempMinC = 20, IdealTempMaxC = 26, IdealHumidityMin = 40, IdealHumidityMax = 60, IsNocturnal = false, NaturalFastingNormal = false, FeedingNotes = "Seeds, pellets, and greens daily." },
+        ["Pionites melanocephalus"]      = new() { FeedingFrequencyDays = 1,  SheddingIntervalDays = null, IdealTempMinC = 20, IdealTempMaxC = 25, IdealHumidityMin = 50, IdealHumidityMax = 70, IsNocturnal = false, NaturalFastingNormal = false, FeedingNotes = "Pellets and fresh food daily." },
+        ["Eclectus roratus"]             = new() { FeedingFrequencyDays = 1,  SheddingIntervalDays = null, IdealTempMinC = 20, IdealTempMaxC = 26, IdealHumidityMin = 50, IdealHumidityMax = 70, IsNocturnal = false, NaturalFastingNormal = false, FeedingNotes = "Fresh fruits and vegetables critical — minimal seed." },
+        ["Poicephalus senegalus"]        = new() { FeedingFrequencyDays = 1,  SheddingIntervalDays = null, IdealTempMinC = 20, IdealTempMaxC = 25, IdealHumidityMin = 45, IdealHumidityMax = 65, IsNocturnal = false, NaturalFastingNormal = false, FeedingNotes = "Pellets and fresh food daily." },
+        ["Psittacula krameri"]           = new() { FeedingFrequencyDays = 1,  SheddingIntervalDays = null, IdealTempMinC = 18, IdealTempMaxC = 26, IdealHumidityMin = 40, IdealHumidityMax = 60, IsNocturnal = false, NaturalFastingNormal = false, FeedingNotes = "Seeds, pellets, fruits, and vegetables daily." },
+        ["Myiopsitta monachus"]          = new() { FeedingFrequencyDays = 1,  SheddingIntervalDays = null, IdealTempMinC = 18, IdealTempMaxC = 25, IdealHumidityMin = 40, IdealHumidityMax = 60, IsNocturnal = false, NaturalFastingNormal = false, FeedingNotes = "Daily." },
+        ["Serinus canaria"]              = new() { FeedingFrequencyDays = 1,  SheddingIntervalDays = null, IdealTempMinC = 18, IdealTempMaxC = 24, IdealHumidityMin = 40, IdealHumidityMax = 60, IsNocturnal = false, NaturalFastingNormal = false, FeedingNotes = "Seeds and greens daily." },
+        ["Taeniopygia guttata"]          = new() { FeedingFrequencyDays = 1,  SheddingIntervalDays = null, IdealTempMinC = 20, IdealTempMaxC = 26, IdealHumidityMin = 40, IdealHumidityMax = 60, IsNocturnal = false, NaturalFastingNormal = false, FeedingNotes = "Millet and small seeds daily." },
+        ["Streptopelia risoria"]         = new() { FeedingFrequencyDays = 1,  SheddingIntervalDays = null, IdealTempMinC = 18, IdealTempMaxC = 26, IdealHumidityMin = 40, IdealHumidityMax = 60, IsNocturnal = false, NaturalFastingNormal = false, FeedingNotes = "Grains and seeds daily." },
+
+        // ── Fish ─────────────────────────────────────────────────────────────
+        ["Betta splendens"]              = new() { FeedingFrequencyDays = 1,  SheddingIntervalDays = null, IdealTempMinC = 24, IdealTempMaxC = 28, IdealHumidityMin = 60, IdealHumidityMax = 100, IsNocturnal = false, NaturalFastingNormal = false, FeedingNotes = "Once or twice daily. Overfeeding is common — feed small amounts." },
+        ["Carassius auratus"]            = new() { FeedingFrequencyDays = 1,  SheddingIntervalDays = null, IdealTempMinC = 18, IdealTempMaxC = 24, IdealHumidityMin = 60, IdealHumidityMax = 100, IsNocturnal = false, NaturalFastingNormal = false, FeedingNotes = "1–2 times daily. Produces a lot of waste — large filtration needed." },
+        ["Cyprinus rubrofuscus"]         = new() { FeedingFrequencyDays = 1,  SheddingIntervalDays = null, IdealTempMinC = 15, IdealTempMaxC = 25, IdealHumidityMin = 60, IdealHumidityMax = 100, IsNocturnal = false, NaturalFastingNormal = false, FeedingNotes = "Daily. Needs large volume of water." },
+        ["Poecilia reticulata"]          = new() { FeedingFrequencyDays = 1,  SheddingIntervalDays = null, IdealTempMinC = 22, IdealTempMaxC = 28, IdealHumidityMin = 60, IdealHumidityMax = 100, IsNocturnal = false, NaturalFastingNormal = false, FeedingNotes = "Daily flake or micro pellets." },
+        ["Paracheirodon innesi"]         = new() { FeedingFrequencyDays = 1,  SheddingIntervalDays = null, IdealTempMinC = 20, IdealTempMaxC = 26, IdealHumidityMin = 60, IdealHumidityMax = 100, IsNocturnal = false, NaturalFastingNormal = false, FeedingNotes = "Daily micro flakes. School of 6+ preferred." },
+        ["Pterophyllum scalare"]         = new() { FeedingFrequencyDays = 1,  SheddingIntervalDays = null, IdealTempMinC = 24, IdealTempMaxC = 28, IdealHumidityMin = 60, IdealHumidityMax = 100, IsNocturnal = false, NaturalFastingNormal = false, FeedingNotes = "1–2 times daily." },
+        ["Astronotus ocellatus"]         = new() { FeedingFrequencyDays = 1,  SheddingIntervalDays = null, IdealTempMinC = 24, IdealTempMaxC = 28, IdealHumidityMin = 60, IdealHumidityMax = 100, IsNocturnal = false, NaturalFastingNormal = false, FeedingNotes = "Daily. Gets very large — needs big tank." },
+        ["Symphysodon aequifasciatus"]   = new() { FeedingFrequencyDays = 1,  SheddingIntervalDays = null, IdealTempMinC = 26, IdealTempMaxC = 30, IdealHumidityMin = 60, IdealHumidityMax = 100, IsNocturnal = false, NaturalFastingNormal = false, FeedingNotes = "2–3 times daily. Demanding species." },
+        ["Amphiprion ocellaris"]         = new() { FeedingFrequencyDays = 1,  SheddingIntervalDays = null, IdealTempMinC = 24, IdealTempMaxC = 27, IdealHumidityMin = 60, IdealHumidityMax = 100, IsNocturnal = false, NaturalFastingNormal = false, FeedingNotes = "Daily marine flakes or pellets. Saltwater only." },
+        ["Paracanthurus hepatus"]        = new() { FeedingFrequencyDays = 1,  SheddingIntervalDays = null, IdealTempMinC = 24, IdealTempMaxC = 27, IdealHumidityMin = 60, IdealHumidityMax = 100, IsNocturnal = false, NaturalFastingNormal = false, FeedingNotes = "Daily. Needs large tank (min 200L) and lots of swimming space." },
+        ["Hypostomus plecostomus"]       = new() { FeedingFrequencyDays = 2,  SheddingIntervalDays = null, IdealTempMinC = 24, IdealTempMaxC = 27, IdealHumidityMin = 60, IdealHumidityMax = 100, IsNocturnal = true,  NaturalFastingNormal = false, FeedingNotes = "Every 2–3 days algae wafers plus natural algae." },
+        ["Corydoras paleatus"]           = new() { FeedingFrequencyDays = 1,  SheddingIntervalDays = null, IdealTempMinC = 22, IdealTempMaxC = 26, IdealHumidityMin = 60, IdealHumidityMax = 100, IsNocturnal = false, NaturalFastingNormal = false, FeedingNotes = "Daily sinking pellets." },
+        ["Osteoglossum bicirrhosum"]     = new() { FeedingFrequencyDays = 2,  SheddingIntervalDays = null, IdealTempMinC = 24, IdealTempMaxC = 30, IdealHumidityMin = 60, IdealHumidityMax = 100, IsNocturnal = false, NaturalFastingNormal = false, FeedingNotes = "Every 2–3 days. Needs huge tank — can reach 1m." },
+        ["Metriaclima estherae"]         = new() { FeedingFrequencyDays = 1,  SheddingIntervalDays = null, IdealTempMinC = 24, IdealTempMaxC = 28, IdealHumidityMin = 60, IdealHumidityMax = 100, IsNocturnal = false, NaturalFastingNormal = false, FeedingNotes = "1–2 times daily. High pH (7.8–8.5) required." },
+
+        // ── Mammals ──────────────────────────────────────────────────────────
+        ["Atelerix albiventris"]         = new() { FeedingFrequencyDays = 1,  SheddingIntervalDays = null, IdealTempMinC = 22, IdealTempMaxC = 26, IdealHumidityMin = 30, IdealHumidityMax = 50, IsNocturnal = true,  NaturalFastingNormal = false, FeedingNotes = "Daily cat food or hedgehog kibble at night." },
+        ["Petaurus breviceps"]           = new() { FeedingFrequencyDays = 1,  SheddingIntervalDays = null, IdealTempMinC = 20, IdealTempMaxC = 25, IdealHumidityMin = 40, IdealHumidityMax = 60, IsNocturnal = true,  NaturalFastingNormal = false, FeedingNotes = "Nightly. BML or Bourbon's Modified Leadbeater diet." },
+        ["Chinchilla lanigera"]          = new() { FeedingFrequencyDays = 1,  SheddingIntervalDays = null, IdealTempMinC = 15, IdealTempMaxC = 20, IdealHumidityMin = 40, IdealHumidityMax = 50, IsNocturnal = false, NaturalFastingNormal = false, FeedingNotes = "Daily pellets and hay. Sensitive to heat — keep cool." },
+        ["Mustela putorius furo"]        = new() { FeedingFrequencyDays = 1,  SheddingIntervalDays = null, IdealTempMinC = 15, IdealTempMaxC = 21, IdealHumidityMin = 40, IdealHumidityMax = 60, IsNocturnal = false, NaturalFastingNormal = false, FeedingNotes = "High-protein ferret food always available or 2–4 meals daily." },
+        ["Cavia porcellus"]              = new() { FeedingFrequencyDays = 1,  SheddingIntervalDays = null, IdealTempMinC = 18, IdealTempMaxC = 24, IdealHumidityMin = 40, IdealHumidityMax = 70, IsNocturnal = false, NaturalFastingNormal = false, FeedingNotes = "Daily pellets, hay (always available), and fresh veg. Vitamin C critical." },
+        ["Rattus norvegicus domestica"]  = new() { FeedingFrequencyDays = 1,  SheddingIntervalDays = null, IdealTempMinC = 20, IdealTempMaxC = 25, IdealHumidityMin = 40, IdealHumidityMax = 70, IsNocturnal = false, NaturalFastingNormal = false, FeedingNotes = "Daily. Highly social — keep in pairs or groups." },
+        ["Mesocricetus auratus"]         = new() { FeedingFrequencyDays = 1,  SheddingIntervalDays = null, IdealTempMinC = 18, IdealTempMaxC = 24, IdealHumidityMin = 40, IdealHumidityMax = 60, IsNocturnal = true,  NaturalFastingNormal = false, FeedingNotes = "Daily hamster mix at night. Deep substrate for burrowing." },
+        ["Meriones unguiculatus"]        = new() { FeedingFrequencyDays = 1,  SheddingIntervalDays = null, IdealTempMinC = 18, IdealTempMaxC = 24, IdealHumidityMin = 30, IdealHumidityMax = 50, IsNocturnal = false, NaturalFastingNormal = false, FeedingNotes = "Daily gerbil mix." },
+        ["Octodon degus"]                = new() { FeedingFrequencyDays = 1,  SheddingIntervalDays = null, IdealTempMinC = 18, IdealTempMaxC = 24, IdealHumidityMin = 20, IdealHumidityMax = 40, IsNocturnal = false, NaturalFastingNormal = false, FeedingNotes = "Daily low-sugar pellets and hay. Highly prone to diabetes — avoid sugary food." },
+        ["Oryctolagus cuniculus"]        = new() { FeedingFrequencyDays = 1,  SheddingIntervalDays = null, IdealTempMinC = 15, IdealTempMaxC = 22, IdealHumidityMin = 40, IdealHumidityMax = 60, IsNocturnal = false, NaturalFastingNormal = false, FeedingNotes = "Unlimited hay (80%), daily fresh veg, small amount of pellets." },
+        ["Monodelphis domestica"]        = new() { FeedingFrequencyDays = 1,  SheddingIntervalDays = null, IdealTempMinC = 20, IdealTempMaxC = 25, IdealHumidityMin = 50, IdealHumidityMax = 70, IsNocturnal = true,  NaturalFastingNormal = false, FeedingNotes = "Daily protein-rich diet." },
+
+        // ── Invertebrates ────────────────────────────────────────────────────
+        ["Brachypelma hamorii"]          = new() { FeedingFrequencyDays = 7,  SheddingIntervalDays = 270, IdealTempMinC = 22, IdealTempMaxC = 28, IdealHumidityMin = 40, IdealHumidityMax = 60, IsNocturnal = true,  NaturalFastingNormal = true,  FeedingNotes = "Every 5–7 days. Will fast before a molt — normal." },
+        ["Grammostola rosea"]            = new() { FeedingFrequencyDays = 14, SheddingIntervalDays = 365, IdealTempMinC = 20, IdealTempMaxC = 26, IdealHumidityMin = 30, IdealHumidityMax = 50, IsNocturnal = true,  NaturalFastingNormal = true,  FeedingNotes = "Notorious for refusing food for years. Very NaturalFasting normal." },
+        ["Grammostola pulchripes"]       = new() { FeedingFrequencyDays = 7,  SheddingIntervalDays = 270, IdealTempMinC = 22, IdealTempMaxC = 28, IdealHumidityMin = 60, IdealHumidityMax = 80, IsNocturnal = true,  NaturalFastingNormal = true,  FeedingNotes = "Every 7–10 days. Extended pre-molt fasting is normal." },
+        ["Pandinus imperator"]           = new() { FeedingFrequencyDays = 10, SheddingIntervalDays = 180, IdealTempMinC = 25, IdealTempMaxC = 30, IdealHumidityMin = 70, IdealHumidityMax = 90, IsNocturnal = true,  NaturalFastingNormal = true,  FeedingNotes = "Every 7–14 days. Communal species." },
+        ["Tenodera sinensis"]            = new() { FeedingFrequencyDays = 2,  SheddingIntervalDays = 14,  IdealTempMinC = 22, IdealTempMaxC = 30, IdealHumidityMin = 50, IdealHumidityMax = 70, IsNocturnal = false, NaturalFastingNormal = false, FeedingNotes = "Every 2–3 days. Short lifespan of ~12 months." },
+        ["Archispirostreptus gigas"]     = new() { FeedingFrequencyDays = 2,  SheddingIntervalDays = 180, IdealTempMinC = 22, IdealTempMaxC = 26, IdealHumidityMin = 70, IdealHumidityMax = 90, IsNocturnal = true,  NaturalFastingNormal = false, FeedingNotes = "Every 2–3 days. Rotting wood, leaf litter, and vegetables." },
+        ["Gromphadorhina portentosa"]    = new() { FeedingFrequencyDays = 2,  SheddingIntervalDays = 90,  IdealTempMinC = 24, IdealTempMaxC = 28, IdealHumidityMin = 60, IdealHumidityMax = 80, IsNocturnal = true,  NaturalFastingNormal = false, FeedingNotes = "Every 2–3 days. Vegetables, fruit, high-protein supplement." },
+        ["Carausius morosus"]            = new() { FeedingFrequencyDays = 1,  SheddingIntervalDays = 14,  IdealTempMinC = 20, IdealTempMaxC = 25, IdealHumidityMin = 60, IdealHumidityMax = 80, IsNocturnal = true,  NaturalFastingNormal = false, FeedingNotes = "Daily fresh bramble, ivy, or privet leaves." },
+        ["Coenobita clypeatus"]          = new() { FeedingFrequencyDays = 1,  SheddingIntervalDays = 365, IdealTempMinC = 24, IdealTempMaxC = 28, IdealHumidityMin = 70, IdealHumidityMax = 80, IsNocturnal = true,  NaturalFastingNormal = false, FeedingNotes = "Daily varied diet — fruit, veg, protein. Needs both fresh and salt water." },
+        ["Mastigoproctus giganteus"]     = new() { FeedingFrequencyDays = 10, SheddingIntervalDays = 365, IdealTempMinC = 22, IdealTempMaxC = 26, IdealHumidityMin = 70, IdealHumidityMax = 80, IsNocturnal = true,  NaturalFastingNormal = true,  FeedingNotes = "Every 7–14 days. Slow metabolism — fasting is normal." },
+    };
+
+    // Accepted foods per species (scientific name key), shown as quick-pick chips in the feeding form
+    private static readonly Dictionary<string, string[]> _acceptedFoods = new()
+    {
+        // ── Reptiles ─────────────────────────────────────────────────────────
+        ["Eublepharis macularius"]       = ["Crickets", "Mealworms", "Dubia roaches", "Waxworms", "Superworms"],
+        ["Python regius"]                = ["Frozen/thawed mice", "Frozen/thawed rats"],
+        ["Pogona vitticeps"]             = ["Dubia roaches", "Crickets", "Collard greens", "Kale", "Butternut squash", "Blueberries"],
+        ["Correlophus ciliatus"]         = ["Crested gecko diet (CGD)", "Crickets", "Mealworms", "Mango", "Banana"],
+        ["Pantherophis guttatus"]        = ["Frozen/thawed mice", "Frozen/thawed pinkies"],
+        ["Tiliqua scincoides"]           = ["Collard greens", "Ground turkey", "Snails", "Blueberries", "Dandelion greens", "Eggs"],
+        ["Chamaeleo calyptratus"]        = ["Crickets", "Dubia roaches", "Mealworms", "Superworms", "Waxworms"],
+        ["Furcifer pardalis"]            = ["Crickets", "Dubia roaches", "Mealworms", "Waxworms"],
+        ["Trioceros jacksonii"]          = ["Crickets", "Dubia roaches", "Mealworms"],
+        ["Iguana iguana"]                = ["Collard greens", "Dandelion greens", "Kale", "Mustard greens", "Squash"],
+        ["Physignathus cocincinus"]      = ["Crickets", "Mealworms", "Superworms", "Collard greens"],
+        ["Uromastyx ornata"]             = ["Collard greens", "Dandelion greens", "Lentils", "Millet", "Hibiscus flowers"],
+        ["Salvator merianae"]            = ["Ground turkey", "Eggs", "Blueberries", "Collard greens", "Crickets", "Dubia roaches"],
+        ["Varanus acanthurus"]           = ["Crickets", "Dubia roaches", "Superworms", "Eggs", "Frozen/thawed pinkies"],
+        ["Varanus exanthematicus"]       = ["Dubia roaches", "Superworms", "Eggs", "Snails", "Frozen/thawed chicks"],
+        ["Rhacodactylus auriculatus"]    = ["Crested gecko diet (CGD)", "Crickets", "Mealworms"],
+        ["Hemitheconyx caudicinctus"]    = ["Crickets", "Mealworms", "Dubia roaches", "Waxworms"],
+        ["Phelsuma grandis"]             = ["Crickets", "Mealworms", "Fruit nectar mix", "Waxworms"],
+        ["Gekko gecko"]                  = ["Crickets", "Mealworms", "Dubia roaches", "Waxworms"],
+        ["Eryx colubrinus loveridgei"]   = ["Frozen/thawed mice", "Frozen/thawed pinkies"],
+        ["Heterodon nasicus"]            = ["Frozen/thawed mice", "Frozen/thawed pinkies"],
+        ["Boa constrictor"]              = ["Frozen/thawed mice", "Frozen/thawed rats"],
+        ["Morelia spilota"]              = ["Frozen/thawed mice", "Frozen/thawed rats"],
+        ["Morelia viridis"]              = ["Frozen/thawed mice", "Frozen/thawed rats"],
+        ["Python brongersmai"]           = ["Frozen/thawed mice", "Frozen/thawed rats"],
+        ["Lampropeltis getula"]          = ["Frozen/thawed mice", "Frozen/thawed pinkies"],
+        ["Lampropeltis triangulum"]      = ["Frozen/thawed mice", "Frozen/thawed pinkies"],
+        ["Testudo horsfieldii"]          = ["Dandelion greens", "Collard greens", "Endive", "Plantain", "Timothy hay"],
+        ["Testudo hermanni"]             = ["Dandelion greens", "Collard greens", "Endive", "Plantain"],
+        ["Centrochelys sulcata"]         = ["Timothy hay", "Orchard grass", "Dandelion greens", "Opuntia cactus pad"],
+        ["Trachemys scripta elegans"]    = ["Turtle pellets", "Leafy greens", "Bloodworms", "Brine shrimp"],
+        ["Terrapene carolina"]           = ["Earthworms", "Crickets", "Blueberries", "Leafy greens", "Mushrooms"],
+
+        // ── Amphibians ───────────────────────────────────────────────────────
+        ["Ambystoma mexicanum"]          = ["Nightcrawlers", "Bloodworms", "Brine shrimp", "Axolotl pellets", "Daphnia"],
+        ["Ceratophrys ornata"]           = ["Crickets", "Dubia roaches", "Earthworms", "Frozen/thawed pinkies"],
+        ["Litoria caerulea"]             = ["Crickets", "Mealworms", "Dubia roaches", "Waxworms"],
+        ["Agalychnis callidryas"]        = ["Crickets", "Mealworms", "Dubia roaches"],
+        ["Dendrobates tinctorius"]       = ["Fruit flies (Drosophila)", "Springtails", "Micro-crickets"],
+        ["Pyxicephalus adspersus"]       = ["Crickets", "Dubia roaches", "Earthworms", "Frozen/thawed pinkies"],
+        ["Bombina orientalis"]           = ["Crickets", "Mealworms", "Earthworms", "Bloodworms"],
+        ["Dyscophus antongilii"]         = ["Crickets", "Mealworms", "Earthworms"],
+        ["Ambystoma tigrinum"]           = ["Earthworms", "Crickets", "Mealworms", "Dubia roaches"],
+        ["Salamandra salamandra"]        = ["Earthworms", "Crickets", "Mealworms"],
+
+        // ── Birds ────────────────────────────────────────────────────────────
+        ["Nymphicus hollandicus"]        = ["Pelleted diet", "Millet", "Seeds", "Leafy greens", "Cooked grains", "Egg food"],
+        ["Melopsittacus undulatus"]      = ["Budgie seed mix", "Pellets", "Leafy greens", "Broccoli"],
+        ["Psittacus erithacus"]          = ["Pellets", "Fresh fruits", "Vegetables", "Cooked grains", "Nuts"],
+        ["Ara ararauna"]                 = ["Pellets", "Nuts", "Fresh fruits", "Vegetables", "Leafy greens"],
+        ["Pyrrhura molinae"]             = ["Pellets", "Fresh fruits", "Leafy greens", "Seeds"],
+        ["Aratinga solstitialis"]        = ["Pellets", "Fresh fruits", "Vegetables", "Seeds"],
+        ["Agapornis roseicollis"]        = ["Seed mix", "Pellets", "Leafy greens", "Fresh vegetables"],
+        ["Pionites melanocephalus"]      = ["Pellets", "Fresh fruits", "Vegetables", "Sprouts"],
+        ["Eclectus roratus"]             = ["Fresh fruits", "Leafy greens", "Vegetables", "Sprouts", "Pellets"],
+        ["Poicephalus senegalus"]        = ["Pellets", "Fresh fruits", "Vegetables", "Seeds"],
+        ["Psittacula krameri"]           = ["Seed mix", "Pellets", "Fresh fruits", "Vegetables"],
+        ["Myiopsitta monachus"]          = ["Pellets", "Fresh vegetables", "Fruits", "Seeds"],
+        ["Serinus canaria"]              = ["Canary seed mix", "Pellets", "Leafy greens", "Egg food"],
+        ["Taeniopygia guttata"]          = ["Millet", "Finch seed mix", "Leafy greens", "Egg food"],
+        ["Streptopelia risoria"]         = ["Dove seed mix", "Grains", "Leafy greens"],
+
+        // ── Fish ─────────────────────────────────────────────────────────────
+        ["Betta splendens"]              = ["Betta pellets", "Bloodworms", "Brine shrimp", "Daphnia", "Freeze-dried krill"],
+        ["Carassius auratus"]            = ["Goldfish pellets", "Peas", "Bloodworms", "Brine shrimp", "Leafy vegetables"],
+        ["Cyprinus rubrofuscus"]         = ["Koi pellets", "Peas", "Watermelon", "Lettuce", "Wheat germ"],
+        ["Poecilia reticulata"]          = ["Micro pellets", "Flake food", "Brine shrimp", "Bloodworms", "Daphnia"],
+        ["Paracheirodon innesi"]         = ["Micro flakes", "Micro pellets", "Brine shrimp", "Bloodworms"],
+        ["Pterophyllum scalare"]         = ["Flake food", "Pellets", "Bloodworms", "Brine shrimp", "Daphnia"],
+        ["Astronotus ocellatus"]         = ["Cichlid pellets", "Earthworms", "Crickets", "Bloodworms"],
+        ["Symphysodon aequifasciatus"]   = ["Beef heart", "Bloodworms", "Brine shrimp", "Discus pellets"],
+        ["Amphiprion ocellaris"]         = ["Marine flakes", "Mysis shrimp", "Brine shrimp", "Algae-based food"],
+        ["Paracanthurus hepatus"]        = ["Marine algae", "Nori", "Brine shrimp", "Mysis shrimp", "Pellets"],
+        ["Hypostomus plecostomus"]       = ["Algae wafers", "Zucchini", "Cucumber", "Blanched vegetables"],
+        ["Corydoras paleatus"]           = ["Sinking pellets", "Bloodworms", "Brine shrimp", "Daphnia"],
+        ["Osteoglossum bicirrhosum"]     = ["Crickets", "Mealworms", "Earthworms", "Pellets"],
+        ["Metriaclima estherae"]         = ["Cichlid pellets", "Nori", "Spirulina flakes", "Brine shrimp"],
+
+        // ── Mammals ──────────────────────────────────────────────────────────
+        ["Atelerix albiventris"]         = ["Hedgehog kibble", "Mealworms", "Crickets", "Blueberries", "Cooked chicken"],
+        ["Petaurus breviceps"]           = ["BML diet", "Mango", "Grapes", "Yogurt", "Mealworms"],
+        ["Chinchilla lanigera"]          = ["Chinchilla pellets", "Timothy hay", "Rose hips", "Dried herbs"],
+        ["Mustela putorius furo"]        = ["High-protein ferret kibble", "Raw chicken", "Raw turkey", "Eggs"],
+        ["Cavia porcellus"]              = ["Guinea pig pellets", "Timothy hay", "Bell peppers", "Leafy greens", "Cucumber"],
+        ["Rattus norvegicus domestica"]  = ["Lab blocks", "Fresh vegetables", "Fruits", "Cooked grains", "Eggs"],
+        ["Mesocricetus auratus"]         = ["Hamster seed mix", "Pellets", "Vegetables", "Mealworms"],
+        ["Meriones unguiculatus"]        = ["Gerbil seed mix", "Pellets", "Sunflower seeds", "Mealworms"],
+        ["Octodon degus"]                = ["Degu pellets", "Timothy hay", "Dried herbs", "Seeds"],
+        ["Oryctolagus cuniculus"]        = ["Timothy hay", "Rabbit pellets", "Leafy greens", "Herbs", "Bell peppers"],
+        ["Monodelphis domestica"]        = ["Crickets", "Mealworms", "Cooked chicken", "Fruits", "Eggs"],
+
+        // ── Invertebrates ────────────────────────────────────────────────────
+        ["Brachypelma hamorii"]          = ["Crickets", "Dubia roaches", "Mealworms", "Superworms"],
+        ["Grammostola rosea"]            = ["Crickets", "Dubia roaches", "Mealworms"],
+        ["Grammostola pulchripes"]       = ["Crickets", "Dubia roaches", "Mealworms", "Superworms"],
+        ["Pandinus imperator"]           = ["Crickets", "Dubia roaches", "Mealworms", "Superworms"],
+        ["Tenodera sinensis"]            = ["Crickets", "Moths", "Fruit flies", "Mealworms"],
+        ["Archispirostreptus gigas"]     = ["Rotting wood", "Leaf litter", "Cucumber", "Zucchini", "Carrots"],
+        ["Gromphadorhina portentosa"]    = ["Fresh vegetables", "Fruit", "Dog food", "Oats"],
+        ["Carausius morosus"]            = ["Bramble leaves", "Ivy leaves", "Privet leaves", "Rose leaves"],
+        ["Coenobita clypeatus"]          = ["Crab pellets", "Coconut", "Mango", "Whelk", "Calcium-rich foods"],
+        ["Mastigoproctus giganteus"]     = ["Crickets", "Mealworms", "Dubia roaches", "Earthworms"],
+    };
+
+    private static SpeciesCareProfile EnrichWithFoods(string scientificName, SpeciesCareProfile profile)
+    {
+        if (_acceptedFoods.TryGetValue(scientificName, out var foods))
+            profile.AcceptedFoods = foods;
+        return profile;
+    }
+
+    public Task<List<SpeciesInfo>> GetAllAsync()
+    {
+        foreach (var s in _species)
+            if (_careProfiles.TryGetValue(s.ScientificName, out var profile))
+                s.CareProfile = EnrichWithFoods(s.ScientificName, profile);
+        return Task.FromResult(_species);
+    }
 
     public Task<List<SpeciesInfo>> SearchAsync(string query, SpeciesType? type = null)
     {
@@ -120,8 +349,23 @@ public class SpeciesCatalogService
             .Where(s =>
                 s.CommonName.Contains(query, StringComparison.OrdinalIgnoreCase) &&
                 (type == null || s.Type == type))
+            .Select(s =>
+            {
+                if (_careProfiles.TryGetValue(s.ScientificName, out var profile))
+                    s.CareProfile = EnrichWithFoods(s.ScientificName, profile);
+                return s;
+            })
             .ToList();
 
         return Task.FromResult(result);
+    }
+
+    public SpeciesCareProfile? GetCareProfileByCommonName(string commonName)
+    {
+        var species = _species.FirstOrDefault(s =>
+            s.CommonName.Equals(commonName, StringComparison.OrdinalIgnoreCase));
+        if (species == null) return null;
+        if (!_careProfiles.TryGetValue(species.ScientificName, out var profile)) return null;
+        return EnrichWithFoods(species.ScientificName, profile);
     }
 }

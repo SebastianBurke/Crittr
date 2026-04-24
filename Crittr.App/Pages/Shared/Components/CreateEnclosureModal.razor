@@ -30,7 +30,7 @@
                 <div class="px-5 py-5">
                     <p class="text-sm text-slate-600 dark:text-slate-400 mb-4">What type of enclosure are you building?</p>
                     <div class="grid grid-cols-3 gap-2.5">
-                        @foreach (var t in Enum.GetValues<EnclosureType>())
+                        @foreach (var t in Enum.GetValues<EnclosureType>().Where(t => CompatibleEnclosureTypes == null || CompatibleEnclosureTypes.Contains(t)))
                         {
                             <button type="button" @onclick="() => SelectType(t)"
                                     class="flex flex-col items-center gap-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-gray-900 hover:border-green-400 hover:bg-green-50 dark:hover:border-green-600 dark:hover:bg-green-950/20 p-3 text-center transition-colors">
@@ -51,10 +51,10 @@
                 <!-- Step 2: Environment -->
                 <div class="px-5 py-5 space-y-5">
 
-                    @if (PreferredEnclosureType.HasValue)
+                    @if (PreferredEnclosureType.HasValue || CompatibleEnclosureTypes is { Count: 1 })
                     {
                         <div class="rounded-xl border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/20 px-3.5 py-2.5 text-xs text-green-800 dark:text-green-300">
-                            Recommended for your <strong>@_recommendedForLabel</strong>
+                            Recommended for <strong>@_recommendedForLabel</strong>
                         </div>
                     }
                     else
@@ -68,88 +68,80 @@
                         </div>
                     }
 
-                    <!-- Temperature -->
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-                            @(_selectedType is EnclosureType.Aquarium or EnclosureType.Tank ? "Water Temp (°F)" : "Ambient Temp (°F)")
-                        </label>
-                        <input type="number" @bind="newEnclosure.IdealTemperature" min="0" max="120" step="1"
-                               class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-900 px-3.5 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-green-500/40 focus:border-green-500 outline-none"/>
-                    </div>
-
-                    <!-- Humidity — hidden for Aquarium/Tank (near 100% by design) -->
-                    @if (_selectedType is not EnclosureType.Aquarium and not EnclosureType.Tank)
-                    {
-                        <div>
-                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Humidity (%)</label>
-                            <input type="number" @bind="newEnclosure.IdealHumidity" min="0" max="100" step="1"
-                                   class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-900 px-3.5 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-green-500/40 focus:border-green-500 outline-none"/>
-                        </div>
-                    }
-
                     <!-- Dimensions -->
                     <div>
                         <p class="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                            @(_selectedType == EnclosureType.FreeRoamRoom ? "Approximate Room Size (ft)" : "Dimensions (inches)")
+                            @(_selectedType == EnclosureType.FreeRoamRoom ? "Room Size" : "Enclosure Size")
                         </p>
-                        <div class="grid grid-cols-3 gap-3">
-                            <div>
-                                <label class="block text-xs text-slate-500 dark:text-slate-400 mb-1">Length</label>
-                                <input type="number" @bind="newEnclosure.Length" min="0" step="0.5"
-                                       class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-900 px-3 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-green-500/40 focus:border-green-500 outline-none"/>
-                            </div>
-                            <div>
-                                <label class="block text-xs text-slate-500 dark:text-slate-400 mb-1">Width</label>
-                                <input type="number" @bind="newEnclosure.Width" min="0" step="0.5"
-                                       class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-900 px-3 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-green-500/40 focus:border-green-500 outline-none"/>
-                            </div>
-                            <div>
-                                <label class="block text-xs text-slate-500 dark:text-slate-400 mb-1">Height</label>
-                                <input type="number" @bind="newEnclosure.Height" min="0" step="0.5"
-                                       class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-900 px-3 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-green-500/40 focus:border-green-500 outline-none"/>
-                            </div>
+                        <div class="grid grid-cols-2 gap-2 mb-3">
+                            @foreach (var preset in EnclosurePresets.GetSizeOptions(_selectedType))
+                            {
+                                var sizeIsSelected = _selectedSizePreset == preset.Label;
+                                <button type="button" @onclick="() => SelectSizePreset(preset)"
+                                        class="@(sizeIsSelected ? "border-green-500 bg-green-50 dark:bg-green-950/30" : "border-slate-200 dark:border-slate-700 bg-white dark:bg-gray-900 hover:border-green-300 dark:hover:border-green-700") rounded-xl border p-2.5 text-left transition-colors">
+                                    <span class="text-xs font-semibold text-slate-800 dark:text-slate-200 block leading-snug">@preset.Label</span>
+                                    @if (preset.Label != "Custom" && preset.Length > 0)
+                                    {
+                                        <span class="text-[10px] text-slate-400 dark:text-slate-500 block mt-0.5">@preset.Length×@preset.Width×@preset.Height″</span>
+                                    }
+                                </button>
+                            }
                         </div>
-                        @if (_selectedType == EnclosureType.FreeRoamRoom)
+                        @if (_selectedSizePreset is null or "Custom")
                         {
-                            <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">Leave as 0 if not applicable.</p>
+                            <div class="grid grid-cols-3 gap-3">
+                                <div>
+                                    <label class="block text-xs text-slate-500 dark:text-slate-400 mb-1">Length</label>
+                                    <input type="number" @bind="newEnclosure.Length" min="0" step="0.5"
+                                           class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-900 px-3 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-green-500/40 focus:border-green-500 outline-none"/>
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-slate-500 dark:text-slate-400 mb-1">Width</label>
+                                    <input type="number" @bind="newEnclosure.Width" min="0" step="0.5"
+                                           class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-900 px-3 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-green-500/40 focus:border-green-500 outline-none"/>
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-slate-500 dark:text-slate-400 mb-1">Height</label>
+                                    <input type="number" @bind="newEnclosure.Height" min="0" step="0.5"
+                                           class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-900 px-3 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-green-500/40 focus:border-green-500 outline-none"/>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">
+                                @newEnclosure.Length × @newEnclosure.Width × @newEnclosure.Height inches —
+                                <button type="button" class="underline hover:text-slate-600 dark:hover:text-slate-300 transition-colors" @onclick='() => _selectedSizePreset = "Custom"'>edit</button>
+                            </p>
                         }
                     </div>
 
-                    <!-- Substrate — hidden for Aquarium -->
-                    @if (_selectedType is not EnclosureType.Aquarium)
+                    <!-- Substrate -->
+                    @{
+                        var subOptions = EnclosurePresets.GetSubstrateOptions(_selectedType);
+                    }
+                    @if (subOptions.Count > 0)
                     {
                         <div>
-                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Substrate <span class="text-slate-400 font-normal">(optional)</span></label>
-                            <input type="text" @bind="newEnclosure.SubstrateType"
-                                   placeholder="@GetSubstratePlaceholder(_selectedType)"
-                                   class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-900 px-3.5 py-2.5 text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-green-500/40 focus:border-green-500 outline-none"/>
-                        </div>
-                    }
-
-                    <!-- UVB + Heating -->
-                    @if (_selectedType is EnclosureType.Aquarium or EnclosureType.Tank)
-                    {
-                        <label class="flex items-center gap-2 cursor-pointer">
-                            <input type="checkbox" @bind="newEnclosure.HasHeatingElement"
-                                   class="w-4 h-4 rounded border-slate-300 text-green-600 focus:ring-green-500"/>
-                            <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Aquarium Heater</span>
-                        </label>
-                    }
-                    else
-                    {
-                        <div class="flex gap-6">
-                            <label class="flex items-center gap-2 cursor-pointer">
-                                <input type="checkbox" @bind="newEnclosure.HasUVBLighting"
-                                       class="w-4 h-4 rounded border-slate-300 text-green-600 focus:ring-green-500"/>
-                                <span class="text-sm font-medium text-slate-700 dark:text-slate-300">UVB Lighting</span>
+                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                Substrate <span class="text-slate-400 font-normal">(optional)</span>
                             </label>
-                            <label class="flex items-center gap-2 cursor-pointer">
-                                <input type="checkbox" @bind="newEnclosure.HasHeatingElement"
-                                       class="w-4 h-4 rounded border-slate-300 text-green-600 focus:ring-green-500"/>
-                                <span class="text-sm font-medium text-slate-700 dark:text-slate-300">
-                                    @(_selectedType is EnclosureType.Paludarium ? "Heating Mat" : "Heating Element")
-                                </span>
-                            </label>
+                            <div class="flex flex-wrap gap-2 mb-2">
+                                @foreach (var sub in subOptions)
+                                {
+                                    var subIsSelected = _selectedSubstratePreset == sub;
+                                    <button type="button" @onclick="() => SelectSubstrate(sub)"
+                                            class="@(subIsSelected ? "border-green-500 bg-green-50 dark:bg-green-950/30 text-green-800 dark:text-green-300" : "border-slate-200 dark:border-slate-700 bg-white dark:bg-gray-900 text-slate-700 dark:text-slate-300 hover:border-green-300 dark:hover:border-green-700") rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors">
+                                        @sub
+                                    </button>
+                                }
+                            </div>
+                            @if (_selectedSubstratePreset == "Custom")
+                            {
+                                <input type="text" @bind="newEnclosure.SubstrateType"
+                                       placeholder="@GetSubstratePlaceholder(_selectedType)"
+                                       class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-900 px-3.5 py-2.5 text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-green-500/40 focus:border-green-500 outline-none"/>
+                            }
                         </div>
                     }
 
@@ -161,7 +153,7 @@
                     }
 
                     <div class="flex gap-3 pt-1 pb-safe">
-                        @if (!PreferredEnclosureType.HasValue)
+                        @if (!PreferredEnclosureType.HasValue && CompatibleEnclosureTypes is not { Count: 1 })
                         {
                             <button type="button" @onclick="() => { _step = 1; errorMessage = null; }"
                                     class="flex-1 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-800 text-slate-800 dark:text-slate-200 font-semibold py-2.5 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
@@ -246,12 +238,17 @@
     /// When set, pre-selects and locks the enclosure type (used by critter-first flow).
     [Parameter] public EnclosureType? PreferredEnclosureType { get; set; }
 
-    /// Human-readable label for the recommended-for badge (e.g. "Reptile").
+    /// When set, filters the type picker to only these types. Auto-skips step 1 if exactly one type.
+    [Parameter] public IReadOnlyList<EnclosureType>? CompatibleEnclosureTypes { get; set; }
+
+    /// Human-readable label for the recommended-for badge (e.g. "Ripley").
     [Parameter] public string? RecommendedForLabel { get; set; }
 
     private EnclosureProfileDto newEnclosure = new();
     private bool isSubmitting;
     private string? errorMessage;
+    private string? _selectedSizePreset;
+    private string? _selectedSubstratePreset;
     private string _recommendedForLabel => RecommendedForLabel ?? "critter";
 
     protected override void OnInitialized() => ResetForm();
@@ -260,14 +257,58 @@
     {
         if (_isVisible && PreferredEnclosureType.HasValue)
             newEnclosure.EnclosureType = PreferredEnclosureType.Value;
+        else if (_isVisible && CompatibleEnclosureTypes is { Count: 1 })
+            newEnclosure.EnclosureType = CompatibleEnclosureTypes[0];
     }
 
     private void SelectType(EnclosureType t)
     {
         _selectedType = t;
         newEnclosure.EnclosureType = t;
+        _selectedSizePreset = null;
         ApplyTypePresets(t);
+        SyncSubstratePreset();
         _step = 2;
+    }
+
+    private void SelectSizePreset(SizePreset preset)
+    {
+        _selectedSizePreset = preset.Label;
+        if (preset.Label != "Custom")
+        {
+            newEnclosure.Length = preset.Length;
+            newEnclosure.Width  = preset.Width;
+            newEnclosure.Height = preset.Height;
+        }
+    }
+
+    private void SelectSubstrate(string substrate)
+    {
+        _selectedSubstratePreset = substrate;
+        if (substrate != "Custom")
+            newEnclosure.SubstrateType = substrate;
+    }
+
+    private void SyncSubstratePreset()
+    {
+        if (string.IsNullOrEmpty(newEnclosure.SubstrateType))
+        {
+            _selectedSubstratePreset = null;
+            return;
+        }
+        var options = EnclosurePresets.GetSubstrateOptions(_selectedType);
+        var match = options.FirstOrDefault(o =>
+            !string.Equals(o, "Custom", StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(o, newEnclosure.SubstrateType, StringComparison.OrdinalIgnoreCase));
+        if (match is not null)
+        {
+            _selectedSubstratePreset = match;
+            newEnclosure.SubstrateType = match;
+        }
+        else
+        {
+            _selectedSubstratePreset = "Custom";
+        }
     }
 
     private void ApplyTypePresets(EnclosureType t)
@@ -296,21 +337,10 @@
     private void AdvanceToStep3()
     {
         errorMessage = null;
-        if (newEnclosure.IdealTemperature <= 0)
-        {
-            errorMessage = "Temperature must be specified.";
-            return;
-        }
         if (_selectedType != EnclosureType.FreeRoamRoom &&
             (newEnclosure.Length <= 0 || newEnclosure.Width <= 0 || newEnclosure.Height <= 0))
         {
-            errorMessage = "Length, width, and height must be greater than zero.";
-            return;
-        }
-        if (_selectedType is not EnclosureType.Aquarium and not EnclosureType.Tank &&
-            (newEnclosure.IdealHumidity < 0 || newEnclosure.IdealHumidity > 100))
-        {
-            errorMessage = "Humidity must be between 0 and 100%.";
+            errorMessage = "Select a size or enter custom dimensions.";
             return;
         }
         _step = 3;
@@ -325,9 +355,24 @@
 
     private void ResetForm()
     {
-        _step = PreferredEnclosureType.HasValue ? 2 : 1;
-        var type = PreferredEnclosureType ?? EnclosureType.Terrarium;
+        EnclosureType type;
+        if (CompatibleEnclosureTypes is { Count: 1 })
+        {
+            _step = 2;
+            type = CompatibleEnclosureTypes[0];
+        }
+        else if (PreferredEnclosureType.HasValue)
+        {
+            _step = 2;
+            type = PreferredEnclosureType.Value;
+        }
+        else
+        {
+            _step = 1;
+            type = EnclosureType.Terrarium;
+        }
         _selectedType = type;
+        _selectedSizePreset = null;
         newEnclosure = new EnclosureProfileDto
         {
             EnclosureType = type,
@@ -336,6 +381,7 @@
             Height = 18,
         };
         ApplyTypePresets(type);
+        SyncSubstratePreset();
         errorMessage = null;
     }
 
@@ -355,16 +401,6 @@
                 (newEnclosure.Length <= 0 || newEnclosure.Width <= 0 || newEnclosure.Height <= 0))
             {
                 errorMessage = "Length, width, and height must be greater than zero.";
-                return;
-            }
-            if (newEnclosure.IdealTemperature <= 0)
-            {
-                errorMessage = "Ideal temperature must be specified.";
-                return;
-            }
-            if (newEnclosure.IdealHumidity < 0 || newEnclosure.IdealHumidity > 100)
-            {
-                errorMessage = "Ideal humidity must be between 0 and 100%.";
                 return;
             }
 

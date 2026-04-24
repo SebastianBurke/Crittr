@@ -68,23 +68,26 @@ git pull
 systemctl restart crittr-server crittr-client
 ```
 
-## Current Status (last updated: April 18 2026)
+## Current Status (last updated: April 24 2026)
 - App live at https://crittr.ca — **v1.1.0**
 - Auth, enclosures, critters, feeding log all working
 - Enclosure type system in place: compatibility matrix, themed canvases, 3-step creation wizard
-- Bug fix: enclosure type was not being persisted to DB (always defaulted to Terrarium)
+- CritterCondition system live: health analytics engine computes Thriving/Good/Fair/Attention/Critical badges from feeding cadence, shedding, and pending tasks
+- Drag-and-drop critter assignment on the dashboard; carousel position persists across navigation
+- Temp/humidity intentionally not tracked in enclosure creation — requires IoT sensors (see roadmap)
 - Systemd auto-start configured on both dev and prod servers
 - Tailscale connected — dev server accessible from anywhere
 - MAUI project present in solution but excluded from server build (iOS SDK unavailable on Linux)
   - MAUI errors shown in VS Code are cosmetic/expected — do not affect the web app
-- Next: build notification/reminder feature
 
-## Roadmap (discussed April 18 2026)
+## Roadmap (updated April 24 2026)
 1. ~~Walk through app as a user — find bugs and missing features~~ ✅
-2. Build notification/reminder feature (pure C# practice, no AI)
-3. Wire Ollama into Crittr via Tailscale (prod → dev server at 100.64.80.93:11434)
-4. Add Tailscale to prod server so it can reach Ollama on dev server
-5. Set up a proper deployment pipeline (auto-deploy on git push)
+2. ~~CritterCondition system — health badges on dashboard and critter detail~~ ✅
+3. Build notification/reminder feature (pure C# practice, no AI)
+4. Enclosure detail view: live temp/humidity readings via IoT sensor integration (Herpstat, SensorPush, or manual entry as a stopgap)
+5. Wire Ollama into Crittr via Tailscale (prod → dev server at 100.64.80.93:11434)
+6. Add Tailscale to prod server so it can reach Ollama on dev server
+7. Set up a proper deployment pipeline (auto-deploy on git push)
 
 ## Solution Structure
 ```

@@ -12,13 +12,6 @@
                      class="h-10 sm:h-11 w-auto"/>
             </a>
             <nav class="flex items-center gap-1 sm:gap-3 text-sm font-medium">
-                @if (IsLoggedIn)
-                {
-                    <a href="/"
-                       class="hidden sm:inline px-3 py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-green-500/10 hover:text-green-800 dark:hover:text-green-200 transition-colors">
-                        Dashboard
-                    </a>
-                }
 
                 <!-- Dark / light toggle -->
                 <button type="button" @onclick="ToggleTheme" aria-label="Toggle dark mode"

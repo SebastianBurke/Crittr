@@ -105,6 +105,10 @@ public class FeedingController : ControllerBase
         if (!await OwnsCritterAsync(feedingRecord.CritterId))
             return Forbid();
 
+        var critter = await _db.Critters.FindAsync(feedingRecord.CritterId);
+        if (critter?.EnclosureProfileId == null)
+            return BadRequest("Critter must be assigned to an enclosure before logging a feeding.");
+
         feedingRecord.Id = 0;
         feedingRecord.Critter = null;
 

@@ -28,4 +28,12 @@ public class SpeciesController : ControllerBase
         var results = await _catalog.SearchAsync(q ?? "", type);
         return results;
     }
+
+    [HttpGet("careprofile")]
+    public ActionResult<SpeciesCareProfile> GetCareProfile([FromQuery] string name)
+    {
+        var profile = _catalog.GetCareProfileByCommonName(name);
+        if (profile == null) return NotFound();
+        return profile;
+    }
 }
