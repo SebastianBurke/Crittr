@@ -15,10 +15,21 @@ namespace Crittr.Server.Controllers;
 public class EnclosureController : ControllerBase
 {
     private readonly IEnclosureService _enclosureService;
+    private readonly EnclosureCohabitationService _cohabitation;
 
-    public EnclosureController(IEnclosureService enclosureService)
+    public EnclosureController(IEnclosureService enclosureService, EnclosureCohabitationService cohabitation)
     {
         _enclosureService = enclosureService;
+        _cohabitation = cohabitation;
+    }
+
+    [HttpGet("{enclosureId}/cohabitation")]
+    public async Task<ActionResult<CohabitationCheckResultDto>> CheckCohabitation(
+        int enclosureId, [FromQuery] int critterId)
+    {
+        var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (userId == null) return Unauthorized();
+        return await _cohabitation.CheckAsync(critterId, enclosureId, userId);
     }
 
     [HttpGet]

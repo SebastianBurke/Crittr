@@ -30,14 +30,25 @@
                 <div class="px-5 py-5">
                     <p class="text-sm text-slate-600 dark:text-slate-400 mb-4">What type of enclosure are you building?</p>
                     <div class="grid grid-cols-3 gap-2.5">
-                        @foreach (var t in Enum.GetValues<EnclosureType>().Where(t => CompatibleEnclosureTypes == null || CompatibleEnclosureTypes.Contains(t)))
+                        @foreach (var t in Enum.GetValues<EnclosureType>().Where(t => t == EnclosureType.Other || CompatibleEnclosureTypes == null || CompatibleEnclosureTypes.Contains(t)))
                         {
-                            <button type="button" @onclick="() => SelectType(t)"
-                                    class="flex flex-col items-center gap-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-gray-900 hover:border-green-400 hover:bg-green-50 dark:hover:border-green-600 dark:hover:bg-green-950/20 p-3 text-center transition-colors">
-                                <span class="text-2xl">@GetTypeEmoji(t)</span>
-                                <span class="text-xs font-semibold text-slate-800 dark:text-slate-200 leading-tight">@EnclosureCompatibility.FormatEnclosureType(t)</span>
-                                <span class="text-[10px] text-slate-400 dark:text-slate-500 leading-tight">@GetTypeDescription(t)</span>
-                            </button>
+                            @if (t == EnclosureType.Other)
+                            {
+                                <div class="flex flex-col items-center gap-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-gray-900 opacity-50 cursor-not-allowed p-3 text-center pointer-events-none">
+                                    <span class="text-2xl">@GetTypeEmoji(t)</span>
+                                    <span class="text-xs font-semibold text-slate-800 dark:text-slate-200 leading-tight">@EnclosureCompatibility.FormatEnclosureType(t)</span>
+                                    <span class="text-[10px] text-slate-400 dark:text-slate-500 leading-tight">Coming Soon</span>
+                                </div>
+                            }
+                            else
+                            {
+                                <button type="button" @onclick="() => SelectType(t)"
+                                        class="flex flex-col items-center gap-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-gray-900 hover:border-green-400 hover:bg-green-50 dark:hover:border-green-600 dark:hover:bg-green-950/20 p-3 text-center transition-colors">
+                                    <span class="text-2xl">@GetTypeEmoji(t)</span>
+                                    <span class="text-xs font-semibold text-slate-800 dark:text-slate-200 leading-tight">@EnclosureCompatibility.FormatEnclosureType(t)</span>
+                                    <span class="text-[10px] text-slate-400 dark:text-slate-500 leading-tight">@GetTypeDescription(t)</span>
+                                </button>
+                            }
                         }
                     </div>
                     <button type="button" @onclick="Close"

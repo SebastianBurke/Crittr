@@ -28,6 +28,19 @@ public class SpeciesService
         return await _http.GetFromJsonAsync<List<SpeciesInfo>>(url) ?? new();
     }
 
+    public async Task<SpeciesInfo?> GetInfoAsync(string commonName)
+    {
+        try
+        {
+            return await _http.GetFromJsonAsync<SpeciesInfo>(
+                $"api/species/info?name={Uri.EscapeDataString(commonName)}");
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
     public async Task<SpeciesCareProfile?> GetCareProfileAsync(string commonName)
     {
         try

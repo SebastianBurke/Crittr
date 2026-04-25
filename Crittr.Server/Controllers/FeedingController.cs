@@ -166,6 +166,7 @@ public class FeedingController : ControllerBase
             FoodItem = record.FoodItem,
             Quantity = record.Quantity,
             ItemType = record.ItemType,
+            FeedingUnit = record.FeedingUnit,
             WasEaten = record.WasEaten,
             Notes = record.Notes
         };

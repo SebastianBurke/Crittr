@@ -4,6 +4,7 @@
 @using Crittr.Shared.DTOs
 @using Crittr.Shared.Models.Enums
 @using Crittr.Shared.Utilities
+@using Crittr.Shared.Utilities
 @inject CritterService CritterService
 @inject EnclosureService EnclosureService
 @inject Blazored.LocalStorage.ILocalStorageService localStorage
@@ -46,10 +47,10 @@
         }
 
         <div class="w-full max-w-5xl mx-auto min-w-0">
-        <div class="lg:flex lg:gap-8 lg:items-start">
+        <div class="2xl:relative">
 
-        <!-- LEFT: Enclosure carousel (primary focus) -->
-        <div class="w-full min-w-0 lg:flex-1">
+        <!-- Enclosure carousel -->
+        <div class="w-full min-w-0">
 
         <!-- Arrows live outside the overflow container so they aren't clipped -->
         <div class="relative w-full">
@@ -98,7 +99,7 @@
                         <!-- min-w-full resolves against the overflow container (block ancestor), not the flex parent -->
                         <div class="w-full shrink-0">
                             <div class="mx-auto px-4 sm:px-8">
-                                <div class="rounded-2xl sm:rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-gray-900 shadow-xl sm:shadow-2xl overflow-hidden"
+                                <div class="rounded-2xl sm:rounded-3xl border bg-white dark:bg-gray-900 overflow-hidden transition-all duration-200 @CardDragClass(enclosure)"
                                      data-drop-zone
                                      @ondragover:preventDefault
                                      @ondragover="HandleDragOver"
@@ -125,9 +126,22 @@
                                         @* Drag-and-drop overlay *@
                                         @if (draggingCritter != null)
                                         {
-                                            var canDrop = EnclosureCompatibility.IsCompatible(draggingCritter.SpeciesType, enclosure.EnclosureType);
-                                            var isHovered = dropTargetEnclosureId == enclosure.Id;
-                                            @if (isHovered && canDrop)
+                                            var typeOk = EnclosureCompatibility.IsCompatible(draggingCritter.SpeciesType, enclosure.EnclosureType);
+                                            var hasCohabEntry = _enclosureCohab.TryGetValue(enclosure.Id, out var cohabResult);
+                                            var cohabIssue = typeOk && hasCohabEntry && (cohabResult is null || !cohabResult.CanCohabit || cohabResult.HasWarnings);
+                                            var fullyOk    = typeOk && !cohabIssue;
+                                            var isHovered  = dropTargetEnclosureId == enclosure.Id;
+
+                                            @if (isHovered && !typeOk)
+                                            {
+                                                <div class="absolute inset-0 z-10 flex items-center justify-center bg-red-500/10 pointer-events-none">
+                                                    <div class="bg-white/95 dark:bg-gray-900/95 rounded-xl px-4 py-2 shadow-lg border border-red-200 dark:border-red-800 max-w-[80%] text-center">
+                                                        <p class="text-sm font-semibold text-red-600 dark:text-red-400">Wrong enclosure type</p>
+                                                        <p class="text-xs text-red-500 dark:text-red-400 mt-0.5">@draggingCritter.Name (@draggingCritter.SpeciesType) can't live in a @EnclosureCompatibility.FormatEnclosureType(enclosure.EnclosureType)</p>
+                                                    </div>
+                                                </div>
+                                            }
+                                            else if (isHovered && fullyOk)
                                             {
                                                 <div class="absolute inset-0 z-10 flex items-center justify-center bg-green-500/10 animate-pulse pointer-events-none">
                                                     <div class="bg-white/95 dark:bg-gray-900/95 rounded-xl px-4 py-2 shadow-lg border border-green-200 dark:border-green-700">
@@ -135,18 +149,51 @@
                                                     </div>
                                                 </div>
                                             }
-                                            else if (isHovered && !canDrop)
+                                            else if (isHovered && cohabIssue)
                                             {
-                                                <div class="absolute inset-0 z-10 flex items-center justify-center bg-red-500/5 pointer-events-none">
-                                                    <div class="bg-white/95 dark:bg-gray-900/95 rounded-xl px-4 py-2 shadow-lg border border-red-200 dark:border-red-800">
-                                                        <p class="text-sm font-semibold text-red-600 dark:text-red-400">Not compatible</p>
+                                                <div class="absolute inset-0 z-10 flex items-center justify-center bg-orange-500/10 pointer-events-none">
+                                                    <div class="bg-white/95 dark:bg-gray-900/95 rounded-xl px-4 py-3 shadow-lg border border-orange-200 dark:border-orange-700 max-w-[85%] text-center space-y-1">
+                                                        <p class="text-sm font-semibold text-orange-700 dark:text-orange-300">@draggingCritter.Name can't go here</p>
+                                                        @if (cohabResult is not null)
+                                                        {
+                                                            @foreach (var c in cohabResult.Conflicts)
+                                                            {
+                                                                <p class="text-xs text-orange-600 dark:text-orange-400">
+                                                                    @(!string.IsNullOrEmpty(c.CritterName) ? $"{c.CritterName}: " : "")@c.Reason
+                                                                </p>
+                                                            }
+                                                        }
+                                                        else
+                                                        {
+                                                            <p class="text-xs text-orange-600 dark:text-orange-400">Couldn't verify compatibility with this enclosure's residents.</p>
+                                                        }
                                                     </div>
                                                 </div>
                                             }
-                                            else if (canDrop)
+                                            else if (fullyOk)
                                             {
                                                 <div class="absolute inset-0 z-10 border-2 border-green-400/50 animate-pulse pointer-events-none" />
                                             }
+                                            else if (cohabIssue)
+                                            {
+                                                <div class="absolute inset-0 z-10 border-2 border-orange-400/50 animate-pulse pointer-events-none" />
+                                            }
+                                        }
+
+                                        @if (_stickyHoverId == enclosure.Id && _stickyCohabResult is not null)
+                                        {
+                                            var stickyBlock = !_stickyCohabResult.CanCohabit;
+                                            <div class="absolute inset-0 z-20 flex items-center justify-center pointer-events-none transition-opacity duration-500 @(_stickyFading ? "opacity-0" : "opacity-100")">
+                                                <div class="bg-white/95 dark:bg-gray-900/95 rounded-xl px-4 py-3 shadow-lg border @(stickyBlock ? "border-red-200 dark:border-red-800" : "border-orange-200 dark:border-orange-700") max-w-[85%] text-center space-y-1">
+                                                    <p class="text-sm font-semibold @(stickyBlock ? "text-red-600 dark:text-red-400" : "text-orange-700 dark:text-orange-300")">@_stickyCritterName can't go here</p>
+                                                    @foreach (var c in _stickyCohabResult.Conflicts)
+                                                    {
+                                                        <p class="text-xs @(stickyBlock ? "text-red-500 dark:text-red-400" : "text-orange-600 dark:text-orange-400")">
+                                                            @(!string.IsNullOrEmpty(c.CritterName) ? $"{c.CritterName}: " : "")@c.Reason
+                                                        </p>
+                                                    }
+                                                </div>
+                                            </div>
                                         }
 
                                         @if (enclosureCritters.Count == 0)
@@ -246,27 +293,36 @@
         <!-- RIGHT: Homeless critters sidebar (drag onto an enclosure to assign) -->
         @if (critters.Any(c => c.EnclosureProfileId == null))
         {
-            <div class="mt-8 lg:mt-0 lg:w-72 lg:shrink-0">
+            <div class="mt-8 2xl:absolute 2xl:right-full 2xl:top-0 2xl:w-52 2xl:pr-4 2xl:mt-0">
                 <div class="rounded-2xl border border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800 p-4">
                     <h2 class="text-sm font-semibold text-amber-900 dark:text-amber-200">Without an enclosure</h2>
                     <p class="text-xs text-amber-700 dark:text-amber-400 mt-0.5 mb-3">Critters without a home yet. Drag one onto a compatible enclosure to assign it, or tap to open their profile.</p>
 
-                    <div class="grid grid-cols-3 gap-2.5 lg:grid-cols-1 lg:gap-2.5">
+                    <div class="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 2xl:grid-cols-1 gap-3">
                         @foreach (var critter in critters.Where(c => c.EnclosureProfileId == null))
                         {
                             var fits    = FitsCurrentEnclosure(critter);
                             var focused = FocusedEnclosure != null;
-                            var cardBorder = fits    ? "border-green-400 dark:border-green-500"
-                                           : focused ? "border-slate-200 dark:border-slate-700 opacity-40 grayscale"
-                                                     : "border-amber-200 dark:border-amber-800";
+                            var hasCohabEntry = _currentEnclosureCohab.TryGetValue(critter.Id, out var critterCohab);
+                            // Green: not yet checked (hasCohabEntry=false) or result is Compatible
+                            // Orange: checked (hasCohabEntry=true) but result is null (API error) OR shows issues
+                            var cohabOk = !fits || !hasCohabEntry || (critterCohab is not null && critterCohab.CanCohabit && !critterCohab.HasWarnings);
+                            var cardBorder = fits && cohabOk   ? "border-green-400 dark:border-green-500"
+                                           : fits && !cohabOk  ? "border-orange-400 dark:border-orange-500"
+                                           : focused           ? "border-slate-200 dark:border-slate-700 opacity-40 grayscale"
+                                                               : "border-amber-200 dark:border-amber-800";
                             <div class="relative rounded-xl border bg-white dark:bg-gray-900 p-2.5 cursor-grab active:cursor-grabbing transition-all select-none text-center @cardBorder"
                                  draggable="true"
                                  @ondragstart="() => OnDragStart(critter)"
                                  @ondragend="OnDragEnd"
                                  @onclick="() => GoToCritter(critter.Id)">
-                                @if (fits)
+                                @if (fits && cohabOk)
                                 {
                                     <div class="absolute inset-0 rounded-xl ring-2 ring-green-400/60 dark:ring-green-500/50 animate-pulse pointer-events-none" />
+                                }
+                                else if (fits && !cohabOk)
+                                {
+                                    <div class="absolute inset-0 rounded-xl ring-2 ring-orange-400/60 dark:ring-orange-500/50 animate-pulse pointer-events-none" />
                                 }
                                 <img src="@AppAssets.Resolve(critter.IconUrl)" alt="" class="w-10 h-10 rounded-lg mx-auto mb-1.5 pointer-events-none"/>
                                 <p class="font-semibold text-slate-900 dark:text-white text-xs truncate">@critter.Name</p>
@@ -342,6 +398,12 @@
     private CritterDto? draggingCritter;
     private int? dropTargetEnclosureId;
     private int _dragEnterCount;
+    private int? _stickyHoverId;
+    private CohabitationCheckResultDto? _stickyCohabResult;
+    private string _stickyCritterName = "";
+    private bool _stickyFading;
+    private readonly Dictionary<int, CohabitationCheckResultDto?> _enclosureCohab = new();
+    private readonly Dictionary<int, CohabitationCheckResultDto?> _currentEnclosureCohab = new();
 
     private double _touchStartX;
 
@@ -395,6 +457,8 @@
 
             if (currentCardIndex > enclosures.Count)
                 currentCardIndex = enclosures.Count;
+
+            RefreshCurrentEnclosureCohabAsync();
         }
         catch (UnauthorizedAccessException)
         {
@@ -414,6 +478,7 @@
             currentCardIndex = index;
             if (index < enclosures.Count)
                 _ = localStorage.SetItemAsync("crittr_last_enc", enclosures[index].Id);
+            RefreshCurrentEnclosureCohabAsync();
             StateHasChanged();
         }
     }
@@ -488,7 +553,50 @@
         _dragCritterSpecies = critter.SpeciesType;
         dropTargetEnclosureId = null;
         _dragEnterCount = 0;
+        _enclosureCohab.Clear();
+        _stickyHoverId = null;
+        _stickyCohabResult = null;
+        PrecomputeCohabAsync(critter.Id);
         StateHasChanged();
+    }
+
+    private static CohabitationCheckResultDto CheckLocal(CritterDto incoming, IEnumerable<CritterDto> residents)
+        => CohabitationCatalog.CheckLocal(incoming, residents);
+
+    private async Task FadeOutStickyAsync()
+    {
+        await Task.Delay(3000);
+        _stickyFading = true;
+        await InvokeAsync(StateHasChanged);
+        await Task.Delay(600);
+        _stickyHoverId = null;
+        _stickyCohabResult = null;
+        _stickyFading = false;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void RefreshCurrentEnclosureCohabAsync()
+    {
+        _currentEnclosureCohab.Clear();
+        var enc = FocusedEnclosure;
+        if (enc == null) return;
+        var homeless = critters.Where(c => c.EnclosureProfileId == null).ToList();
+        foreach (var c in homeless)
+        {
+            var residents = critters.Where(r => r.EnclosureProfileId == enc.Id).ToList();
+            _currentEnclosureCohab[c.Id] = CheckLocal(c, residents);
+        }
+    }
+
+    private void PrecomputeCohabAsync(int critterId)
+    {
+        var incoming = critters.FirstOrDefault(c => c.Id == critterId);
+        if (incoming == null) return;
+        foreach (var enc in enclosures)
+        {
+            var residents = critters.Where(r => r.EnclosureProfileId == enc.Id).ToList();
+            _enclosureCohab[enc.Id] = CheckLocal(incoming, residents);
+        }
     }
 
     private void OnDragEnd()
@@ -496,6 +604,7 @@
         draggingCritter = null;
         dropTargetEnclosureId = null;
         _dragEnterCount = 0;
+        _enclosureCohab.Clear();
         StateHasChanged();
     }
 
@@ -517,8 +626,6 @@
 
     private async Task OnDropCritter(EnclosureProfileDto enclosure)
     {
-        // Use the persistent fields — draggingCritter may already be null if
-        // OnDragEnd fired before this async handler was scheduled.
         var critterId = _dragCritterId;
         var critterSpecies = _dragCritterSpecies;
         if (critterId == 0) return;
@@ -529,6 +636,27 @@
         _dragCritterId = 0;
 
         if (!EnclosureCompatibility.IsCompatible(critterSpecies, enclosure.EnclosureType)) return;
+
+        var incomingCritter = critters.FirstOrDefault(c => c.Id == critterId);
+        CohabitationCheckResultDto? cohab = null;
+        if (incomingCritter != null)
+        {
+            var residents = critters.Where(r => r.EnclosureProfileId == enclosure.Id).ToList();
+            cohab = CheckLocal(incomingCritter, residents);
+        }
+        var hasIssue = cohab is not null && (!cohab.CanCohabit || cohab.HasWarnings);
+        if (hasIssue)
+        {
+            var name = critters.FirstOrDefault(c => c.Id == critterId)?.Name ?? "This critter";
+            _stickyHoverId    = enclosure.Id;
+            _stickyCohabResult = cohab;
+            _stickyCritterName = name;
+            _stickyFading     = false;
+            StateHasChanged();
+            _ = FadeOutStickyAsync();
+            return;
+        }
+
         var success = await CritterService.AssignEnclosureAsync(critterId, enclosure.Id);
         if (!success) loadError = "Could not assign critter. Try again.";
         await LoadData();
@@ -559,6 +687,23 @@
                 }
             }
         }
+    }
+
+    private string CardDragClass(EnclosureProfileDto enclosure)
+    {
+        if (draggingCritter == null)
+            return "border-slate-200 dark:border-slate-700 shadow-xl sm:shadow-2xl";
+
+        var typeOk = EnclosureCompatibility.IsCompatible(draggingCritter.SpeciesType, enclosure.EnclosureType);
+        if (!typeOk)
+            return "border-slate-200 dark:border-slate-700 shadow-none opacity-40 grayscale";
+
+        var hasEntry = _enclosureCohab.TryGetValue(enclosure.Id, out var cohab);
+        // hasEntry=false → still loading → show green; hasEntry=true with issues → orange
+        var hasIssue = hasEntry && (cohab is null || !cohab.CanCohabit || cohab.HasWarnings);
+        return hasIssue
+            ? "border-orange-300 dark:border-orange-700 ring-2 ring-orange-400/50 shadow-none"
+            : "border-green-300 dark:border-green-600 ring-2 ring-green-400/60 shadow-none";
     }
 
     private readonly Dictionary<int, (int top, int left)> _critterPositions = new();

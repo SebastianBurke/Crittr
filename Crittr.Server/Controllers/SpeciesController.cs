@@ -29,6 +29,14 @@ public class SpeciesController : ControllerBase
         return results;
     }
 
+    [HttpGet("info")]
+    public async Task<ActionResult<SpeciesInfo>> GetInfo([FromQuery] string name)
+    {
+        var info = await _catalog.GetByNameAsync(name);
+        if (info == null) return NotFound();
+        return info;
+    }
+
     [HttpGet("careprofile")]
     public ActionResult<SpeciesCareProfile> GetCareProfile([FromQuery] string name)
     {

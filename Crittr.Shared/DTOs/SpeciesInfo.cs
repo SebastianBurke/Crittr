@@ -10,4 +10,5 @@ public class SpeciesInfo
     public string IconUrl { get; set; } = default!;
     public List<EnclosureType> CompatibleEnclosureTypes { get; set; } = new();
     public SpeciesCareProfile? CareProfile { get; set; }
+    public CohabitationProfile? CohabProfile { get; set; }
 }

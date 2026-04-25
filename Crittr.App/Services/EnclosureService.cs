@@ -54,4 +54,17 @@ public class EnclosureService
         var response = await _http.DeleteAsync($"api/enclosure/{id}");
         return response.IsSuccessStatusCode;
     }
+
+    public async Task<CohabitationCheckResultDto?> CheckCohabitationAsync(int enclosureId, int critterId)
+    {
+        try
+        {
+            return await _http.GetFromJsonAsync<CohabitationCheckResultDto>(
+                $"api/enclosure/{enclosureId}/cohabitation?critterId={critterId}");
+        }
+        catch
+        {
+            return null;
+        }
+    }
 }

@@ -1,0 +1,201 @@
+@page "/guide"
+@using Crittr.App.Pages.Shared.Components
+
+<PageTitle>How It Works — Crittr</PageTitle>
+
+<div class="max-w-2xl mx-auto px-4 py-8 space-y-10">
+
+    <div>
+        <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-white">How Crittr Works</h1>
+        <p class="mt-2 text-slate-500 dark:text-slate-400 text-base">The intelligence behind species compatibility, cohabitation rules, health scoring, and what's coming next.</p>
+    </div>
+
+    <!-- ── Cohabitation ──────────────────────────────── -->
+    <section id="cohabitation">
+        <h2 class="text-lg font-semibold text-slate-900 dark:text-white mb-1">Cohabitation Rules</h2>
+        <p class="text-sm text-slate-500 dark:text-slate-400 mb-5">When you assign a critter to a non-empty enclosure, Crittr checks whether the animals can safely live together using each species' social profile, predatory status, and gender pairing rules. Checks run instantly in the browser — no loading.</p>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
+            <div class="rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/30 px-4 py-4">
+                <p class="text-sm font-semibold text-red-800 dark:text-red-200 mb-1">Solo Only</p>
+                <p class="text-xs text-red-700 dark:text-red-300">Must be kept alone. Any addition is a hard block. Examples: Ball Python, Bearded Dragon, all chameleons, Hamster, Axolotl, Oscar.</p>
+            </div>
+            <div class="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 px-4 py-4">
+                <p class="text-sm font-semibold text-amber-800 dark:text-amber-200 mb-1">Pairs OK</p>
+                <p class="text-xs text-amber-700 dark:text-amber-300">Same-species pairs, often female-only. Adding a second male triggers a gender conflict. Examples: Leopard Gecko (females only), Crested Gecko, Clownfish, Rabbit.</p>
+            </div>
+            <div class="rounded-xl border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/30 px-4 py-4">
+                <p class="text-sm font-semibold text-green-800 dark:text-green-200 mb-1">Groups OK</p>
+                <p class="text-xs text-green-700 dark:text-green-300">Same-species groups. Gender rules still apply. Examples: Dart Frogs, White's Tree Frogs, Cockatiels, Guinea Pigs, Sugar Gliders.</p>
+            </div>
+            <div class="rounded-xl border border-blue-200 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/50 px-4 py-4">
+                <p class="text-sm font-semibold text-blue-800 dark:text-blue-200 mb-1">Community</p>
+                <p class="text-xs text-blue-700 dark:text-blue-300">Can live with compatible different species. Examples: Guppies, Neon Tetras, Corydoras, Zebra Finches, Fancy Rats, Giant Millipedes.</p>
+            </div>
+        </div>
+
+        <div class="space-y-3">
+            <div class="rounded-xl border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-gray-800/60 px-4 py-4">
+                <p class="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-1">Gender pairing rules</p>
+                <p class="text-xs text-slate-600 dark:text-slate-400">25 species have specific male-male conflict data. Adding two male Leopard Geckos is a hard block ("can be fatal"). Adding two male Cockatiels shows a warning with the specific behavioral reason. If one critter's sex is unknown, Crittr warns you it can't rule out a dangerous pairing.</p>
+            </div>
+            <div class="rounded-xl border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-gray-800/60 px-4 py-4">
+                <p class="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-1">Hard blocks vs. warnings</p>
+                <p class="text-xs text-slate-600 dark:text-slate-400">Red = hard block, no override. Orange = caution, you can proceed with "Assign anyway" from the critter detail page. On the dashboard, any conflict prevents the drop — open the critter's profile page to review and decide.</p>
+            </div>
+            <div class="rounded-xl border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-gray-800/60 px-4 py-4">
+                <p class="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-1">Dashboard drag colours</p>
+                <p class="text-xs text-slate-600 dark:text-slate-400">Green ring = this enclosure is a valid home. Orange ring = enclosure type fits but there's a cohabitation conflict. Dimmed = wrong enclosure type entirely. Hover over any enclosure while dragging to see the specific reason.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ── Species Compatibility ─────────────────────── -->
+    <section id="compatibility">
+        <h2 class="text-lg font-semibold text-slate-900 dark:text-white mb-1">Enclosure Compatibility</h2>
+        <p class="text-sm text-slate-500 dark:text-slate-400 mb-5">Crittr uses per-species data, not just broad categories. A gecko and a turtle are both "Reptile" but have completely different housing requirements.</p>
+
+        <div class="space-y-3">
+            <div class="rounded-xl border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-gray-800/60 px-4 py-4">
+                <p class="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-2">Species-level, not category-level</p>
+                <div class="space-y-1.5">
+                    <p class="text-xs text-slate-600 dark:text-slate-400"><strong class="text-slate-700 dark:text-slate-300">Ball Python</strong> → Terrarium only</p>
+                    <p class="text-xs text-slate-600 dark:text-slate-400"><strong class="text-slate-700 dark:text-slate-300">Red-eared Slider</strong> → Tank + Aquarium</p>
+                    <p class="text-xs text-slate-600 dark:text-slate-400"><strong class="text-slate-700 dark:text-slate-300">Poison Dart Frog</strong> → Vivarium only</p>
+                    <p class="text-xs text-slate-600 dark:text-slate-400"><strong class="text-slate-700 dark:text-slate-300">Axolotl</strong> → Aquarium only (fully aquatic amphibian)</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ── Feeding ─────────────────────────────────────── -->
+    <section id="feeding">
+        <h2 class="text-lg font-semibold text-slate-900 dark:text-white mb-1">Species-Specific Feeding</h2>
+        <p class="text-sm text-slate-500 dark:text-slate-400 mb-5">The feeding form adapts to the critter's species type. Logging "4 crickets" makes sense for a gecko; logging a portion size makes sense for a fish. The form changes accordingly.</p>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div class="rounded-xl border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-gray-800/60 px-4 py-3">
+                <p class="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Reptiles, Amphibians, Invertebrates</p>
+                <p class="text-xs text-slate-500 dark:text-slate-400">Quick-count [1][2][3][4][5] buttons, stepper for custom amounts, "Ate it / Refused" toggle — essential for tracking prey acceptance.</p>
+            </div>
+            <div class="rounded-xl border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-gray-800/60 px-4 py-3">
+                <p class="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Fish</p>
+                <p class="text-xs text-slate-500 dark:text-slate-400">Portion selector: Pinch / Small / Medium / Large. No meaningless numeric quantity — how much you feed a fish is a portion, not a count.</p>
+            </div>
+            <div class="rounded-xl border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-gray-800/60 px-4 py-3">
+                <p class="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Birds &amp; Mammals</p>
+                <p class="text-xs text-slate-500 dark:text-slate-400">Serving-based log. Food chips show species-specific options (pellets, fresh fruit, hay) drawn from the species care profile.</p>
+            </div>
+            <div class="rounded-xl border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-gray-800/60 px-4 py-3">
+                <p class="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Time capture</p>
+                <p class="text-xs text-slate-500 dark:text-slate-400">All feedings log date and time. "Now" shortcut pre-fills to the current moment. Clock icon opens a custom datetime picker.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ── Health Scoring ────────────────────────────── -->
+    <section id="health">
+        <h2 class="text-lg font-semibold text-slate-900 dark:text-white mb-1">Health Scoring</h2>
+        <p class="text-sm text-slate-500 dark:text-slate-400 mb-5">CritterCondition badges are computed from feeding cadence, shedding history, and pending tasks. They appear on the dashboard and critter detail page.</p>
+
+        <div class="space-y-2">
+            <div class="flex items-start gap-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-gray-800/60 px-4 py-3">
+                <span class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300 shrink-0 mt-0.5">😊 Thriving</span>
+                <p class="text-xs text-slate-600 dark:text-slate-400">Fed on schedule, no overdue tasks, shedding within expected window.</p>
+            </div>
+            <div class="flex items-start gap-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-gray-800/60 px-4 py-3">
+                <span class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 shrink-0 mt-0.5">🙂 Good</span>
+                <p class="text-xs text-slate-600 dark:text-slate-400">Minor task overdue or feeding slightly delayed — nothing concerning.</p>
+            </div>
+            <div class="flex items-start gap-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-gray-800/60 px-4 py-3">
+                <span class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 shrink-0 mt-0.5">😐 Fair</span>
+                <p class="text-xs text-slate-600 dark:text-slate-400">Feeding behind schedule or a task overdue for a while. Worth checking in.</p>
+            </div>
+            <div class="flex items-start gap-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-gray-800/60 px-4 py-3">
+                <span class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300 shrink-0 mt-0.5">⚠️ Needs Attention</span>
+                <p class="text-xs text-slate-600 dark:text-slate-400">Significantly overdue feeding or multiple pending tasks.</p>
+            </div>
+            <div class="flex items-start gap-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-gray-800/60 px-4 py-3">
+                <span class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300 shrink-0 mt-0.5">🚨 Critical</span>
+                <p class="text-xs text-slate-600 dark:text-slate-400">Severely overdue or multiple critical flags. Immediate attention needed.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ── Enclosure Types ───────────────────────────── -->
+    <section id="enclosure-types">
+        <h2 class="text-lg font-semibold text-slate-900 dark:text-white mb-1">Enclosure Types</h2>
+        <p class="text-sm text-slate-500 dark:text-slate-400 mb-4">11 active types with environment presets, substrate options, and compatibility rules. A 12th — Custom — is coming with the isometric enclosure builder.</p>
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            @foreach (var (emoji, name, desc) in _enclosureTypes)
+            {
+                <div class="rounded-xl border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-gray-800/60 p-3">
+                    <p class="text-lg mb-1">@emoji</p>
+                    <p class="text-xs font-semibold text-slate-800 dark:text-slate-200 leading-snug">@name</p>
+                    <p class="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5 leading-snug">@desc</p>
+                </div>
+            }
+        </div>
+    </section>
+
+    <!-- ── What's Coming ────────────────────────────── -->
+    <section id="roadmap">
+        <h2 class="text-lg font-semibold text-slate-900 dark:text-white mb-1">What's Coming</h2>
+        <p class="text-sm text-slate-500 dark:text-slate-400 mb-5">Crittr is built around a core belief: your setup is unique, and your tracking software should understand that. Everything below is part of making the experience feel genuinely tailored to each keeper's world.</p>
+
+        <div class="space-y-3">
+
+            <div class="rounded-xl border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-gray-800/60 px-4 py-4">
+                <p class="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-1">Deep species profiles</p>
+                <p class="text-xs text-slate-600 dark:text-slate-400 mb-2">Each species will have a modular set of tracking concepts relevant only to them. A reef tank gets water chemistry logging. A ball python gets shedding cycle prediction. A cockatiel gets out-of-cage time and enrichment tracking. These concepts are additive — new ones can be introduced per species without affecting others.</p>
+                <p class="text-xs text-slate-500 dark:text-slate-500">The foundation is already in place: 110+ species have care profiles, feeding cadences, and behavioral data. Deep profiles build on this.</p>
+            </div>
+
+            <div class="rounded-xl border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-gray-800/60 px-4 py-4">
+                <p class="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-1">Live critter representation</p>
+                <p class="text-xs text-slate-600 dark:text-slate-400">The enclosure canvas will show animated, species-accurate representations of your critters — not generic icons. Each species has its own movement personality, idle behaviours, and interactions with the enclosure environment. The canvas adapts to the enclosure type: an aquarium shows swimming behaviour, a vivarium shows climbing, a terrarium shows basking.</p>
+            </div>
+
+            <div class="rounded-xl border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-gray-800/60 px-4 py-4">
+                <p class="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-1">Enclosure customization &amp; the custom builder</p>
+                <p class="text-xs text-slate-600 dark:text-slate-400">The "Other / Custom" enclosure type is reserved for a dedicated isometric 3D enclosure builder — place hides, water features, plants, and equipment visually. Until the builder ships and can produce structured data, custom enclosures are held back so every intelligence feature can still work on them.</p>
+            </div>
+
+            <div class="rounded-xl border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-gray-800/60 px-4 py-4">
+                <p class="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-1">Per-type keeper experiences</p>
+                <p class="text-xs text-slate-600 dark:text-slate-400 mb-2">A reef aquarium keeper and a ball python keeper live in completely different worlds. The dashboard and tracking interface will morph to match:</p>
+                <div class="space-y-1">
+                    <p class="text-xs text-slate-500 dark:text-slate-500">🐠 <strong class="text-slate-600 dark:text-slate-400">Aquarium</strong> — water parameter logging (pH, ammonia, nitrate, salinity), nitrogen cycle tracker, stocking calculator</p>
+                    <p class="text-xs text-slate-500 dark:text-slate-500">🦎 <strong class="text-slate-600 dark:text-slate-400">Terrarium</strong> — temperature gradient logging, UVB bulb tracking, shedding predictor</p>
+                    <p class="text-xs text-slate-500 dark:text-slate-500">🌱 <strong class="text-slate-600 dark:text-slate-400">Vivarium</strong> — microfauna health, plant log, cleanup crew ratios</p>
+                    <p class="text-xs text-slate-500 dark:text-slate-500">🦜 <strong class="text-slate-600 dark:text-slate-400">Aviary / Cage</strong> — out-of-cage time, enrichment rotation, social needs check</p>
+                </div>
+            </div>
+
+            <div class="rounded-xl border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-gray-800/60 px-4 py-4">
+                <p class="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-1">AI care assistant</p>
+                <p class="text-xs text-slate-600 dark:text-slate-400">A local llama3 model runs on the Crittr server. Once wired in, it will provide species-specific care guidance, interpret natural-language feeding logs ("ate two medium mice"), and surface patterns across your critter's history.</p>
+            </div>
+
+        </div>
+    </section>
+
+</div>
+
+@code {
+    private static readonly (string Emoji, string Name, string Desc)[] _enclosureTypes =
+    [
+        ("🦎", "Terrarium",      "Dry to tropical land setups"),
+        ("🐠", "Aquarium",       "Fully aquatic, freshwater or saltwater"),
+        ("🌿", "Paludarium",     "Half land, half water"),
+        ("🌱", "Vivarium",       "Bioactive living habitat"),
+        ("🪲", "Insectarium",    "Ventilated enclosure for invertebrates"),
+        ("🦜", "Aviary",         "Flight space for birds"),
+        ("🐭", "Cage",           "Secure wire enclosure"),
+        ("📦", "Bin",            "Plastic tub setup"),
+        ("🗄️", "Rack System",   "Multi-tub breeder rack"),
+        ("🏠", "Free-Roam Room", "Supervised open room for mammals"),
+        ("🫙", "Tank",           "General-purpose semi-aquatic tank"),
+        ("🔧", "Custom",         "Coming Soon — isometric builder"),
+    ];
+}

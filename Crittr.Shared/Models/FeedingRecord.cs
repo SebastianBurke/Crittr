@@ -11,6 +11,7 @@ public class FeedingRecord
     public string FoodItem { get; set; } = string.Empty;
     public double Quantity { get; set; }
     public ItemType ItemType { get; set; }
+    public FeedingUnit FeedingUnit { get; set; } = FeedingUnit.Items;
     public bool WasEaten { get; set; }
     public string? Notes { get; set; }
 }

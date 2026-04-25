@@ -63,7 +63,7 @@
 
         @if (critter.EnclosureProfileId is null)
         {
-            var requiresLabel = EnclosureCompatibility.GetEnclosureRequirementLabel(critter.SpeciesType);
+            var requiresLabel = EnclosureCompatibility.GetEnclosureRequirementLabel(CompatibleTypes);
             <div class="mb-5 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 px-4 py-4 space-y-3">
                 <div>
                     <p class="text-sm font-semibold text-amber-800 dark:text-amber-200">@critter.Name needs @requiresLabel</p>
@@ -72,7 +72,7 @@
                 @if (availableEnclosures.Count > 0)
                 {
                     <div class="flex gap-2">
-                        <select @bind="selectedEnclosureId"
+                        <select @bind="selectedEnclosureId" @bind:after="ClearCohabCheck"
                                 class="flex-1 min-w-0 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-green-500">
                             <option value="0">Pick enclosure…</option>
                             @foreach (var enc in availableEnclosures)
@@ -81,12 +81,48 @@
                             }
                         </select>
                         <button type="button"
-                                disabled="@(selectedEnclosureId == 0 || isAssigning)"
+                                disabled="@(selectedEnclosureId == 0 || isAssigning || isCohabChecking || _cohabBlock)"
                                 @onclick="AssignToEnclosureAsync"
                                 class="shrink-0 rounded-xl bg-green-600 hover:bg-green-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold px-4 py-2 transition-colors">
-                            @(isAssigning ? "…" : "Assign")
+                            @(isAssigning ? "…" : isCohabChecking ? "Checking…" : "Assign")
                         </button>
                     </div>
+
+                    @if (_cohabCheck is not null)
+                    {
+                        @if (_cohabBlock)
+                        {
+                            <div class="rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/30 px-3.5 py-3 space-y-1.5">
+                                <div class="flex items-center justify-between">
+                                    <p class="text-sm font-semibold text-red-800 dark:text-red-200">Cannot house together</p>
+                                    <a href="/guide#cohabitation" class="text-xs text-red-600 dark:text-red-400 hover:underline">Why?</a>
+                                </div>
+                                @foreach (var c in _cohabCheck.Conflicts.Where(x => x.IsHardBlock))
+                                {
+                                    <p class="text-xs text-red-700 dark:text-red-300">@c.Reason</p>
+                                    @if (!string.IsNullOrEmpty(c.SpeciesName) && _speciesInfo?.CohabProfile?.CohabNote is not null)
+                                    {
+                                        <p class="text-xs text-red-600/80 dark:text-red-400/80 italic">Note: @_speciesInfo.CohabProfile.CohabNote</p>
+                                    }
+                                }
+                            </div>
+                        }
+                        else if (_cohabCheck.HasWarnings)
+                        {
+                            <div class="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 px-3.5 py-3 space-y-1.5">
+                                <p class="text-sm font-semibold text-amber-800 dark:text-amber-200">Proceed with caution</p>
+                                @foreach (var c in _cohabCheck.Conflicts)
+                                {
+                                    <p class="text-xs text-amber-700 dark:text-amber-300">@c.Reason</p>
+                                }
+                                <button type="button" @onclick="ForceAssignAsync"
+                                        disabled="@isAssigning"
+                                        class="mt-1 rounded-lg bg-amber-600 hover:bg-amber-700 disabled:opacity-40 text-white text-xs font-semibold px-3 py-1.5 transition-colors">
+                                    @(isAssigning ? "Assigning…" : "Assign anyway")
+                                </button>
+                            </div>
+                        }
+                    }
                 }
                 <button type="button"
                         @onclick="OpenCreateEnclosureModal"
@@ -97,7 +133,7 @@
         }
         else if (enclosureDto is not null)
         {
-            var compatible = EnclosureCompatibility.IsCompatible(critter.SpeciesType, enclosureDto.EnclosureType);
+            var compatible = enclosureDto.EnclosureType == EnclosureType.Other || CompatibleTypes.Contains(enclosureDto.EnclosureType);
             <div class="mb-5 rounded-xl border @(compatible ? "border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/20" : "border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/20") px-4 py-3 flex items-center justify-between gap-3">
                 <div class="min-w-0">
                     @if (compatible)
@@ -113,7 +149,7 @@
                         <p class="text-sm font-medium text-amber-800 dark:text-amber-200">
                             ⚠ <a href="@($"/enclosure/{enclosureDto.Id}")" class="font-semibold hover:underline">@enclosureDto.Name</a> may not be ideal for a @critter.SpeciesType
                         </p>
-                        <p class="text-xs text-amber-700 dark:text-amber-400 mt-0.5">Consider @EnclosureCompatibility.GetEnclosureRequirementLabel(critter.SpeciesType).</p>
+                        <p class="text-xs text-amber-700 dark:text-amber-400 mt-0.5">Consider @EnclosureCompatibility.GetEnclosureRequirementLabel(CompatibleTypes).</p>
                     }
                 </div>
                 <div class="flex items-center gap-3 shrink-0">
@@ -151,20 +187,44 @@
         {
             <!-- Log a feeding -->
             <section class="mb-8 rounded-2xl border border-slate-200/90 dark:border-slate-700 bg-white/90 dark:bg-gray-800/80 p-5 sm:p-7 shadow-lg shadow-slate-900/5">
-                <h2 class="text-lg font-semibold text-slate-900 dark:text-white mb-1">Log a feeding</h2>
-                <p class="text-sm text-slate-500 dark:text-slate-400 mb-5">Keep a clear history for you and your vet.</p>
+                <h2 class="text-lg font-semibold text-slate-900 dark:text-white mb-5">Log a feeding</h2>
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div class="sm:col-span-2">
-                        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Date</label>
-                        <input type="date" @bind="newFeedingDate"
-                               class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-900 px-3.5 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-green-500/40 focus:border-green-500 outline-none"/>
+                <div class="space-y-5">
+
+                    <!-- When -->
+                    <div>
+                        <p class="text-xs font-semibold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-2">When</p>
+                        <div class="flex gap-2 items-center">
+                            <button type="button" @onclick="SetNow"
+                                    class="text-xs rounded-lg border border-green-500 bg-green-50 dark:bg-green-950/30 px-3 py-1.5 font-semibold text-green-700 dark:text-green-300 hover:bg-green-100 dark:hover:bg-green-950/50 transition-colors">
+                                Now
+                            </button>
+                            <button type="button" @onclick='() => _showCustomTime = !_showCustomTime'
+                                    aria-label="Set custom time"
+                                    class="w-8 h-8 flex items-center justify-center rounded-lg border transition-colors @(_showCustomTime ? "border-slate-400 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200" : "border-slate-200 dark:border-slate-700 bg-white dark:bg-gray-900 text-slate-400 dark:text-slate-500 hover:border-slate-400")">
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                                    <circle cx="12" cy="12" r="9"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 7v5l3 3"/>
+                                </svg>
+                            </button>
+                            @if (!_showCustomTime)
+                            {
+                                <span class="text-xs text-slate-400 dark:text-slate-500">@newFeedingDate.ToString("MMM d · h:mm tt")</span>
+                            }
+                        </div>
+                        @if (_showCustomTime)
+                        {
+                            <input type="datetime-local" @bind="newFeedingDate" @bind:format="yyyy-MM-ddTHH:mm"
+                                   class="mt-2 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-900 px-3.5 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-green-500/40 focus:border-green-500 outline-none text-sm"/>
+                        }
                     </div>
-                    <div class="sm:col-span-2">
-                        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Food offered</label>
+
+                    <!-- What -->
+                    <div>
+                        <p class="text-xs font-semibold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-2">What</p>
                         @if (acceptedFoods.Count > 0)
                         {
-                            <div class="flex flex-wrap gap-2 mb-3">
+                            <div class="flex flex-wrap gap-2">
                                 @foreach (var food in acceptedFoods)
                                 {
                                     var isSelected = newFoodItem == food;
@@ -180,38 +240,86 @@
                             </div>
                             @if (showCustomFood)
                             {
-                                <input @bind="newFoodItem" placeholder="Describe the food offered"
-                                       class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-900 px-3.5 py-2.5 text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-green-500/40 focus:border-green-500 outline-none"/>
+                                <input @bind="newFoodItem" placeholder="Describe the food offered" class="mt-2 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-900 px-3.5 py-2.5 text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-green-500/40 focus:border-green-500 outline-none"/>
                             }
                         }
                         else
                         {
-                            <input @bind="newFoodItem" placeholder="e.g. Dubia roaches, fuzzy mouse"
+                            <input @bind="newFoodItem" placeholder="@(IsFishMode ? "e.g. Betta pellets, flakes" : IsBirdMode ? "e.g. Pellets, fresh fruit" : "e.g. Dubia roaches, fuzzy mouse")"
                                    class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-900 px-3.5 py-2.5 text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-green-500/40 focus:border-green-500 outline-none"/>
                         }
                     </div>
+
+                    @if (IsFishMode)
+                    {
+                        <!-- Portion selector for fish -->
+                        <div>
+                            <p class="text-xs font-semibold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-2">Portion</p>
+                            <div class="flex gap-2">
+                                @foreach (var (label, qty, unit) in FishPortions)
+                                {
+                                    var active = _fishPortionLabel == label;
+                                    <button type="button" @onclick="() => SelectFishPortion(label, qty, unit)"
+                                            class="flex-1 rounded-xl border py-2.5 text-xs font-semibold transition-colors @(active ? "border-blue-400 bg-blue-50 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200" : "border-slate-200 dark:border-slate-700 bg-white dark:bg-gray-900 text-slate-600 dark:text-slate-300 hover:border-blue-300")">
+                                        @label
+                                    </button>
+                                }
+                            </div>
+                        </div>
+                    }
+                    else if (IsCountMode)
+                    {
+                        <!-- Quick count for reptiles, amphibians, mammals, invertebrates -->
+                        <div>
+                            <p class="text-xs font-semibold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-2">How many</p>
+                            <div class="flex gap-2 items-center">
+                                @foreach (var n in new[] { 1, 2, 3, 4, 5 })
+                                {
+                                    var active = (int)newQuantity == n && newQuantity == n;
+                                    <button type="button" @onclick="() => newQuantity = n"
+                                            class="w-10 h-10 rounded-xl border text-sm font-bold transition-colors @(active ? "border-green-500 bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-300" : "border-slate-200 dark:border-slate-700 bg-white dark:bg-gray-900 text-slate-700 dark:text-slate-300 hover:border-green-300")">
+                                        @n
+                                    </button>
+                                }
+                                <input type="number" step="0.5" min="0.5" @bind="newQuantity"
+                                       class="w-16 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-900 px-2 py-2 text-center text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-green-500/40 focus:border-green-500 outline-none"/>
+                            </div>
+                        </div>
+
+                        <!-- Consumed toggle -->
+                        <div class="flex gap-2">
+                            <button type="button" @onclick='() => newWasEaten = true'
+                                    class="flex-1 rounded-xl border py-2.5 text-sm font-semibold transition-colors @(newWasEaten ? "border-green-500 bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-300" : "border-slate-200 dark:border-slate-700 bg-white dark:bg-gray-900 text-slate-500 dark:text-slate-400")">
+                                ✓ Ate it
+                            </button>
+                            <button type="button" @onclick='() => newWasEaten = false'
+                                    class="flex-1 rounded-xl border py-2.5 text-sm font-semibold transition-colors @(!newWasEaten ? "border-red-400 bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-300" : "border-slate-200 dark:border-slate-700 bg-white dark:bg-gray-900 text-slate-500 dark:text-slate-400")">
+                                ✗ Refused
+                            </button>
+                        </div>
+                    }
+
+                    <!-- Notes (collapsible) -->
                     <div>
-                        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Quantity</label>
-                        <input type="number" step="0.5" @bind="newQuantity"
-                               class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-900 px-3.5 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-green-500/40 focus:border-green-500 outline-none"/>
+                        @if (!_showNotes)
+                        {
+                            <button type="button" @onclick='() => _showNotes = true'
+                                    class="text-xs text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
+                                + Add a note
+                            </button>
+                        }
+                        else
+                        {
+                            <textarea @bind="newNotes" rows="2" placeholder="Behavior, leftovers, refusal notes…"
+                                      class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-900 px-3.5 py-2.5 text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-green-500/40 focus:border-green-500 outline-none resize-none text-sm"></textarea>
+                        }
                     </div>
-                    <div class="sm:col-span-2 flex items-center gap-3">
-                        <input type="checkbox" id="eaten" @bind="newWasEaten"
-                               class="w-4 h-4 rounded border-slate-300 text-green-600 focus:ring-green-500"/>
-                        <label for="eaten" class="text-sm text-slate-700 dark:text-slate-300">Consumed successfully</label>
-                    </div>
-                    <div class="sm:col-span-2">
-                        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-                            Notes <span class="text-slate-400 font-normal">(optional)</span>
-                        </label>
-                        <textarea @bind="newNotes" rows="2" placeholder="Behavior, leftovers, refusal notes…"
-                                  class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-gray-900 px-3.5 py-2.5 text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-green-500/40 focus:border-green-500 outline-none resize-none"></textarea>
-                    </div>
+
                 </div>
 
                 <button type="button" disabled="@isSaving" @onclick="SaveFeedingAsync"
-                        class="mt-5 w-full sm:w-auto rounded-xl bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold px-6 py-2.5 shadow-lg shadow-green-600/20 transition-colors">
-                    @(isSaving ? "Saving…" : "Save feeding")
+                        class="mt-6 w-full rounded-xl bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold px-6 py-3 shadow-lg shadow-green-600/20 transition-colors">
+                    @(isSaving ? "Saving…" : "Log feeding")
                 </button>
             </section>
 
@@ -240,9 +348,9 @@
                                     <li class="rounded-xl border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-gray-800/60 px-4 py-3.5">
                                         <div class="flex items-start justify-between gap-3">
                                             <div class="min-w-0">
-                                                <p class="font-semibold text-slate-900 dark:text-white text-sm">@f.FeedingDate.ToString("MMM d")</p>
+                                                <p class="font-semibold text-slate-900 dark:text-white text-sm">@FormatFeedingDate(f.FeedingDate)</p>
                                                 <p class="text-sm text-slate-600 dark:text-slate-300 mt-0.5 break-words">
-                                                    @f.FoodItem · @f.Quantity× @f.ItemTypeString
+                                                    @FormatFeedingEntry(f)
                                                 </p>
                                                 @if (!string.IsNullOrWhiteSpace(f.Notes))
                                                 {
@@ -296,7 +404,7 @@
 <CreateEnclosureModal IsVisible="showCreateEnclosureModal"
                       IsVisibleChanged="v => { showCreateEnclosureModal = v; StateHasChanged(); }"
                       OnEnclosureCreated="HandleEnclosureCreatedForCritter"
-                      CompatibleEnclosureTypes="@(critter != null ? EnclosureCompatibility.GetCompatibleEnclosureTypes(critter.SpeciesType) : null)"
+                      CompatibleEnclosureTypes="@(critter != null ? CompatibleTypes : null)"
                       RecommendedForLabel="@critter?.Name"/>
 
 @code {
@@ -317,14 +425,73 @@
     private int? deletingId;
     private int selectedEnclosureId;
     private bool showCreateEnclosureModal;
+    private SpeciesInfo? _speciesInfo;
+    private CohabitationCheckResultDto? _cohabCheck;
+    private bool isCohabChecking;
+    private bool _cohabBlock => _cohabCheck?.CanCohabit == false;
 
-    private DateTime newFeedingDate = DateTime.Today;
+    private IReadOnlyList<EnclosureType> CompatibleTypes =>
+        _speciesInfo?.CompatibleEnclosureTypes is { Count: > 0 } specific
+            ? specific
+            : critter is not null
+                ? EnclosureCompatibility.GetCompatibleEnclosureTypes(critter.SpeciesType)
+                : Array.Empty<EnclosureType>();
+
+    private DateTime newFeedingDate = DateTime.Now;
     private string newFoodItem = "";
     private bool showCustomFood;
     private double newQuantity = 1;
     private ItemType newItemType = ItemType.Insect;
+    private FeedingUnit newFeedingUnit = FeedingUnit.Items;
     private bool newWasEaten = true;
     private string? newNotes;
+    private bool _showNotes;
+    private bool _showCustomTime;
+    private string _fishPortionLabel = "Medium";
+
+    private bool IsCountMode => critter?.SpeciesType is not SpeciesType.Fish and not SpeciesType.Bird;
+    private bool IsFishMode  => critter?.SpeciesType == SpeciesType.Fish;
+    private bool IsBirdMode  => critter?.SpeciesType == SpeciesType.Bird;
+
+    private static readonly (string Label, double Qty, FeedingUnit Unit)[] FishPortions =
+    [
+        ("Pinch",  0.25, FeedingUnit.Pinch),
+        ("Small",  0.5,  FeedingUnit.Portion),
+        ("Medium", 1.0,  FeedingUnit.Portion),
+        ("Large",  2.0,  FeedingUnit.Portion),
+    ];
+
+    private void SetNow() { newFeedingDate = DateTime.Now; _showCustomTime = false; }
+
+    private void SelectFishPortion(string label, double qty, FeedingUnit unit)
+    {
+        _fishPortionLabel = label;
+        newQuantity = qty;
+        newFeedingUnit = unit;
+    }
+
+    private static string FormatFeedingDate(DateTime dt)
+    {
+        var datePart = dt.ToString("MMM d");
+        return dt.TimeOfDay == TimeSpan.Zero ? datePart : $"{datePart} · {dt:h:mm tt}";
+    }
+
+    private static string FormatFeedingEntry(FeedingRecordDto f) => f.FeedingUnit switch
+    {
+        FeedingUnit.Pinch   => $"Pinch · {f.FoodItem}",
+        FeedingUnit.Portion => $"{PortionLabel(f.Quantity)} · {f.FoodItem}",
+        FeedingUnit.Serving => $"Serving · {f.FoodItem}",
+        FeedingUnit.Grams   => $"{f.Quantity}g · {f.FoodItem}",
+        _                   => $"{f.Quantity}× {f.FoodItem}{(f.FoodItem.Length > 0 ? "" : f.ItemTypeString)}",
+    };
+
+    private static string PortionLabel(double qty) => qty switch
+    {
+        <= 0.25 => "Pinch",
+        <= 0.5  => "Small portion",
+        <= 1.0  => "Medium portion",
+        _       => "Large portion",
+    };
 
     protected override async Task OnInitializedAsync()
     {
@@ -356,6 +523,7 @@
             enclosureDto = null;
             availableEnclosures.Clear();
             acceptedFoods = Array.Empty<string>();
+            _speciesInfo = null;
             return;
         }
 
@@ -370,17 +538,87 @@
             feedings.Clear();
             enclosureDto = null;
             var allEnclosures = await EnclosureService.GetEnclosuresAsync();
-            availableEnclosures = allEnclosures
-                .Where(e => EnclosureCompatibility.IsCompatible(critter.SpeciesType, e.EnclosureType))
+            var typeCompatible = allEnclosures
+                .Where(e => CompatibleTypes.Contains(e.EnclosureType))
+                .ToList();
+
+            // Load residents for all type-compatible enclosures in parallel,
+            // then run the full local cohabitation check for each.
+            var incomingDto = new CritterDto
+            {
+                Id = critter.Id, Name = critter.Name,
+                Species = critter.Species, SpeciesType = critter.SpeciesType, Sex = critter.Sex
+            };
+            var residentTasks = typeCompatible
+                .Select(e => CritterService.GetCrittersByEnclosureIdAsync(e.Id))
+                .ToList();
+            var allResidents = await Task.WhenAll(residentTasks);
+            availableEnclosures = typeCompatible
+                .Zip(allResidents, (enc, residents) => (enc, residents))
+                .Where(x =>
+                {
+                    if (x.residents.Count == 0) return true;
+                    var result = CohabitationCatalog.CheckLocal(incomingDto, x.residents);
+                    return result.CanCohabit && !result.HasWarnings;
+                })
+                .Select(x => x.enc)
                 .ToList();
             selectedEnclosureId = 0;
         }
 
-        var careProfile = await SpeciesService.GetCareProfileAsync(critter.Species);
-        acceptedFoods = careProfile?.AcceptedFoods ?? Array.Empty<string>();
+        var infoTask = SpeciesService.GetInfoAsync(critter.Species);
+        var profileTask = SpeciesService.GetCareProfileAsync(critter.Species);
+        await Task.WhenAll(infoTask, profileTask);
+        _speciesInfo = infoTask.Result;
+        acceptedFoods = profileTask.Result?.AcceptedFoods ?? Array.Empty<string>();
     }
 
+    private void ClearCohabCheck() => _cohabCheck = null;
+
     private async Task AssignToEnclosureAsync()
+    {
+        if (critter is null || selectedEnclosureId == 0) return;
+
+        isCohabChecking = true;
+        StateHasChanged();
+        try
+        {
+            var residents = await CritterService.GetCrittersByEnclosureIdAsync(selectedEnclosureId);
+            if (residents.Count > 0)
+            {
+                var incomingDto = new CritterDto
+                {
+                    Id = critter.Id, Name = critter.Name,
+                    Species = critter.Species, SpeciesType = critter.SpeciesType, Sex = critter.Sex
+                };
+                _cohabCheck = CohabitationCatalog.CheckLocal(incomingDto, residents);
+            }
+            else
+            {
+                _cohabCheck = new CohabitationCheckResultDto { CanCohabit = true, HasWarnings = false, Conflicts = [] };
+            }
+        }
+        finally
+        {
+            isCohabChecking = false;
+        }
+
+        if (_cohabCheck is null || !_cohabCheck.CanCohabit || _cohabCheck.HasWarnings)
+        {
+            StateHasChanged();
+            return;
+        }
+
+        await DoAssignAsync();
+    }
+
+    private async Task ForceAssignAsync()
+    {
+        _cohabCheck = null;
+        await DoAssignAsync();
+    }
+
+    private async Task DoAssignAsync()
     {
         if (critter is null || selectedEnclosureId == 0) return;
         isAssigning = true;
@@ -493,14 +731,19 @@
         formError = null;
         try
         {
+            var resolvedUnit = IsFishMode  ? newFeedingUnit :
+                               IsBirdMode  ? FeedingUnit.Serving :
+                                             FeedingUnit.Items;
+
             var record = new FeedingRecord
             {
                 CritterId = critter.Id,
-                FeedingDate = newFeedingDate.Date,
+                FeedingDate = newFeedingDate,
                 FoodItem = newFoodItem.Trim(),
                 Quantity = newQuantity,
                 ItemType = newItemType,
-                WasEaten = newWasEaten,
+                FeedingUnit = resolvedUnit,
+                WasEaten = IsFishMode || IsBirdMode ? true : newWasEaten,
                 Notes = string.IsNullOrWhiteSpace(newNotes) ? null : newNotes.Trim()
             };
 
@@ -513,9 +756,14 @@
 
             newFoodItem = "";
             showCustomFood = false;
-            newQuantity = 1;
+            newQuantity = IsFishMode ? 1.0 : 1;
+            _fishPortionLabel = "Medium";
+            newFeedingUnit = FeedingUnit.Items;
+            newWasEaten = true;
             newNotes = null;
-            newFeedingDate = DateTime.Today;
+            _showNotes = false;
+            newFeedingDate = DateTime.Now;
+            _showCustomTime = false;
             await LoadAsync();
             StateHasChanged();
         }

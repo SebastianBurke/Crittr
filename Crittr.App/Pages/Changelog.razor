@@ -9,12 +9,142 @@
         <p class="mt-1 text-slate-500 dark:text-slate-400 text-sm">Release notes and updates for Crittr.</p>
     </div>
 
-    <!-- v1.1.0 -->
+    <!-- v1.3.0 -->
     <div class="relative pl-6 border-l-2 border-green-200 dark:border-green-800 mb-12">
         <div class="absolute -left-2.5 top-0 w-4 h-4 rounded-full bg-green-600 border-2 border-white dark:border-gray-950"></div>
 
         <div class="mb-1 flex items-center gap-3">
             <span class="text-xs font-semibold uppercase tracking-widest text-green-600 dark:text-green-400">Latest</span>
+            <span class="text-xs text-slate-400">April 2026</span>
+        </div>
+
+        <h2 class="text-xl font-bold text-slate-900 dark:text-white mb-4">v1.3.0 — Cohabitation Intelligence &amp; Species-Specific Feeding</h2>
+
+        <div class="space-y-6 text-sm text-slate-700 dark:text-slate-300">
+
+            <div>
+                <h3 class="font-semibold text-slate-900 dark:text-white mb-2">Gender-aware cohabitation rules</h3>
+                <ul class="space-y-1 list-disc list-inside text-slate-600 dark:text-slate-400">
+                    <li>Every species now has a <strong>GenderPairingRule</strong> — 25 species updated with male-male conflict data</li>
+                    <li>Hard blocks for lethal pairings: two male Leopard Geckos, Canaries, African Cichlids, and more will be blocked with a specific fatal-conflict message</li>
+                    <li>Soft warnings for serious-but-not-always-lethal pairings: Cockatiels, tortoises, cichlids, rabbits</li>
+                    <li>Unknown sex triggers a warning: "if both are male, these may fight"</li>
+                    <li>Conflict messages include the resident's pet name, species, and species-specific behavioral note (e.g. "Will bully and stress cage mates")</li>
+                </ul>
+            </div>
+
+            <div>
+                <h3 class="font-semibold text-slate-900 dark:text-white mb-2">Client-side cohabitation checks</h3>
+                <ul class="space-y-1 list-disc list-inside text-slate-600 dark:text-slate-400">
+                    <li><code class="text-xs bg-slate-100 dark:bg-slate-800 px-1 rounded">CohabitationCatalog</code> in the shared library — all 110+ species profiles compiled into the browser bundle</li>
+                    <li>All cohabitation checks on the dashboard and critter detail page run entirely client-side — zero server round-trips, instant response</li>
+                    <li>Critter detail dropdown is now filtered at load time: enclosures where the incoming critter can't cohabit are hidden before the user even sees them</li>
+                </ul>
+            </div>
+
+            <div>
+                <h3 class="font-semibold text-slate-900 dark:text-white mb-2">Dashboard drag visual system</h3>
+                <ul class="space-y-1 list-disc list-inside text-slate-600 dark:text-slate-400">
+                    <li>Three-state drag feedback: green ring (compatible), orange ring (cohabitation concern), dimmed/greyed (wrong enclosure type)</li>
+                    <li>Critter cards in the homeless panel glow orange when they have a cohabitation conflict with the currently-viewed enclosure</li>
+                    <li>Hover message on enclosure shows all conflicts with pet names and species-specific notes</li>
+                    <li>Type-incompatible enclosures show a red "Wrong enclosure type" message on hover — no more silent greying</li>
+                    <li>Cohabitation concern message stays visible for 3 seconds after drop, then fades out smoothly — unified hover and post-drop message</li>
+                </ul>
+            </div>
+
+            <div>
+                <h3 class="font-semibold text-slate-900 dark:text-white mb-2">Species-specific feeding form</h3>
+                <ul class="space-y-1 list-disc list-inside text-slate-600 dark:text-slate-400">
+                    <li>Feeding form adapts based on the critter's species type</li>
+                    <li><strong>Reptiles, amphibians, invertebrates:</strong> quick-count buttons [1][2][3][4][5] + stepper + "Ate it / Refused" toggle</li>
+                    <li><strong>Fish:</strong> portion selector (Pinch / Small / Medium / Large) replaces numeric quantity</li>
+                    <li><strong>Birds:</strong> serving-based logging, no consumed toggle</li>
+                    <li>Date and time captured together — feedings now log the hour, not just the day</li>
+                    <li>New <code class="text-xs bg-slate-100 dark:bg-slate-800 px-1 rounded">FeedingUnit</code> field on every feeding record (Items / Portion / Pinch / Serving / Grams)</li>
+                    <li>Feeding history displays unit-aware labels: "4× Crickets", "Large portion · Betta Pellets", "Serving · Pellets"</li>
+                </ul>
+            </div>
+
+            <div>
+                <h3 class="font-semibold text-slate-900 dark:text-white mb-2">UX &amp; guide improvements</h3>
+                <ul class="space-y-1 list-disc list-inside text-slate-600 dark:text-slate-400">
+                    <li>"How It Works" guide page expanded with cohabitation rule explanations, color-coded rule cards, and species examples</li>
+                    <li>Feeding date field replaced with datetime picker — Now shortcut + clock icon for custom time</li>
+                    <li>Homeless critter sidebar stacks below carousel on all viewports; floats left at 2xl+ without compressing the carousel</li>
+                    <li>Custom enclosure type disabled as "Coming Soon" in the creation wizard</li>
+                </ul>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- v1.2.0 -->
+    <div class="relative pl-6 border-l-2 border-green-200 dark:border-green-800 mb-12">
+        <div class="absolute -left-2.5 top-0 w-4 h-4 rounded-full bg-slate-300 dark:bg-slate-600 border-2 border-white dark:border-gray-950"></div>
+
+        <div class="mb-1 flex items-center gap-3">
+            <span class="text-xs text-slate-400">April 2026</span>
+        </div>
+
+        <h2 class="text-xl font-bold text-slate-900 dark:text-white mb-4">v1.2.0 — Species Intelligence &amp; Cohabitation</h2>
+
+        <div class="space-y-6 text-sm text-slate-700 dark:text-slate-300">
+
+            <div>
+                <h3 class="font-semibold text-slate-900 dark:text-white mb-2">Per-species enclosure compatibility</h3>
+                <ul class="space-y-1 list-disc list-inside text-slate-600 dark:text-slate-400">
+                    <li>Enclosure wizard now filters by the specific species, not just the broad category — Ball Python gets Terrarium only; Red-eared Slider gets Tank + Aquarium</li>
+                    <li>Critter detail page label ("needs a terrarium") is generated live from the actual compatible type list, not a hardcoded string</li>
+                    <li>Fallback to species-type-level compatibility when species isn't in the catalog</li>
+                    <li>New endpoint: <code class="text-xs bg-slate-100 dark:bg-slate-800 px-1 rounded">GET /api/species/info?name=</code></li>
+                </ul>
+            </div>
+
+            <div>
+                <h3 class="font-semibold text-slate-900 dark:text-white mb-2">Cohabitation rules</h3>
+                <ul class="space-y-1 list-disc list-inside text-slate-600 dark:text-slate-400">
+                    <li>Every species in the catalog now has a social profile: Solo Only, Pairs OK, Groups OK, or Community</li>
+                    <li>Assigning a critter to a non-empty enclosure triggers a compatibility check before confirming</li>
+                    <li>Hard blocks (e.g. any critter into a Bearded Dragon's enclosure) prevent assignment entirely</li>
+                    <li>Soft warnings (e.g. different animal types) show an "Assign anyway" option</li>
+                    <li>New endpoint: <code class="text-xs bg-slate-100 dark:bg-slate-800 px-1 rounded">GET /api/enclosure/{"{id}"}/cohabitation?critterId=</code></li>
+                </ul>
+            </div>
+
+            <div>
+                <h3 class="font-semibold text-slate-900 dark:text-white mb-2">CritterCondition health scoring</h3>
+                <ul class="space-y-1 list-disc list-inside text-slate-600 dark:text-slate-400">
+                    <li>Health badges computed from feeding cadence, shedding history, and pending tasks: Thriving / Good / Fair / Needs Attention / Critical</li>
+                    <li>Badges visible on dashboard enclosure cards and critter detail pages</li>
+                </ul>
+            </div>
+
+            <div>
+                <h3 class="font-semibold text-slate-900 dark:text-white mb-2">Enclosure type fixes</h3>
+                <ul class="space-y-1 list-disc list-inside text-slate-600 dark:text-slate-400">
+                    <li>Removed Free-Roam Room from Bird and Reptile compatibility — it belongs to mammals only (ferrets, rabbits)</li>
+                    <li>Custom / Other enclosure type is now disabled in the creation wizard, shown as Coming Soon</li>
+                </ul>
+            </div>
+
+            <div>
+                <h3 class="font-semibold text-slate-900 dark:text-white mb-2">UI improvements</h3>
+                <ul class="space-y-1 list-disc list-inside text-slate-600 dark:text-slate-400">
+                    <li>Feeding form: date and quantity now share a row instead of each taking a full-width line</li>
+                    <li>New "How It Works" guide page explaining cohabitation rules, species compatibility, and health scoring — accessible via the <svg class="inline w-3.5 h-3.5 mb-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 16v-4M12 8h.01"/></svg> icon in the nav</li>
+                    <li>Enclosure type cards in the creation wizard now show substrate and size presets seeded to the type</li>
+                </ul>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- v1.1.0 -->
+    <div class="relative pl-6 border-l-2 border-green-200 dark:border-green-800 mb-12">
+        <div class="absolute -left-2.5 top-0 w-4 h-4 rounded-full bg-slate-300 dark:bg-slate-600 border-2 border-white dark:border-gray-950"></div>
+
+        <div class="mb-1 flex items-center gap-3">
             <span class="text-xs text-slate-400">April 2026</span>
         </div>
 
@@ -95,8 +225,8 @@
             <div>
                 <h3 class="font-semibold text-slate-900 dark:text-white mb-2">Feeding log</h3>
                 <ul class="space-y-1 list-disc list-inside text-slate-600 dark:text-slate-400">
-                    <li>Log feedings with prey type, size, quantity, and notes</li>
-                    <li>Track last feeding date per critter</li>
+                    <li>Log feedings with food item, item type, quantity, consumption status, and notes</li>
+                    <li>Track last feeding date per critter; full feeding history grouped by month</li>
                 </ul>
             </div>
 
@@ -105,7 +235,7 @@
                 <ul class="space-y-1 list-disc list-inside text-slate-600 dark:text-slate-400">
                     <li>Weight and length measurement history</li>
                     <li>Shedding records</li>
-                    <li>Health score tracking</li>
+                    <li>Behavior log</li>
                 </ul>
             </div>
 

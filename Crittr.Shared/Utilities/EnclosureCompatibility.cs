@@ -6,9 +6,9 @@ public static class EnclosureCompatibility
 {
     private static readonly Dictionary<SpeciesType, IReadOnlyList<EnclosureType>> SpeciesToEnclosure = new()
     {
-        [SpeciesType.Reptile]      = [EnclosureType.Terrarium, EnclosureType.Vivarium, EnclosureType.Tank, EnclosureType.Bin, EnclosureType.RackSystem, EnclosureType.FreeRoamRoom, EnclosureType.Other],
+        [SpeciesType.Reptile]      = [EnclosureType.Terrarium, EnclosureType.Vivarium, EnclosureType.Tank, EnclosureType.Bin, EnclosureType.RackSystem, EnclosureType.Other],
         [SpeciesType.Amphibian]    = [EnclosureType.Terrarium, EnclosureType.Vivarium, EnclosureType.Paludarium, EnclosureType.Aquarium, EnclosureType.Other],
-        [SpeciesType.Bird]         = [EnclosureType.Aviary, EnclosureType.Cage, EnclosureType.FreeRoamRoom, EnclosureType.Other],
+        [SpeciesType.Bird]         = [EnclosureType.Aviary, EnclosureType.Cage, EnclosureType.Other],
         [SpeciesType.Fish]         = [EnclosureType.Aquarium, EnclosureType.Paludarium, EnclosureType.Tank, EnclosureType.Other],
         [SpeciesType.Mammal]       = [EnclosureType.Cage, EnclosureType.FreeRoamRoom, EnclosureType.Bin, EnclosureType.Other],
         [SpeciesType.Invertebrate] = [EnclosureType.Terrarium, EnclosureType.Insectarium, EnclosureType.Bin, EnclosureType.Other],
@@ -26,7 +26,7 @@ public static class EnclosureCompatibility
         [EnclosureType.Cage]         = [SpeciesType.Bird, SpeciesType.Mammal],
         [EnclosureType.Bin]          = [SpeciesType.Reptile, SpeciesType.Mammal, SpeciesType.Invertebrate],
         [EnclosureType.RackSystem]   = [SpeciesType.Reptile],
-        [EnclosureType.FreeRoamRoom] = [SpeciesType.Mammal, SpeciesType.Bird],
+        [EnclosureType.FreeRoamRoom] = [SpeciesType.Mammal],
         [EnclosureType.Tank]         = [SpeciesType.Reptile, SpeciesType.Fish, SpeciesType.Invertebrate],
         [EnclosureType.Other]        = [.. Enum.GetValues<SpeciesType>()],
     };
@@ -40,17 +40,6 @@ public static class EnclosureCompatibility
         [SpeciesType.Mammal]       = EnclosureType.Cage,
         [SpeciesType.Invertebrate] = EnclosureType.Insectarium,
         [SpeciesType.Unknown]      = EnclosureType.Terrarium,
-    };
-
-    private static readonly Dictionary<SpeciesType, string> RequirementLabels = new()
-    {
-        [SpeciesType.Reptile]      = "a glass terrarium",
-        [SpeciesType.Amphibian]    = "a tropical vivarium",
-        [SpeciesType.Bird]         = "an aviary or cage",
-        [SpeciesType.Fish]         = "an aquarium or tank",
-        [SpeciesType.Mammal]       = "a habitat cage",
-        [SpeciesType.Invertebrate] = "an insectarium",
-        [SpeciesType.Unknown]      = "an enclosure",
     };
 
     public static bool IsCompatible(SpeciesType species, EnclosureType enclosure)
@@ -69,7 +58,23 @@ public static class EnclosureCompatibility
         => IdealEnclosure.TryGetValue(species, out var t) ? t : EnclosureType.Other;
 
     public static string GetEnclosureRequirementLabel(SpeciesType species)
-        => RequirementLabels.TryGetValue(species, out var label) ? label : "an enclosure";
+        => FormatEnclosureList(GetCompatibleEnclosureTypes(species));
+
+    public static string GetEnclosureRequirementLabel(IEnumerable<EnclosureType> compatibleTypes)
+        => FormatEnclosureList(compatibleTypes);
+
+    private static string FormatEnclosureList(IEnumerable<EnclosureType> types)
+    {
+        var names = types
+            .Where(t => t != EnclosureType.Other)
+            .Select(t => FormatEnclosureType(t).ToLower())
+            .ToList();
+        if (names.Count == 0) return "an enclosure";
+        var article = "aeiou".Contains(names[0][0]) ? "an" : "a";
+        if (names.Count == 1) return $"{article} {names[0]}";
+        if (names.Count == 2) return $"{article} {names[0]} or {names[1]}";
+        return $"{article} {string.Join(", ", names[..^1])}, or {names[^1]}";
+    }
 
     public static string FormatEnclosureType(EnclosureType t) => t switch
     {

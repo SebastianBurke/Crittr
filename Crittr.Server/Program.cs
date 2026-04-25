@@ -42,6 +42,7 @@ builder.Services.AddScoped<ICritterService, CritterService>();
 builder.Services.AddScoped<DataSeeder>();
 builder.Services.AddScoped<IEnclosureService, EnclosureService>();
 builder.Services.AddSingleton<SpeciesCatalogService>();
+builder.Services.AddScoped<EnclosureCohabitationService>();
 
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
