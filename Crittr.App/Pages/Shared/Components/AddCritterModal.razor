@@ -298,6 +298,7 @@
     private bool showSuggestions;
     private bool isSubmitting;
     private string? errorMessage;
+    private bool _cohabWarningShown;
     private CritterDto newCritter = new();
     private List<EnclosureProfileDto> availableEnclosures = new();
     private int selectedEnclosureId;
@@ -426,8 +427,56 @@
     {
         if (string.IsNullOrWhiteSpace(newCritter.Name)) { errorMessage = "Name is required."; return; }
 
+        // When adding directly into an enclosure, validate before creating
+        if (EnclosureId > 0 && EnclosureTypeFilter.HasValue)
+        {
+            // 1. Enclosure type compatibility — use per-species data if available
+            var compatibleTypes = selectedSpecies?.CompatibleEnclosureTypes;
+            bool typeOk = compatibleTypes is { Count: > 0 }
+                ? compatibleTypes.Contains(EnclosureTypeFilter.Value)
+                : EnclosureCompatibility.IsCompatible(newCritter.SpeciesType, EnclosureTypeFilter.Value);
+
+            if (!typeOk)
+            {
+                errorMessage = $"{newCritter.Species} can't live in a {EnclosureCompatibility.FormatEnclosureType(EnclosureTypeFilter.Value)}.";
+                return;
+            }
+
+            // 2. Cohabitation check against existing residents
+            var residents = await CritterService.GetCrittersByEnclosureIdAsync(EnclosureId);
+            if (residents.Count > 0)
+            {
+                var incoming = new CritterDto
+                {
+                    Id = 0, Name = newCritter.Name,
+                    Species = newCritter.Species, SpeciesType = newCritter.SpeciesType, Sex = newCritter.Sex
+                };
+                var cohab = CohabitationCatalog.CheckLocal(incoming, residents);
+                if (!cohab.CanCohabit)
+                {
+                    var reason = cohab.Conflicts.FirstOrDefault()?.Reason ?? "Cohabitation conflict.";
+                    errorMessage = $"Can't add {newCritter.Name} here: {reason}";
+                    return;
+                }
+                if (cohab.HasWarnings)
+                {
+                    var reason = cohab.Conflicts.FirstOrDefault()?.Reason ?? "Compatibility concern.";
+                    errorMessage = $"Warning: {reason} Tap Add again to proceed anyway.";
+                    // Allow a second tap to override warnings
+                    if (_cohabWarningShown)
+                        _cohabWarningShown = false; // let it fall through on second tap
+                    else
+                    {
+                        _cohabWarningShown = true;
+                        return;
+                    }
+                }
+            }
+        }
+
         isSubmitting = true;
         errorMessage = null;
+        _cohabWarningShown = false;
         try
         {
             newCritter.DateAcquired = dateAcquiredInput ?? DateTime.Today;
@@ -492,5 +541,6 @@
         errorMessage = null;
         selectedEnclosureId = 0;
         dateAcquiredInput = null;
+        _cohabWarningShown = false;
     }
 }
