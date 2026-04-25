@@ -96,6 +96,12 @@ public class CritterService
         return await response.Content.ReadFromJsonAsync<CritterDto>();
     }
 
+    public async Task<bool> DeleteCritterAsync(int critterId)
+    {
+        var response = await _http.DeleteAsync($"api/critter/{critterId}");
+        return response.IsSuccessStatusCode;
+    }
+
     public async Task<bool> AssignEnclosureAsync(int critterId, int? enclosureId)
     {
         var response = await _http.PatchAsJsonAsync(
