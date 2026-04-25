@@ -118,6 +118,8 @@ public class CritterController : ControllerBase
         var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         if (userId == null) return Unauthorized();
 
+        // `force` only overrides the species/enclosure-type recommendation (advisory). Cohabitation safety
+        // (predator/prey, gender, social) is enforced unconditionally below.
         if (!force && dto.EnclosureProfileId.HasValue)
         {
             var enclosure = await _db.EnclosureProfiles.FindAsync(dto.EnclosureProfileId.Value);
@@ -146,7 +148,7 @@ public class CritterController : ControllerBase
         await using var tx = await _db.Database.BeginTransactionAsync();
         var created = await _critterService.CreateAsync(critter);
 
-        if (!force && dto.EnclosureProfileId.HasValue)
+        if (dto.EnclosureProfileId.HasValue)
         {
             var cohabResult = await _cohabitation.CheckAsync(created.Id, dto.EnclosureProfileId.Value, userId);
             if (!cohabResult.CanCohabit)
@@ -198,6 +200,7 @@ public class CritterController : ControllerBase
             if (!await OwnsEnclosureAsync(request.EnclosureId.Value))
                 return Forbid();
 
+            // `force` only overrides the species/enclosure-type recommendation. Cohabitation is non-negotiable.
             if (!force)
             {
                 var enclosure = await _db.EnclosureProfiles.FindAsync(request.EnclosureId.Value);
@@ -207,11 +210,11 @@ public class CritterController : ControllerBase
                     var actual = EnclosureCompatibility.FormatEnclosureType(enclosure.EnclosureType);
                     return UnprocessableEntity(new { error = "incompatible", message = $"A {existing.SpeciesType} is not suited for a {actual}. Consider {EnclosureCompatibility.GetEnclosureRequirementLabel(existing.SpeciesType)} (e.g. a {ideal}). Use ?force=true to override." });
                 }
-
-                var cohabResult = await _cohabitation.CheckAsync(id, request.EnclosureId.Value, userId!);
-                if (!cohabResult.CanCohabit)
-                    return UnprocessableEntity(new { error = "cohab_blocked", conflicts = cohabResult.Conflicts });
             }
+
+            var cohabResult = await _cohabitation.CheckAsync(id, request.EnclosureId.Value, userId!);
+            if (!cohabResult.CanCohabit)
+                return UnprocessableEntity(new { error = "cohab_blocked", conflicts = cohabResult.Conflicts });
         }
 
         existing.EnclosureProfileId = request.EnclosureId;
