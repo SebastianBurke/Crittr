@@ -17,14 +17,15 @@ public class EnclosureService : IEnclosureService
         _db = db;
     }
 
-    public async Task<List<EnclosureProfile>> GetAllAsync()
-    {
-        return await _db.EnclosureProfiles.ToListAsync();
-    }
-
     public async Task<EnclosureProfile?> GetByIdAsync(int id)
     {
         return await _db.EnclosureProfiles.FindAsync(id);
+    }
+
+    public async Task<EnclosureProfile?> GetByIdAsync(int id, string ownerId)
+    {
+        return await _db.EnclosureProfiles
+            .FirstOrDefaultAsync(e => e.Id == id && e.OwnerId == ownerId);
     }
 
     public async Task<EnclosureProfileDto?> GetDtoByIdAsync(int id)
@@ -33,10 +34,28 @@ public class EnclosureService : IEnclosureService
         return enclosure == null ? null : MapToDto(enclosure);
     }
 
+    public async Task<EnclosureProfileDto?> GetDtoByIdAsync(int id, string ownerId)
+    {
+        var enclosure = await GetByIdAsync(id, ownerId);
+        return enclosure == null ? null : MapToDto(enclosure);
+    }
+
     public async Task<List<EnclosureProfileDto>> GetAllDtosByUserIdAsync(string userId)
     {
+        return await GetAllDtosByUserIdAsync(userId, 100, 0);
+    }
+
+    public async Task<List<EnclosureProfileDto>> GetAllDtosByUserIdAsync(string userId, int take, int skip)
+    {
+        if (take < 1) take = 1;
+        if (take > 200) take = 200;
+        if (skip < 0) skip = 0;
+
         return await _db.EnclosureProfiles
             .Where(e => e.OwnerId == userId)
+            .OrderBy(e => e.Id)
+            .Skip(skip)
+            .Take(take)
             .Select(e => new EnclosureProfileDto
             {
                 Id = e.Id,
@@ -60,19 +79,10 @@ public class EnclosureService : IEnclosureService
         return enclosure;
     }
 
-    public async Task<bool> UpdateAsync(EnclosureProfile enclosure)
+    public async Task<bool> DeleteAsync(int id, string ownerId)
     {
-        var existing = await _db.EnclosureProfiles.FindAsync(enclosure.Id);
-        if (existing == null) return false;
-
-        _db.Entry(existing).CurrentValues.SetValues(enclosure);
-        await _db.SaveChangesAsync();
-        return true;
-    }
-
-    public async Task<bool> DeleteAsync(int id)
-    {
-        var enclosure = await _db.EnclosureProfiles.FindAsync(id);
+        var enclosure = await _db.EnclosureProfiles
+            .FirstOrDefaultAsync(e => e.Id == id && e.OwnerId == ownerId);
         if (enclosure == null) return false;
 
         _db.EnclosureProfiles.Remove(enclosure);
@@ -96,25 +106,6 @@ public class EnclosureService : IEnclosureService
             IdealTemperature = e.IdealTemperature,
             IdealHumidity = e.IdealHumidity
         };
-    }
-    
-    public async Task<List<EnclosureProfileDto>> GetAllDtosAsync()
-    {
-        return await _db.EnclosureProfiles
-            .Select(e => new EnclosureProfileDto
-            {
-                Id = e.Id,
-                Name = e.Name,
-                EnclosureType = e.EnclosureType,
-                SubstrateType = e.SubstrateType,
-                Length = e.Length,
-                Width = e.Width,
-                Height = e.Height,
-                HasUVBLighting = e.HasUVBLighting,
-                HasHeatingElement = e.HasHeatingElement,
-                IdealTemperature = e.IdealTemperature,
-                IdealHumidity = e.IdealHumidity
-            }).ToListAsync();
     }
 
     public async Task<bool> AssignToCritterAsync(int critterId, int enclosureId)

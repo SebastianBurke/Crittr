@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace Crittr.Shared.Models;
 
 public class HealthScore
@@ -6,7 +8,10 @@ public class HealthScore
     public int CritterId { get; set; }
     public Critter? Critter { get; set; }
     public DateTime AssessmentDate { get; set; }
-    public int Score { get; set; } // Scale of 1-10
+    [Range(0, 100)]
+    public int Score { get; set; }
+    [StringLength(2000)]
     public string Notes { get; set; } = string.Empty;
+    [StringLength(120)]
     public string? AssessedBy { get; set; }
 }

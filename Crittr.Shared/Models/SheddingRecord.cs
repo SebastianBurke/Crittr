@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace Crittr.Shared.Models;
 
 public class SheddingRecord
@@ -9,5 +11,6 @@ public class SheddingRecord
     public DateTime? CompletionDate { get; set; }
     public bool IsComplete { get; set; }
     public bool WasAssisted { get; set; }
+    [StringLength(2000)]
     public string? Notes { get; set; }
 }

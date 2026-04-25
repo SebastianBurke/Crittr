@@ -44,15 +44,34 @@ public class FeedingController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<List<FeedingRecordDto>>> GetAll()
+    public async Task<ActionResult<List<FeedingRecordDto>>> GetAll([FromQuery] int take = 100, [FromQuery] int skip = 0)
     {
         var uid = CurrentUserId;
         if (uid is null) return Unauthorized();
 
-        var myCritterIds = await _db.Critters.Where(c => c.UserId == uid).Select(c => c.Id).ToListAsync();
-        var records = await _feedingService.GetAllAsync();
-        var filtered = records.Where(f => myCritterIds.Contains(f.CritterId)).ToList();
-        return filtered.Select(MapToDto).ToList();
+        take = Math.Clamp(take, 1, 200);
+        skip = Math.Max(0, skip);
+
+        return await _db.FeedingRecords
+            .Include(f => f.Critter)
+            .Where(f => f.Critter!.UserId == uid)
+            .OrderByDescending(f => f.FeedingDate)
+            .Skip(skip)
+            .Take(take)
+            .Select(f => new FeedingRecordDto
+            {
+                Id = f.Id,
+                CritterId = f.CritterId,
+                CritterName = f.Critter!.Name,
+                FeedingDate = f.FeedingDate,
+                FoodItem = f.FoodItem,
+                Quantity = f.Quantity,
+                ItemType = f.ItemType,
+                FeedingUnit = f.FeedingUnit,
+                WasEaten = f.WasEaten,
+                Notes = f.Notes
+            })
+            .ToListAsync();
     }
 
     [HttpGet("critter/{critterId}")]

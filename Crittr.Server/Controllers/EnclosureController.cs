@@ -1,6 +1,9 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Crittr.Server.Data;
 using Crittr.Server.Services;
 using Crittr.Server.Services.Interfaces;
 using Crittr.Shared.DTOs;
@@ -16,43 +19,64 @@ public class EnclosureController : ControllerBase
 {
     private readonly IEnclosureService _enclosureService;
     private readonly EnclosureCohabitationService _cohabitation;
+    private readonly ApplicationDbContext _db;
 
-    public EnclosureController(IEnclosureService enclosureService, EnclosureCohabitationService cohabitation)
+    public EnclosureController(IEnclosureService enclosureService, EnclosureCohabitationService cohabitation, ApplicationDbContext db)
     {
         _enclosureService = enclosureService;
         _cohabitation = cohabitation;
+        _db = db;
+    }
+
+    private string? CurrentUserId => User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+    private async Task<bool> OwnsEnclosureAsync(int enclosureId)
+    {
+        var uid = CurrentUserId;
+        if (uid is null) return false;
+        return await _db.EnclosureProfiles.AnyAsync(e => e.Id == enclosureId && e.OwnerId == uid);
     }
 
     [HttpGet("{enclosureId}/cohabitation")]
     public async Task<ActionResult<CohabitationCheckResultDto>> CheckCohabitation(
         int enclosureId, [FromQuery] int critterId)
     {
-        var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        var userId = CurrentUserId;
         if (userId == null) return Unauthorized();
+        if (!await OwnsEnclosureAsync(enclosureId)) return Forbid();
         return await _cohabitation.CheckAsync(critterId, enclosureId, userId);
     }
 
     [HttpGet]
-    public async Task<ActionResult<List<EnclosureProfile>>> GetAll()
+    public async Task<ActionResult<List<EnclosureProfileDto>>> GetAll([FromQuery] int take = 100, [FromQuery] int skip = 0)
     {
-        return await _enclosureService.GetAllAsync();
+        var userId = CurrentUserId;
+        if (userId == null) return Unauthorized();
+
+        return await _enclosureService.GetAllDtosByUserIdAsync(userId, take, skip);
     }
 
     [HttpGet("dto")]
-    public async Task<ActionResult<List<EnclosureProfileDto>>> GetAllDtos()
+    public async Task<ActionResult<List<EnclosureProfileDto>>> GetAllDtos([FromQuery] int take = 100, [FromQuery] int skip = 0)
     {
-        var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        var userId = CurrentUserId;
         if (userId == null) return Unauthorized();
 
-        return await _enclosureService.GetAllDtosByUserIdAsync(userId);
+        return await _enclosureService.GetAllDtosByUserIdAsync(userId, take, skip);
     }
 
     [HttpGet("{id}")]
     public async Task<ActionResult<EnclosureProfile>> GetById(int id)
     {
+        var userId = CurrentUserId;
+        if (userId == null) return Unauthorized();
+
         var enclosure = await _enclosureService.GetByIdAsync(id);
         if (enclosure == null)
             return NotFound();
+
+        if (enclosure.OwnerId != userId)
+            return Forbid();
 
         return enclosure;
     }
@@ -60,24 +84,23 @@ public class EnclosureController : ControllerBase
     [HttpGet("dto/{id}")]
     public async Task<ActionResult<EnclosureProfileDto>> GetDtoById(int id)
     {
-        var dto = await _enclosureService.GetDtoByIdAsync(id);
+        var userId = CurrentUserId;
+        if (userId == null) return Unauthorized();
+
+        var dto = await _enclosureService.GetDtoByIdAsync(id, userId);
         if (dto == null)
-            return NotFound();
+        {
+            var exists = await _db.EnclosureProfiles.AnyAsync(e => e.Id == id);
+            return exists ? Forbid() : NotFound();
+        }
 
         return dto;
-    }
-
-    [HttpPost]
-    public async Task<ActionResult<EnclosureProfile>> Create(EnclosureProfile enclosure)
-    {
-        var created = await _enclosureService.CreateAsync(enclosure);
-        return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
     }
 
     [HttpPost("dto")]
     public async Task<ActionResult<EnclosureProfileDto>> CreateFromDto([FromBody] EnclosureProfileDto dto)
     {
-        var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        var userId = CurrentUserId;
         if (userId == null) return Unauthorized();
 
         var model = new EnclosureProfile
@@ -99,25 +122,18 @@ public class EnclosureController : ControllerBase
         return CreatedAtAction(nameof(GetDtoById), new { id = created.Id }, EnclosureService.MapToDto(created));
     }
 
-    [HttpPut("{id}")]
-    public async Task<IActionResult> Update(int id, EnclosureProfile enclosure)
-    {
-        if (id != enclosure.Id)
-            return BadRequest();
-
-        var success = await _enclosureService.UpdateAsync(enclosure);
-        if (!success)
-            return NotFound();
-
-        return NoContent();
-    }
-
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id)
     {
-        var success = await _enclosureService.DeleteAsync(id);
+        var userId = CurrentUserId;
+        if (userId == null) return Unauthorized();
+
+        var success = await _enclosureService.DeleteAsync(id, userId);
         if (!success)
-            return NotFound();
+        {
+            var exists = await _db.EnclosureProfiles.AnyAsync(e => e.Id == id);
+            return exists ? Forbid() : NotFound();
+        }
 
         return NoContent();
     }
@@ -125,7 +141,7 @@ public class EnclosureController : ControllerBase
     [HttpGet("dto/compatible")]
     public async Task<ActionResult<List<EnclosureProfileDto>>> GetCompatible([FromQuery] SpeciesType speciesType)
     {
-        var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        var userId = CurrentUserId;
         if (userId == null) return Unauthorized();
 
         return await _enclosureService.GetCompatibleByUserIdAsync(userId, speciesType);
@@ -136,11 +152,15 @@ public class EnclosureController : ControllerBase
     {
         if (id != dto.Id) return BadRequest();
 
-        var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        var userId = CurrentUserId;
         if (userId == null) return Unauthorized();
 
         var success = await _enclosureService.UpdateFromDtoAsync(dto, userId);
-        if (!success) return NotFound();
+        if (!success)
+        {
+            var exists = await _db.EnclosureProfiles.AnyAsync(e => e.Id == id);
+            return exists ? Forbid() : NotFound();
+        }
 
         return NoContent();
     }

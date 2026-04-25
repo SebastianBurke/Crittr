@@ -1,10 +1,11 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
     <PropertyGroup>
         <TargetFramework>net8.0</TargetFramework>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
-    </PropertyGroup>
+      <UserSecretsId>f34c1283-4229-4d13-a518-28324d3b9ec2</UserSecretsId>
+  </PropertyGroup>
 
     <ItemGroup>
         <PackageReference Include="Blazored.LocalStorage" Version="4.5.0" />

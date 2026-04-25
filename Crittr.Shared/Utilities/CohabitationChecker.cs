@@ -33,12 +33,14 @@ public static class CohabitationChecker
         var ip = incoming.CohabProfile;
         var rp = resident.CohabProfile;
 
+        // A species in the catalog without a CohabProfile is a data gap, not a "compatible" signal.
+        // We BLOCK rather than warn so a typo or oversight cannot silently bypass cohabitation rules.
         if (ip is null)
-            return Warn(residentPetName, resident.CommonName,
-                $"Cohabitation profile for {incoming.CommonName} is missing — verify compatibility manually.");
+            return Block(residentPetName, resident.CommonName,
+                $"Cohabitation profile for {incoming.CommonName} is missing — cannot verify compatibility.");
         if (rp is null)
-            return Warn(residentPetName, resident.CommonName,
-                $"Cohabitation profile for {resident.CommonName} is missing — verify compatibility manually.");
+            return Block(residentPetName, resident.CommonName,
+                $"Cohabitation profile for {resident.CommonName} is missing — cannot verify compatibility.");
 
         // Hard block: incoming must live alone
         if (ip.SocialNeeds == SocialStructure.SoloOnly)

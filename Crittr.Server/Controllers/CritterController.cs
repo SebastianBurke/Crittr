@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Crittr.Server.Data;
+using Crittr.Server.Services;
 using Crittr.Server.Services.Interfaces;
 using Crittr.Shared.DTOs;
 using Crittr.Shared.Models;
@@ -18,11 +19,13 @@ public class CritterController : ControllerBase
 {
     private readonly ICritterService _critterService;
     private readonly ApplicationDbContext _db;
+    private readonly EnclosureCohabitationService _cohabitation;
 
-    public CritterController(ICritterService critterService, ApplicationDbContext db)
+    public CritterController(ICritterService critterService, ApplicationDbContext db, EnclosureCohabitationService cohabitation)
     {
         _critterService = critterService;
         _db = db;
+        _cohabitation = cohabitation;
     }
 
     private string? CurrentUserId => User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -140,7 +143,20 @@ public class CritterController : ControllerBase
             UserId = userId
         };
 
+        await using var tx = await _db.Database.BeginTransactionAsync();
         var created = await _critterService.CreateAsync(critter);
+
+        if (!force && dto.EnclosureProfileId.HasValue)
+        {
+            var cohabResult = await _cohabitation.CheckAsync(created.Id, dto.EnclosureProfileId.Value, userId);
+            if (!cohabResult.CanCohabit)
+            {
+                await tx.RollbackAsync();
+                return UnprocessableEntity(new { error = "cohab_blocked", conflicts = cohabResult.Conflicts });
+            }
+        }
+
+        await tx.CommitAsync();
         var dtoResult = await _critterService.GetDtoByIdAsync(created.Id);
 
         return CreatedAtAction(nameof(GetDtoById), new { id = created.Id }, dtoResult);
@@ -174,7 +190,8 @@ public class CritterController : ControllerBase
     {
         var existing = await _critterService.GetByIdAsync(id);
         if (existing is null) return NotFound();
-        if (existing.UserId != CurrentUserId) return Forbid();
+        var userId = CurrentUserId;
+        if (existing.UserId != userId) return Forbid();
 
         if (request.EnclosureId.HasValue)
         {
@@ -190,6 +207,10 @@ public class CritterController : ControllerBase
                     var actual = EnclosureCompatibility.FormatEnclosureType(enclosure.EnclosureType);
                     return UnprocessableEntity(new { error = "incompatible", message = $"A {existing.SpeciesType} is not suited for a {actual}. Consider {EnclosureCompatibility.GetEnclosureRequirementLabel(existing.SpeciesType)} (e.g. a {ideal}). Use ?force=true to override." });
                 }
+
+                var cohabResult = await _cohabitation.CheckAsync(id, request.EnclosureId.Value, userId!);
+                if (!cohabResult.CanCohabit)
+                    return UnprocessableEntity(new { error = "cohab_blocked", conflicts = cohabResult.Conflicts });
             }
         }
 

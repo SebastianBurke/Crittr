@@ -12,3 +12,4 @@ obj/
 .env
 node_modules/
 Crittr.Client/wwwroot/appsettings.json
+Crittr.Client/wwwroot/appsettings.Production.json

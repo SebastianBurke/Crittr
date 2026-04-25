@@ -114,6 +114,30 @@ public class ScheduledTaskService : IScheduledTaskService
         return tasks.Select(CreateDtoFromTask).ToList();
     }
 
+    public async Task<List<ScheduledTaskDto>> GetUpcomingTasksByUserAsync(string userId, int days)
+    {
+        var threshold = DateTime.UtcNow.AddDays(days);
+        var tasks = await _db.ScheduledTasks
+            .Include(t => t.Critter)
+            .Where(t => t.Critter!.UserId == userId && !t.IsCompleted && t.DueDate <= threshold)
+            .OrderBy(t => t.DueDate)
+            .ToListAsync();
+
+        return tasks.Select(CreateDtoFromTask).ToList();
+    }
+
+    public async Task<List<ScheduledTaskDto>> GetOverdueTasksByUserAsync(string userId)
+    {
+        var now = DateTime.UtcNow;
+        var tasks = await _db.ScheduledTasks
+            .Include(t => t.Critter)
+            .Where(t => t.Critter!.UserId == userId && !t.IsCompleted && t.DueDate < now)
+            .OrderBy(t => t.DueDate)
+            .ToListAsync();
+
+        return tasks.Select(CreateDtoFromTask).ToList();
+    }
+
     public async Task<int> GetPendingTasksCountAsync(int critterId)
     {
         return await _db.ScheduledTasks

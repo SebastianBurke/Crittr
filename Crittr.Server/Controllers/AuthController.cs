@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
 using Crittr.Server.Models;
 using System.IdentityModel.Tokens.Jwt;
@@ -23,6 +24,7 @@ public class AuthController : ControllerBase
         _config = config;
     }
 
+    [EnableRateLimiting("register")]
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] RegisterDto dto)
     {
@@ -35,13 +37,16 @@ public class AuthController : ControllerBase
         return Ok();
     }
 
+    [EnableRateLimiting("login")]
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginDto dto)
     {
         var user = await _userManager.FindByEmailAsync(dto.Email);
         if (user == null) return Unauthorized("Invalid email or password.");
 
-        var result = await _signInManager.CheckPasswordSignInAsync(user, dto.Password, false);
+        // lockoutOnFailure: true engages Identity's lockout policy configured in Program.cs.
+        var result = await _signInManager.CheckPasswordSignInAsync(user, dto.Password, lockoutOnFailure: true);
+        if (result.IsLockedOut) return StatusCode(StatusCodes.Status423Locked, "Account locked. Try again later.");
         if (!result.Succeeded) return Unauthorized("Invalid email or password.");
 
         var token = GenerateJwtToken(user);
@@ -63,7 +68,7 @@ public class AuthController : ControllerBase
             issuer: _config["Jwt:Issuer"],
             audience: _config["Jwt:Audience"],
             claims: claims,
-            expires: DateTime.UtcNow.AddDays(7),
+            expires: DateTime.UtcNow.AddHours(1),
             signingCredentials: creds);
 
         return new JwtSecurityTokenHandler().WriteToken(token);

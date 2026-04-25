@@ -16,5 +16,7 @@ public interface IScheduledTaskService
     Task<bool> CompleteTaskAsync(int id);
     Task<List<ScheduledTaskDto>> GetUpcomingTasksAsync(int days);
     Task<List<ScheduledTaskDto>> GetOverdueTasksAsync();
+    Task<List<ScheduledTaskDto>> GetUpcomingTasksByUserAsync(string userId, int days);
+    Task<List<ScheduledTaskDto>> GetOverdueTasksByUserAsync(string userId);
     Task<int> GetPendingTasksCountAsync(int critterId);
 }
