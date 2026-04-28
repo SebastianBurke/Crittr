@@ -1,9 +1,9 @@
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Crittr.Server.Models;
 using Crittr.Shared.Models;
 using Crittr.Shared.Models.Enums;
 using static Crittr.Shared.Models.Enums.ItemType;
-using static Crittr.Shared.Models.Enums.TaskPriority;
 
 namespace Crittr.Server.Data;
 
@@ -20,358 +20,382 @@ public class DataSeeder
 
     public async Task SeedAsync(string userIdFromArgs)
     {
-        if (_dbContext.Critters.Any()) return;
+        if (_dbContext.Critters.Any(c => c.UserId == userIdFromArgs)) return;
 
         var user = await _userManager.FindByIdAsync(userIdFromArgs);
         if (user == null)
             throw new InvalidOperationException("Demo user was not found; cannot seed sample data.");
 
-        // One enclosure of every type
+        await SeedLineupAsync(user.Id);
+    }
+
+    /// <summary>
+    /// Wipes the demo user's enclosures, critters, and all critter-child records, then re-seeds the lineup.
+    /// Critter children (feedings, environmental, behavior, shedding, measurement, scheduled tasks, health scores)
+    /// cascade on critter deletion (configured in <see cref="ApplicationDbContext"/>); EnclosureProfile -> Critter
+    /// is SetNull, so critters must be deleted before enclosures.
+    /// </summary>
+    public async Task ResetAsync(string userId)
+    {
+        var critterIds = await _dbContext.Critters
+            .Where(c => c.UserId == userId)
+            .Select(c => c.Id)
+            .ToListAsync();
+
+        if (critterIds.Count > 0)
+        {
+            // CaregiverAccess is keyed off enclosure, not critter — handled with enclosure delete below.
+            _dbContext.Critters.RemoveRange(_dbContext.Critters.Where(c => critterIds.Contains(c.Id)));
+        }
+
+        _dbContext.EnclosureProfiles.RemoveRange(
+            _dbContext.EnclosureProfiles.Where(e => e.OwnerId == userId));
+
+        await _dbContext.SaveChangesAsync();
+
+        await SeedLineupAsync(userId);
+    }
+
+    private async Task SeedLineupAsync(string ownerId)
+    {
+        // ----------------- Enclosures (one per active EnclosureType) -----------------
         var terrarium = new EnclosureProfile
         {
-            Name = "Sandy Desert Terrarium",
+            Name = "Royal Standoff",
             EnclosureType = EnclosureType.Terrarium,
             Length = 48, Width = 24, Height = 24,
-            SubstrateType = "Sand/clay mix",
-            HasUVBLighting = true, HasHeatingElement = true,
-            OwnerId = user.Id
+            SubstrateType = "Cypress mulch",
+            HasUVBLighting = false, HasHeatingElement = true,
+            OwnerId = ownerId
         };
         var aquarium = new EnclosureProfile
         {
-            Name = "Planted Aquarium",
+            Name = "Predator's Tank",
             EnclosureType = EnclosureType.Aquarium,
-            Length = 36, Width = 18, Height = 18,
+            Length = 48, Width = 18, Height = 20,
             SubstrateType = "Fine gravel",
-            HasUVBLighting = false, HasHeatingElement = false,
-            OwnerId = user.Id
+            HasUVBLighting = false, HasHeatingElement = true,
+            OwnerId = ownerId
         };
         var paludarium = new EnclosureProfile
         {
-            Name = "Tropical Paludarium",
+            Name = "Tropical Trio",
             EnclosureType = EnclosureType.Paludarium,
             Length = 36, Width = 18, Height = 36,
-            SubstrateType = "ABG mix",
+            SubstrateType = "ABG mix + sphagnum",
             HasUVBLighting = true, HasHeatingElement = true,
-            OwnerId = user.Id
+            OwnerId = ownerId
         };
         var vivarium = new EnclosureProfile
         {
-            Name = "Bioactive Vivarium",
+            Name = "Dart Frog Colony",
             EnclosureType = EnclosureType.Vivarium,
-            Length = 24, Width = 18, Height = 36,
-            SubstrateType = "Coconut fiber",
-            HasUVBLighting = true, HasHeatingElement = true,
-            OwnerId = user.Id
+            Length = 36, Width = 18, Height = 24,
+            SubstrateType = "ABG mix",
+            HasUVBLighting = true, HasHeatingElement = false,
+            OwnerId = ownerId
         };
         var insectarium = new EnclosureProfile
         {
-            Name = "Tarantula Insectarium",
+            Name = "Tarantula Lair",
             EnclosureType = EnclosureType.Insectarium,
             Length = 12, Width = 12, Height = 18,
             SubstrateType = "Coco peat",
             HasUVBLighting = false, HasHeatingElement = false,
-            OwnerId = user.Id
+            OwnerId = ownerId
         };
         var aviary = new EnclosureProfile
         {
-            Name = "Bird Aviary",
+            Name = "Budgie Flock",
             EnclosureType = EnclosureType.Aviary,
-            Length = 36, Width = 24, Height = 48,
+            Length = 48, Width = 30, Height = 60,
             SubstrateType = "Bird-safe paper liner",
-            HasUVBLighting = false, HasHeatingElement = false,
-            OwnerId = user.Id
+            HasUVBLighting = true, HasHeatingElement = false,
+            OwnerId = ownerId
         };
         var cage = new EnclosureProfile
         {
-            Name = "Rat Cage",
+            Name = "Rat Pack",
             EnclosureType = EnclosureType.Cage,
-            Length = 24, Width = 16, Height = 24,
+            Length = 32, Width = 21, Height = 36,
             SubstrateType = "Fleece / Carefresh",
             HasUVBLighting = false, HasHeatingElement = false,
-            OwnerId = user.Id
+            OwnerId = ownerId
         };
         var bin = new EnclosureProfile
         {
-            Name = "Corn Snake Bin",
+            Name = "Quarantine Bin",
             EnclosureType = EnclosureType.Bin,
             Length = 36, Width = 18, Height = 12,
             SubstrateType = "Paper towel",
             HasUVBLighting = false, HasHeatingElement = true,
-            OwnerId = user.Id
+            OwnerId = ownerId
         };
         var rackSystem = new EnclosureProfile
         {
-            Name = "Ball Python Rack",
+            Name = "Python Rack #4",
             EnclosureType = EnclosureType.RackSystem,
             Length = 36, Width = 18, Height = 6,
-            SubstrateType = "Paper towel",
+            SubstrateType = "Aspen shavings",
             HasUVBLighting = false, HasHeatingElement = true,
-            OwnerId = user.Id
+            OwnerId = ownerId
         };
         var freeRoam = new EnclosureProfile
         {
-            Name = "Rabbit Free-Roam Room",
+            Name = "Bunny Lounge",
             EnclosureType = EnclosureType.FreeRoamRoom,
             Length = 12, Width = 10, Height = 8,
             SubstrateType = null,
             HasUVBLighting = false, HasHeatingElement = false,
-            OwnerId = user.Id
+            OwnerId = ownerId
         };
         var tank = new EnclosureProfile
         {
-            Name = "Goldfish Tank",
+            Name = "Goldfish Pond",
             EnclosureType = EnclosureType.Tank,
-            Length = 24, Width = 12, Height = 16,
-            SubstrateType = "Gravel",
+            Length = 30, Width = 14, Height = 18,
+            SubstrateType = "Smooth pebbles",
             HasUVBLighting = false, HasHeatingElement = false,
-            OwnerId = user.Id
-        };
-        var other = new EnclosureProfile
-        {
-            Name = "Axolotl Custom Build",
-            EnclosureType = EnclosureType.Other,
-            Length = 36, Width = 18, Height = 18,
-            SubstrateType = "Fine sand",
-            HasUVBLighting = false, HasHeatingElement = false,
-            OwnerId = user.Id
+            OwnerId = ownerId
         };
 
         _dbContext.EnclosureProfiles.AddRange(
             terrarium, aquarium, paludarium, vivarium,
             insectarium, aviary, cage, bin,
-            rackSystem, freeRoam, tank, other);
+            rackSystem, freeRoam, tank);
         await _dbContext.SaveChangesAsync();
 
-        // One critter per enclosure, species matched to type
-        var beardie = new Critter
-        {
-            Name = "Draco",
-            Species = "Bearded Dragon",
-            IconUrl = "img/critters/default.svg",
-            SpeciesType = SpeciesType.Reptile,
-            DateAcquired = new DateTime(2024, 3, 10),
-            DateOfBirth = new DateTime(2023, 9, 1),
-            Sex = "Male",
-            Weight = 380,
-            Length = 42,
-            Description = "Friendly beardie, loves basking",
-            EnclosureProfileId = terrarium.Id,
-            UserId = user.Id
-        };
-        var betta = new Critter
-        {
-            Name = "Blaze",
-            Species = "Betta Fish",
-            IconUrl = "img/critters/betta-splendens.svg",
-            SpeciesType = SpeciesType.Fish,
-            DateAcquired = new DateTime(2025, 1, 5),
-            Sex = "Male",
-            Description = "Halfmoon betta, deep blue colouration",
-            EnclosureProfileId = aquarium.Id,
-            UserId = user.Id
-        };
-        var frog = new Critter
-        {
-            Name = "Leaf",
-            Species = "Red-Eyed Tree Frog",
-            IconUrl = "img/critters/default.svg",
-            SpeciesType = SpeciesType.Amphibian,
-            DateAcquired = new DateTime(2024, 7, 20),
-            Sex = "Female",
-            Description = "Active at night, bright red eyes",
-            EnclosureProfileId = paludarium.Id,
-            UserId = user.Id
-        };
-        var gecko = new Critter
-        {
-            Name = "Ficus",
-            Species = "Crested Gecko",
-            IconUrl = "img/critters/default.svg",
-            SpeciesType = SpeciesType.Reptile,
-            DateAcquired = new DateTime(2024, 5, 15),
-            DateOfBirth = new DateTime(2024, 2, 1),
-            Sex = "Female",
-            Weight = 42,
-            Length = 18,
-            Description = "Dalmatian morph, very calm",
-            EnclosureProfileId = vivarium.Id,
-            UserId = user.Id
-        };
-        var tarantula = new Critter
-        {
-            Name = "Duchess",
-            Species = "Chilean Rose Tarantula",
-            IconUrl = "img/critters/default.svg",
-            SpeciesType = SpeciesType.Invertebrate,
-            DateAcquired = new DateTime(2023, 11, 3),
-            Sex = "Female",
-            Description = "Very calm, rarely flicks hairs",
-            EnclosureProfileId = insectarium.Id,
-            UserId = user.Id
-        };
-        var cockatiel = new Critter
-        {
-            Name = "Sunny",
-            Species = "Cockatiel",
-            IconUrl = "img/critters/nymphicus-hollandicus.svg",
-            SpeciesType = SpeciesType.Bird,
-            DateAcquired = new DateTime(2024, 2, 14),
-            DateOfBirth = new DateTime(2023, 10, 1),
-            Sex = "Male",
-            Description = "Whistles constantly, loves millet",
-            EnclosureProfileId = aviary.Id,
-            UserId = user.Id
-        };
-        var rat = new Critter
-        {
-            Name = "Biscuit",
-            Species = "Fancy Rat",
-            IconUrl = "img/critters/default.svg",
-            SpeciesType = SpeciesType.Mammal,
-            DateAcquired = new DateTime(2025, 2, 1),
-            DateOfBirth = new DateTime(2024, 12, 15),
-            Sex = "Female",
-            Weight = 280,
-            Description = "Hooded rat, very social",
-            EnclosureProfileId = cage.Id,
-            UserId = user.Id
-        };
-        var cornSnake = new Critter
-        {
-            Name = "Candy",
-            Species = "Corn Snake",
-            IconUrl = "img/critters/default.svg",
-            SpeciesType = SpeciesType.Reptile,
-            DateAcquired = new DateTime(2024, 8, 10),
-            DateOfBirth = new DateTime(2024, 4, 1),
-            Sex = "Female",
-            Weight = 200,
-            Length = 60,
-            Description = "Amelanistic morph, great feeder",
-            EnclosureProfileId = bin.Id,
-            UserId = user.Id
-        };
-        var ballPython = new Critter
-        {
-            Name = "Monty",
-            Species = "Ball Python",
-            IconUrl = "img/critters/python-regius.svg",
-            SpeciesType = SpeciesType.Reptile,
-            DateAcquired = new DateTime(2023, 5, 1),
-            DateOfBirth = new DateTime(2022, 5, 1),
-            Sex = "Male",
-            Weight = 1500,
-            Length = 120,
-            Description = "Normal morph, very docile",
-            EnclosureProfileId = rackSystem.Id,
-            UserId = user.Id
-        };
-        var rabbit = new Critter
-        {
-            Name = "Clover",
-            Species = "Holland Lop Rabbit",
-            IconUrl = "img/critters/default.svg",
-            SpeciesType = SpeciesType.Mammal,
-            DateAcquired = new DateTime(2024, 10, 5),
-            DateOfBirth = new DateTime(2024, 7, 20),
-            Sex = "Female",
-            Weight = 1800,
-            Description = "Grey lop ears, litter trained",
-            EnclosureProfileId = freeRoam.Id,
-            UserId = user.Id
-        };
-        var goldfish = new Critter
-        {
-            Name = "Bubbles",
-            Species = "Common Goldfish",
-            IconUrl = "img/critters/default.svg",
-            SpeciesType = SpeciesType.Fish,
-            DateAcquired = new DateTime(2025, 3, 1),
-            Description = "Orange and white fantail",
-            EnclosureProfileId = tank.Id,
-            UserId = user.Id
-        };
-        var axolotl = new Critter
-        {
-            Name = "Noodle",
-            Species = "Axolotl",
-            IconUrl = "img/critters/default.svg",
-            SpeciesType = SpeciesType.Amphibian,
-            DateAcquired = new DateTime(2024, 12, 1),
-            Sex = "Male",
-            Description = "Leucistic, responds to feeding time",
-            EnclosureProfileId = other.Id,
-            UserId = user.Id
-        };
+        // ----------------- Critters (curated cohab demo) -----------------
+        // Terrarium — HARD BLOCK conflict: two SoloOnly Ball Pythons cohabiting
+        var apollo = NewCritter("Apollo", "Ball Python", SpeciesType.Reptile, terrarium.Id, ownerId,
+            sex: "Male", weight: 1600, length: 130, iconUrl: "img/critters/python-regius.svg",
+            description: "Pastel morph, established 2023");
+        var athena = NewCritter("Athena", "Ball Python", SpeciesType.Reptile, terrarium.Id, ownerId,
+            sex: "Female", weight: 2100, length: 145, iconUrl: "img/critters/python-regius.svg",
+            description: "Spider morph, gravid in spring 2025");
 
-        _dbContext.Critters.AddRange(
-            beardie, betta, frog, gecko, tarantula, cockatiel,
-            rat, cornSnake, ballPython, rabbit, goldfish, axolotl);
+        // Aquarium — WARNING: Angelfish (predatory) in a small-fish community
+        var spike = NewCritter("Spike", "Angelfish", SpeciesType.Fish, aquarium.Id, ownerId,
+            sex: "Male", description: "Veil-tail, dominant in the planted scape");
+        var tetras = Enumerable.Range(1, 6).Select(i => NewCritter(
+            $"Neon {i}", "Neon Tetra", SpeciesType.Fish, aquarium.Id, ownerId,
+            description: "Schooling tetra in the upper third of the column")).ToList();
+
+        // Paludarium — GroupsOk harmony
+        var toads = Enumerable.Range(1, 3).Select(i => NewCritter(
+            $"Toad {i}", "Fire-bellied Toad", SpeciesType.Amphibian, paludarium.Id, ownerId,
+            description: "Vivid orange belly, splash zone resident")).ToList();
+
+        // Vivarium — GroupsOk same-morph dart frog colony
+        var darts = Enumerable.Range(1, 4).Select(i => NewCritter(
+            $"Tinc {i}", "Poison Dart Frog", SpeciesType.Amphibian, vivarium.Id, ownerId,
+            description: "Azureus morph, captive-bred")).ToList();
+
+        // Insectarium — SoloOnly correct
+        var velvet = NewCritter("Velvet", "Chilean Rose Tarantula", SpeciesType.Invertebrate, insectarium.Id, ownerId,
+            sex: "Female", description: "Mature female, calm temperament");
+
+        // Aviary — GroupsOk harmony
+        var budgies = Enumerable.Range(1, 4).Select(i => NewCritter(
+            $"Budgie {i}", "Budgerigar", SpeciesType.Bird, aviary.Id, ownerId,
+            description: "Mixed-sex flock, blue and green morphs")).ToList();
+
+        // Cage — Community female-only rat colony
+        var rats = Enumerable.Range(1, 3).Select(i => NewCritter(
+            $"Rat {i}", "Fancy Rat", SpeciesType.Mammal, cage.Id, ownerId,
+            sex: "Female", weight: 290, description: "Hooded, bonded sisters")).ToList();
+
+        // Bin — SoloOnly correct
+        var ginger = NewCritter("Ginger", "Corn Snake", SpeciesType.Reptile, bin.Id, ownerId,
+            sex: "Female", weight: 220, length: 70,
+            description: "Amelanistic morph, reliable feeder");
+
+        // Rack System — SoloOnly correct
+        var monty = NewCritter("Monty", "Ball Python", SpeciesType.Reptile, rackSystem.Id, ownerId,
+            sex: "Male", weight: 1500, length: 120, iconUrl: "img/critters/python-regius.svg",
+            description: "Normal morph, very docile");
+
+        // FreeRoamRoom — PairsOk bonded female pair (Holland Lop morph)
+        var clover = NewCritter("Clover", "Rabbit", SpeciesType.Mammal, freeRoam.Id, ownerId,
+            sex: "Female", weight: 1800,
+            description: "Holland Lop, grey, litter trained");
+        var sage = NewCritter("Sage", "Rabbit", SpeciesType.Mammal, freeRoam.Id, ownerId,
+            sex: "Female", weight: 1750,
+            description: "Holland Lop, white with spots, bonded with Clover");
+
+        // Tank — Community goldfish pair
+        var bubbles = NewCritter("Bubbles", "Common Goldfish", SpeciesType.Fish, tank.Id, ownerId,
+            description: "Orange and white fantail");
+        var pebble = NewCritter("Pebble", "Common Goldfish", SpeciesType.Fish, tank.Id, ownerId,
+            description: "Calico telescope-eye");
+
+        var allCritters = new List<Critter>
+        {
+            apollo, athena, spike, velvet, ginger, monty, clover, sage, bubbles, pebble
+        };
+        allCritters.AddRange(tetras);
+        allCritters.AddRange(toads);
+        allCritters.AddRange(darts);
+        allCritters.AddRange(budgies);
+        allCritters.AddRange(rats);
+
+        _dbContext.Critters.AddRange(allCritters);
         await _dbContext.SaveChangesAsync();
 
-        // Feeding records with 2026 dates — designed to produce a visible spread of condition badges:
-        // Draco (beardie, freq=2d): fed today → Thriving 😊
-        // Blaze (betta, freq=1d): fed 2 days ago → Good 🙂
-        // Leaf (tree frog, freq=3d): fed 2 days ago → Thriving 😊
-        // Ficus (crested gecko, freq=2d): fed 6 days ago → Fair 😐
-        // Duchess (rose tarantula, freq=14d, natural faster): fed 23 days ago → Thriving 😊 (ratio < 4, no penalty)
-        // Sunny (cockatiel, freq=1d): fed today → Thriving 😊
-        // Biscuit (rat, freq=1d): fed 4 days ago → Attention ⚠️ (3× overdue)
-        // Candy (corn snake, freq=7d): fed 14 days ago → Good 🙂 (ratio=1)
-        // Monty (ball python, freq=10d, natural faster): fed 9 days ago → Thriving 😊
-        // Clover (rabbit, freq=1d): fed 2 days ago → Good 🙂
-        // Bubbles (goldfish, freq=1d): fed 3 days ago → Fair 😐
-        // Noodle (axolotl, freq=2d): fed 2 days ago → Thriving 😊
-        _dbContext.FeedingRecords.AddRange(
-            // Draco — Thriving
-            new FeedingRecord { CritterId = beardie.Id,    FeedingDate = new DateTime(2026, 4, 24), FoodItem = "Dubia roaches", Quantity = 10, ItemType = Insect, WasEaten = true },
-            new FeedingRecord { CritterId = beardie.Id,    FeedingDate = new DateTime(2026, 4, 22), FoodItem = "Dubia roaches", Quantity = 10, ItemType = Insect, WasEaten = true },
-            new FeedingRecord { CritterId = beardie.Id,    FeedingDate = new DateTime(2026, 4, 20), FoodItem = "Collard greens", Quantity = 1, ItemType = Other,  WasEaten = true },
-            // Blaze — Good
-            new FeedingRecord { CritterId = betta.Id,      FeedingDate = new DateTime(2026, 4, 22), FoodItem = "Betta pellets", Quantity = 1, ItemType = Other, WasEaten = true },
-            new FeedingRecord { CritterId = betta.Id,      FeedingDate = new DateTime(2026, 4, 21), FoodItem = "Betta pellets", Quantity = 1, ItemType = Other, WasEaten = true },
-            new FeedingRecord { CritterId = betta.Id,      FeedingDate = new DateTime(2026, 4, 20), FoodItem = "Bloodworms",    Quantity = 1, ItemType = Other, WasEaten = true },
-            // Leaf — Thriving
-            new FeedingRecord { CritterId = frog.Id,       FeedingDate = new DateTime(2026, 4, 22), FoodItem = "Crickets",   Quantity = 5, ItemType = Insect, WasEaten = true },
-            new FeedingRecord { CritterId = frog.Id,       FeedingDate = new DateTime(2026, 4, 19), FoodItem = "Crickets",   Quantity = 5, ItemType = Insect, WasEaten = true },
-            new FeedingRecord { CritterId = frog.Id,       FeedingDate = new DateTime(2026, 4, 16), FoodItem = "Mealworms",  Quantity = 3, ItemType = Insect, WasEaten = true },
-            // Ficus — Fair (6 days since last feed, freq=2)
-            new FeedingRecord { CritterId = gecko.Id,      FeedingDate = new DateTime(2026, 4, 18), FoodItem = "CGD mix",    Quantity = 1, ItemType = Other, WasEaten = true },
-            new FeedingRecord { CritterId = gecko.Id,      FeedingDate = new DateTime(2026, 4, 16), FoodItem = "Crickets",   Quantity = 4, ItemType = Insect, WasEaten = true },
-            new FeedingRecord { CritterId = gecko.Id,      FeedingDate = new DateTime(2026, 4, 14), FoodItem = "CGD mix",    Quantity = 1, ItemType = Other, WasEaten = true },
-            // Duchess — Thriving (natural faster, 23 days is within acceptable range)
-            new FeedingRecord { CritterId = tarantula.Id,  FeedingDate = new DateTime(2026, 4, 1),  FoodItem = "Crickets",   Quantity = 2, ItemType = Insect, WasEaten = true },
-            new FeedingRecord { CritterId = tarantula.Id,  FeedingDate = new DateTime(2026, 3, 18), FoodItem = "Dubia roaches", Quantity = 2, ItemType = Insect, WasEaten = true },
-            // Sunny — Thriving
-            new FeedingRecord { CritterId = cockatiel.Id,  FeedingDate = new DateTime(2026, 4, 24), FoodItem = "Pellets + fresh veg", Quantity = 1, ItemType = Other, WasEaten = true },
-            new FeedingRecord { CritterId = cockatiel.Id,  FeedingDate = new DateTime(2026, 4, 23), FoodItem = "Millet spray",         Quantity = 1, ItemType = Other, WasEaten = true },
-            new FeedingRecord { CritterId = cockatiel.Id,  FeedingDate = new DateTime(2026, 4, 22), FoodItem = "Pellets + fresh veg", Quantity = 1, ItemType = Other, WasEaten = true },
-            // Biscuit — Attention (4 days overdue for a daily animal)
-            new FeedingRecord { CritterId = rat.Id,        FeedingDate = new DateTime(2026, 4, 20), FoodItem = "Lab blocks",   Quantity = 1, ItemType = Other, WasEaten = true },
-            new FeedingRecord { CritterId = rat.Id,        FeedingDate = new DateTime(2026, 4, 19), FoodItem = "Lab blocks",   Quantity = 1, ItemType = Other, WasEaten = true },
-            new FeedingRecord { CritterId = rat.Id,        FeedingDate = new DateTime(2026, 4, 17), FoodItem = "Fresh vegetables", Quantity = 1, ItemType = Other, WasEaten = true },
-            // Candy — Good (14 days since last feed, freq=7; ratio=1, -20 pts)
-            new FeedingRecord { CritterId = cornSnake.Id,  FeedingDate = new DateTime(2026, 4, 10), FoodItem = "Pinky mouse",  Quantity = 1, ItemType = Rodent, WasEaten = true },
-            new FeedingRecord { CritterId = cornSnake.Id,  FeedingDate = new DateTime(2026, 4, 3),  FoodItem = "Pinky mouse",  Quantity = 1, ItemType = Rodent, WasEaten = true },
-            new FeedingRecord { CritterId = cornSnake.Id,  FeedingDate = new DateTime(2026, 3, 27), FoodItem = "Pinky mouse",  Quantity = 1, ItemType = Rodent, WasEaten = true },
-            // Monty — Thriving (9 days, freq=10; not yet overdue)
-            new FeedingRecord { CritterId = ballPython.Id, FeedingDate = new DateTime(2026, 4, 15), FoodItem = "Small rat",    Quantity = 1, ItemType = Rodent, WasEaten = true },
-            new FeedingRecord { CritterId = ballPython.Id, FeedingDate = new DateTime(2026, 4, 5),  FoodItem = "Small rat",    Quantity = 1, ItemType = Rodent, WasEaten = true },
-            new FeedingRecord { CritterId = ballPython.Id, FeedingDate = new DateTime(2026, 3, 26), FoodItem = "Small rat",    Quantity = 1, ItemType = Rodent, WasEaten = true },
-            // Clover — Good (2 days, freq=1; ratio=1, -20 pts)
-            new FeedingRecord { CritterId = rabbit.Id,     FeedingDate = new DateTime(2026, 4, 22), FoodItem = "Timothy hay + pellets", Quantity = 1, ItemType = Other, WasEaten = true },
-            new FeedingRecord { CritterId = rabbit.Id,     FeedingDate = new DateTime(2026, 4, 21), FoodItem = "Timothy hay + pellets", Quantity = 1, ItemType = Other, WasEaten = true },
-            new FeedingRecord { CritterId = rabbit.Id,     FeedingDate = new DateTime(2026, 4, 20), FoodItem = "Bell pepper + greens",  Quantity = 1, ItemType = Other, WasEaten = true },
-            // Bubbles — Fair (3 days, freq=1; ratio=2, -40 pts)
-            new FeedingRecord { CritterId = goldfish.Id,   FeedingDate = new DateTime(2026, 4, 21), FoodItem = "Goldfish pellets", Quantity = 1, ItemType = Other, WasEaten = true },
-            new FeedingRecord { CritterId = goldfish.Id,   FeedingDate = new DateTime(2026, 4, 20), FoodItem = "Bloodworms",       Quantity = 1, ItemType = Other, WasEaten = true },
-            new FeedingRecord { CritterId = goldfish.Id,   FeedingDate = new DateTime(2026, 4, 19), FoodItem = "Goldfish pellets", Quantity = 1, ItemType = Other, WasEaten = true },
-            // Noodle — Thriving (2 days, freq=2; exactly on schedule)
-            new FeedingRecord { CritterId = axolotl.Id,    FeedingDate = new DateTime(2026, 4, 22), FoodItem = "Nightcrawlers", Quantity = 2, ItemType = Other, WasEaten = true },
-            new FeedingRecord { CritterId = axolotl.Id,    FeedingDate = new DateTime(2026, 4, 20), FoodItem = "Brine shrimp",  Quantity = 1, ItemType = Other, WasEaten = true },
-            new FeedingRecord { CritterId = axolotl.Id,    FeedingDate = new DateTime(2026, 4, 18), FoodItem = "Nightcrawlers", Quantity = 2, ItemType = Other, WasEaten = true }
-        );
+        // ----------------- Feeding records -----------------
+        // Tuned against species FeedingFrequencyDays so the dashboard surfaces a mix of condition badges.
+        // "Today" baseline: 2026-04-28.
+        var feedings = new List<FeedingRecord>();
 
+        // Apollo (ball python, freq=10d, natural faster) — Thriving (8 days ago)
+        feedings.AddRange(SnakeFeed(apollo.Id, new DateTime(2026, 4, 20)));
+        feedings.AddRange(SnakeFeed(apollo.Id, new DateTime(2026, 4, 10)));
+        feedings.AddRange(SnakeFeed(apollo.Id, new DateTime(2026, 3, 31)));
+
+        // Athena (ball python) — Good (12 days ago, slightly overdue)
+        feedings.AddRange(SnakeFeed(athena.Id, new DateTime(2026, 4, 16)));
+        feedings.AddRange(SnakeFeed(athena.Id, new DateTime(2026, 4, 5)));
+        feedings.AddRange(SnakeFeed(athena.Id, new DateTime(2026, 3, 25)));
+
+        // Spike (angelfish, freq=1d) — Good (2 days ago)
+        feedings.AddRange(FishFlake(spike.Id, new DateTime(2026, 4, 26)));
+        feedings.AddRange(FishFlake(spike.Id, new DateTime(2026, 4, 25)));
+        feedings.AddRange(FishFlake(spike.Id, new DateTime(2026, 4, 24)));
+
+        // Tetras — Thriving (fed today)
+        foreach (var t in tetras)
+        {
+            feedings.AddRange(FishFlake(t.Id, new DateTime(2026, 4, 28)));
+            feedings.AddRange(FishFlake(t.Id, new DateTime(2026, 4, 27)));
+        }
+
+        // Toads (freq=2d) — Thriving (today)
+        foreach (var t in toads)
+        {
+            feedings.Add(InsectFeed(t.Id, new DateTime(2026, 4, 28), "Crickets", 4));
+            feedings.Add(InsectFeed(t.Id, new DateTime(2026, 4, 26), "Crickets", 4));
+        }
+
+        // Dart frogs (freq=2d) — Good (3 days ago)
+        foreach (var d in darts)
+        {
+            feedings.Add(InsectFeed(d.Id, new DateTime(2026, 4, 25), "Springtails", 1));
+            feedings.Add(InsectFeed(d.Id, new DateTime(2026, 4, 23), "Fruit flies", 1));
+        }
+
+        // Velvet (rose tarantula, freq=14d, natural faster) — Thriving (10 days ago)
+        feedings.Add(InsectFeed(velvet.Id, new DateTime(2026, 4, 18), "Dubia roach", 1));
+        feedings.Add(InsectFeed(velvet.Id, new DateTime(2026, 4, 4),  "Cricket",     1));
+
+        // Budgies (freq=1d) — Thriving (today)
+        foreach (var b in budgies)
+        {
+            feedings.Add(SeedFeed(b.Id, new DateTime(2026, 4, 28), "Pellets + millet"));
+            feedings.Add(SeedFeed(b.Id, new DateTime(2026, 4, 27), "Pellets + greens"));
+        }
+
+        // Rats (freq=1d) — Attention (4 days overdue)
+        foreach (var r in rats)
+        {
+            feedings.Add(GenericFeed(r.Id, new DateTime(2026, 4, 24), "Lab blocks"));
+            feedings.Add(GenericFeed(r.Id, new DateTime(2026, 4, 23), "Lab blocks"));
+            feedings.Add(GenericFeed(r.Id, new DateTime(2026, 4, 21), "Fresh vegetables"));
+        }
+
+        // Ginger (corn snake, freq=7d) — Good (10 days ago)
+        feedings.AddRange(SnakeFeed(ginger.Id, new DateTime(2026, 4, 18), "Pinky mouse"));
+        feedings.AddRange(SnakeFeed(ginger.Id, new DateTime(2026, 4, 11), "Pinky mouse"));
+        feedings.AddRange(SnakeFeed(ginger.Id, new DateTime(2026, 4, 4),  "Pinky mouse"));
+
+        // Monty (ball python) — Thriving (6 days ago)
+        feedings.AddRange(SnakeFeed(monty.Id, new DateTime(2026, 4, 22)));
+        feedings.AddRange(SnakeFeed(monty.Id, new DateTime(2026, 4, 12)));
+        feedings.AddRange(SnakeFeed(monty.Id, new DateTime(2026, 4, 2)));
+
+        // Clover & Sage (rabbit, freq=1d) — Good
+        foreach (var rab in new[] { clover, sage })
+        {
+            feedings.Add(GenericFeed(rab.Id, new DateTime(2026, 4, 27), "Timothy hay + pellets"));
+            feedings.Add(GenericFeed(rab.Id, new DateTime(2026, 4, 26), "Timothy hay + pellets"));
+            feedings.Add(GenericFeed(rab.Id, new DateTime(2026, 4, 25), "Bell pepper + greens"));
+        }
+
+        // Bubbles & Pebble (goldfish, freq=1d) — Fair (3 days ago)
+        foreach (var fish in new[] { bubbles, pebble })
+        {
+            feedings.AddRange(FishFlake(fish.Id, new DateTime(2026, 4, 25)));
+            feedings.AddRange(FishFlake(fish.Id, new DateTime(2026, 4, 24)));
+            feedings.AddRange(FishFlake(fish.Id, new DateTime(2026, 4, 23)));
+        }
+
+        _dbContext.FeedingRecords.AddRange(feedings);
         await _dbContext.SaveChangesAsync();
     }
+
+    private static Critter NewCritter(
+        string name,
+        string species,
+        SpeciesType speciesType,
+        int enclosureId,
+        string ownerId,
+        string? sex = null,
+        double? weight = null,
+        double? length = null,
+        string? description = null,
+        string iconUrl = "img/critters/default.svg")
+        => new()
+        {
+            Name = name,
+            Species = species,
+            SpeciesType = speciesType,
+            IconUrl = iconUrl,
+            DateAcquired = new DateTime(2025, 1, 1),
+            Sex = sex,
+            Weight = weight,
+            Length = length,
+            Description = description,
+            EnclosureProfileId = enclosureId,
+            UserId = ownerId
+        };
+
+    private static IEnumerable<FeedingRecord> SnakeFeed(int critterId, DateTime date, string item = "Small rat")
+        => new[]
+        {
+            new FeedingRecord
+            {
+                CritterId = critterId, FeedingDate = date,
+                FoodItem = item, Quantity = 1, ItemType = Rodent, WasEaten = true
+            }
+        };
+
+    private static IEnumerable<FeedingRecord> FishFlake(int critterId, DateTime date)
+        => new[]
+        {
+            new FeedingRecord
+            {
+                CritterId = critterId, FeedingDate = date,
+                FoodItem = "Flake food", Quantity = 1, ItemType = Other, WasEaten = true
+            }
+        };
+
+    private static FeedingRecord InsectFeed(int critterId, DateTime date, string food, int qty)
+        => new()
+        {
+            CritterId = critterId, FeedingDate = date,
+            FoodItem = food, Quantity = qty, ItemType = Insect, WasEaten = true
+        };
+
+    private static FeedingRecord SeedFeed(int critterId, DateTime date, string food)
+        => new()
+        {
+            CritterId = critterId, FeedingDate = date,
+            FoodItem = food, Quantity = 1, ItemType = Other, WasEaten = true
+        };
+
+    private static FeedingRecord GenericFeed(int critterId, DateTime date, string food)
+        => new()
+        {
+            CritterId = critterId, FeedingDate = date,
+            FoodItem = food, Quantity = 1, ItemType = Other, WasEaten = true
+        };
 }

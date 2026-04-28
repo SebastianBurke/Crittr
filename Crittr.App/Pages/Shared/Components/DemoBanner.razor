@@ -1,0 +1,64 @@
+@using System.Text
+@using System.Text.Json
+@inject Blazored.LocalStorage.ILocalStorageService LocalStorage
+
+@if (isDemo)
+{
+    <div class="max-w-xl mx-auto mb-4 rounded-xl border border-amber-200 dark:border-amber-800
+                bg-amber-50/80 dark:bg-amber-900/20 px-4 py-3 text-sm
+                text-amber-900 dark:text-amber-100 flex items-center justify-between gap-3">
+        <span>You're exploring a shared demo. Data resets daily.</span>
+        <a href="/register"
+           class="font-semibold underline underline-offset-2 hover:text-amber-700 dark:hover:text-amber-200 whitespace-nowrap">
+            Sign up
+        </a>
+    </div>
+}
+
+@code {
+    private bool isDemo;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var token = await LocalStorage.GetItemAsync<string>("authToken");
+        if (string.IsNullOrWhiteSpace(token)) return;
+
+        isDemo = TryReadEmail(token) == "demo@crittr.ca";
+    }
+
+    private static string? TryReadEmail(string jwt)
+    {
+        var parts = jwt.Split('.');
+        if (parts.Length < 2) return null;
+
+        try
+        {
+            var payload = parts[1];
+            switch (payload.Length % 4)
+            {
+                case 2: payload += "=="; break;
+                case 3: payload += "="; break;
+            }
+            payload = payload.Replace('-', '+').Replace('_', '/');
+            var bytes = Convert.FromBase64String(payload);
+            using var doc = JsonDocument.Parse(bytes);
+            // Standard ASP.NET claim type for email is the long URI form.
+            if (doc.RootElement.TryGetProperty(
+                    "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress",
+                    out var emailLong))
+            {
+                return emailLong.GetString();
+            }
+            if (doc.RootElement.TryGetProperty("email", out var emailShort))
+            {
+                return emailShort.GetString();
+            }
+        }
+        catch
+        {
+            // Malformed token — treat as not-demo and render nothing.
+        }
+
+        return null;
+    }
+}

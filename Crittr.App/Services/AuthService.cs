@@ -37,6 +37,23 @@ public class AuthService
         return false;
     }
 
+    public async Task<bool> DemoLoginAsync()
+    {
+        var response = await _http.PostAsJsonAsync("api/Auth/demo-login", new { });
+
+        if (!response.IsSuccessStatusCode) return false;
+
+        var json = await response.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(json);
+        var token = doc.RootElement.GetProperty("token").GetString();
+
+        if (string.IsNullOrEmpty(token)) return false;
+
+        await _localStorage.SetItemAsync("authToken", token);
+        _http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+        return true;
+    }
+
     public async Task LogoutAsync()
     {
         await _localStorage.RemoveItemAsync("authToken");

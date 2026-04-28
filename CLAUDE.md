@@ -68,6 +68,26 @@ git pull
 systemctl restart crittr-server crittr-client
 ```
 
+### Demo Account on Production
+The "Try Demo" landing CTA logs visitors into a shared `demo@crittr.ca` sandbox. Seeding and the
+`/api/auth/demo-login` + `/api/admin/demo/reset` endpoints are gated on `Demo:Enabled`. There are
+no well-known demo credentials in source — the password is generated at startup if not configured.
+
+First-time prod enable:
+```bash
+sudo systemctl edit crittr-server
+# add:
+[Service]
+Environment="Demo__Enabled=true"
+Environment="Demo__AdminResetToken=<openssl rand -base64 32>"
+sudo systemctl daemon-reload && sudo systemctl restart crittr-server
+# trigger initial seed:
+curl -X POST -H "X-Admin-Token: <token>" https://crittr.ca/api/admin/demo/reset
+# daily reset cron (run as root):
+echo "0 4 * * * curl -fsS -X POST -H 'X-Admin-Token: <token>' https://crittr.ca/api/admin/demo/reset" | crontab -
+```
+To disable: set `Demo__Enabled=false`, restart. Both demo endpoints then return 404.
+
 ## Current Status (last updated: April 25 2026)
 - App live at https://crittr.ca — **v1.3.0**
 - Auth, enclosures, critters, feeding log all working

@@ -19,25 +19,12 @@
     }
     else if (!isAuthenticated)
     {
-        <div class="max-w-sm sm:max-w-lg mx-auto text-center py-10 sm:py-16 px-2">
-            <h1 class="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Your vivarium, organized</h1>
-            <p class="mt-3 text-slate-600 dark:text-slate-400 leading-relaxed">
-                Log in to see enclosures, critters, and feeding history in one calm dashboard.
-            </p>
-            <div class="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
-                <a href="/login"
-                   class="inline-flex justify-center items-center rounded-xl bg-green-600 hover:bg-green-700 text-white font-semibold px-6 py-3 shadow-lg transition-colors">
-                    Log in
-                </a>
-                <a href="/register"
-                   class="inline-flex justify-center items-center rounded-xl bg-slate-100 border border-slate-300 text-slate-800 font-semibold px-6 py-3 shadow-sm hover:bg-slate-200 transition-colors">
-                    Create account
-                </a>
-            </div>
-        </div>
+        <LandingPage />
     }
     else
     {
+        <DemoBanner />
+
         @if (!string.IsNullOrEmpty(loadError))
         {
             <div class="max-w-xl mx-auto mb-4 rounded-xl border border-amber-200 bg-amber-50 text-amber-900 px-4 py-3 text-sm" role="alert">

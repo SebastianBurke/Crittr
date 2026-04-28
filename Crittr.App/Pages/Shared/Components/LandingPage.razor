@@ -1,0 +1,168 @@
+@using Crittr.App.Services
+@inject AuthService AuthService
+@inject NavigationManager Nav
+
+<section class="relative w-full -mx-4 sm:-mx-6 lg:-mx-10 px-4 sm:px-6 lg:px-10 py-10 sm:py-16
+                bg-gradient-to-b from-green-50/60 via-transparent to-transparent
+                dark:from-green-900/15 dark:via-transparent dark:to-transparent">
+    <div class="max-w-5xl mx-auto text-center">
+        <p class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold
+                  bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-200">
+            <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+            Husbandry-grade tracking
+        </p>
+        <h1 class="mt-4 text-3xl sm:text-5xl font-bold tracking-tight text-slate-900 dark:text-white">
+            Built for serious keepers.
+        </h1>
+        <p class="mt-4 max-w-2xl mx-auto text-base sm:text-lg text-slate-600 dark:text-slate-300 leading-relaxed">
+            Crittr is the exotic pet companion that actually knows your animals — from cohabitation
+            conflicts to species-specific care. No generic fields. No guesswork.
+        </p>
+
+        <div class="mt-8 flex flex-col sm:flex-row gap-3 justify-center items-center">
+            <button type="button"
+                    @onclick="TryDemo"
+                    disabled="@isDemoLoading"
+                    class="inline-flex items-center justify-center gap-2 rounded-xl
+                           bg-green-600 hover:bg-green-700 disabled:bg-green-600/60 disabled:cursor-not-allowed
+                           text-white font-semibold px-6 py-3 shadow-lg shadow-green-600/25 transition-colors">
+                @if (isDemoLoading)
+                {
+                    <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/>
+                    </svg>
+                    <span>Loading demo…</span>
+                }
+                else
+                {
+                    <span>Try the demo</span>
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+                    </svg>
+                }
+            </button>
+            <a href="/register"
+               class="inline-flex items-center justify-center rounded-xl
+                      bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700
+                      border border-slate-300 dark:border-slate-700
+                      text-slate-800 dark:text-slate-100 font-semibold px-6 py-3 transition-colors">
+                Sign up
+            </a>
+            <a href="/login"
+               class="inline-flex items-center justify-center px-4 py-3
+                      text-slate-700 dark:text-slate-200 font-medium hover:text-green-700 dark:hover:text-green-400 transition-colors">
+                Log in
+            </a>
+        </div>
+
+        @if (!string.IsNullOrEmpty(demoError))
+        {
+            <p class="mt-4 text-sm text-amber-700 dark:text-amber-300">@demoError</p>
+        }
+
+        <p class="mt-6 text-xs text-slate-500 dark:text-slate-400">
+            The demo is a shared sandbox that resets daily — explore freely.
+        </p>
+    </div>
+</section>
+
+<section class="max-w-6xl mx-auto pt-6 pb-12">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+
+        <div class="rounded-2xl bg-white/80 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800
+                    backdrop-blur p-5 shadow-sm">
+            <div class="w-10 h-10 rounded-xl bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300
+                        flex items-center justify-center mb-4">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                          d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6 5.87v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
+                    <circle cx="12" cy="7" r="4"/>
+                </svg>
+            </div>
+            <h3 class="font-semibold text-slate-900 dark:text-white">Cohabitation intelligence</h3>
+            <p class="mt-1 text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                Solo, pairs, groups, predator/prey, gender pairing — Crittr knows who can live together
+                and warns you before mistakes happen.
+            </p>
+        </div>
+
+        <div class="rounded-2xl bg-white/80 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800
+                    backdrop-blur p-5 shadow-sm">
+            <div class="w-10 h-10 rounded-xl bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300
+                        flex items-center justify-center mb-4">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                          d="M4 6h16M4 12h16M4 18h10"/>
+                </svg>
+            </div>
+            <h3 class="font-semibold text-slate-900 dark:text-white">110+ species catalog</h3>
+            <p class="mt-1 text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                Each species comes with feeding cadence, accepted foods, ideal temp/humidity,
+                and compatible enclosures — backed by real husbandry data.
+            </p>
+        </div>
+
+        <div class="rounded-2xl bg-white/80 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800
+                    backdrop-blur p-5 shadow-sm">
+            <div class="w-10 h-10 rounded-xl bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300
+                        flex items-center justify-center mb-4">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                          d="M4.318 6.318a4.5 4.5 0 016.364 0L12 7.636l1.318-1.318a4.5 4.5 0 116.364 6.364L12 20.364l-7.682-7.682a4.5 4.5 0 010-6.364z"/>
+                </svg>
+            </div>
+            <h3 class="font-semibold text-slate-900 dark:text-white">Critter condition</h3>
+            <p class="mt-1 text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                Health scoring from feeding cadence, shedding, and behavior. Thriving to Critical at a glance.
+            </p>
+        </div>
+
+        <div class="rounded-2xl bg-white/80 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800
+                    backdrop-blur p-5 shadow-sm">
+            <div class="w-10 h-10 rounded-xl bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300
+                        flex items-center justify-center mb-4">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                          d="M3 7l9-4 9 4M3 7v10l9 4 9-4V7M3 7l9 4m0 0l9-4m-9 4v10"/>
+                </svg>
+            </div>
+            <h3 class="font-semibold text-slate-900 dark:text-white">Per-enclosure intelligence</h3>
+            <p class="mt-1 text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                Themed canvases for terrariums, aquariums, vivariums and more — each with the
+                parameters that actually matter for that environment.
+            </p>
+        </div>
+    </div>
+</section>
+
+@code {
+    private bool isDemoLoading;
+    private string? demoError;
+
+    private async Task TryDemo()
+    {
+        if (isDemoLoading) return;
+        isDemoLoading = true;
+        demoError = null;
+
+        try
+        {
+            var ok = await AuthService.DemoLoginAsync();
+            if (!ok)
+            {
+                demoError = "Demo isn't available right now. Try again in a minute.";
+                return;
+            }
+            Nav.NavigateTo("/", forceLoad: true);
+        }
+        catch
+        {
+            demoError = "Demo isn't available right now. Try again in a minute.";
+        }
+        finally
+        {
+            isDemoLoading = false;
+        }
+    }
+}

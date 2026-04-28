@@ -51,6 +51,7 @@ builder.Services.AddScoped<ICritterService, CritterService>();
 builder.Services.AddScoped<DataSeeder>();
 builder.Services.AddScoped<IEnclosureService, EnclosureService>();
 builder.Services.AddSingleton<SpeciesCatalogService>();
+builder.Services.AddSingleton<DemoCredentials>();
 builder.Services.AddScoped<EnclosureCohabitationService>();
 
 builder.Services.AddControllers()
@@ -232,11 +233,12 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-// Demo accounts and sample data are ONLY seeded in Development.
-// Production must NOT have well-known credentials seeded automatically.
-if (app.Environment.IsDevelopment())
+// Demo account + sample data seeding is gated on the Demo:Enabled config flag.
+// Production opts in via env var (Demo__Enabled=true) and supplies a generated random password
+// through DemoCredentials — no well-known credentials are ever committed.
+if (app.Configuration.GetValue<bool>("Demo:Enabled"))
 {
-    var sampleDataOwnerId = await SeedDemoUsers(app);
+    var sampleDataOwnerId = await SeedDemoUserAsync(app);
 
     using var scope = app.Services.CreateScope();
     var seeder = scope.ServiceProvider.GetRequiredService<DataSeeder>();
@@ -246,42 +248,37 @@ if (app.Environment.IsDevelopment())
 app.Run();
 
 /// <summary>
-/// Ensures demo accounts exist (development only). Sample data attaches to <c>demo@crittr.ca</c>.
+/// Ensures the demo user exists. Password is set via <see cref="IPasswordHasher{TUser}"/> directly so the
+/// strict Identity password policy (12 chars, mixed classes) doesn't block the random secret produced by
+/// <see cref="DemoCredentials"/>. Returns the demo user's Id.
 /// </summary>
-static async Task<string> SeedDemoUsers(WebApplication app)
+static async Task<string> SeedDemoUserAsync(WebApplication app)
 {
     using var scope = app.Services.CreateScope();
     var userManager = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
+    var demo = scope.ServiceProvider.GetRequiredService<DemoCredentials>();
     var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
 
-    await EnsureDemoUserAsync(userManager, logger, "demo@crittr.ca", "Demo123!");
-    await EnsureDemoUserAsync(userManager, logger, "empty@crittr.ca", "Demo123!");
-
-    var owner = await userManager.FindByEmailAsync("demo@crittr.ca");
-    if (owner is null)
-        throw new InvalidOperationException("demo@crittr.ca was not found after seeding.");
-
-    return owner.Id;
-
-    static async Task EnsureDemoUserAsync(UserManager<AppUser> userManager, ILogger logger, string email, string password)
+    var user = await userManager.FindByEmailAsync(demo.DemoEmail);
+    if (user is null)
     {
-        if (await userManager.FindByEmailAsync(email) is not null)
-            return;
-
-        var user = new AppUser
+        user = new AppUser
         {
-            UserName = email,
-            Email = email,
+            UserName = demo.DemoEmail,
+            Email = demo.DemoEmail,
             EmailConfirmed = true
         };
+        user.PasswordHash = userManager.PasswordHasher.HashPassword(user, demo.Password);
 
-        var result = await userManager.CreateAsync(user, password);
+        var result = await userManager.CreateAsync(user);
         if (!result.Succeeded)
         {
             logger.LogError("Failed to seed demo user {Email}: {Errors}",
-                email, string.Join(", ", result.Errors.Select(e => e.Description)));
+                demo.DemoEmail, string.Join(", ", result.Errors.Select(e => e.Description)));
             throw new InvalidOperationException(
-                $"Failed to seed demo user {email} (see logs for details).");
+                $"Failed to seed demo user {demo.DemoEmail} (see logs for details).");
         }
     }
+
+    return user.Id;
 }

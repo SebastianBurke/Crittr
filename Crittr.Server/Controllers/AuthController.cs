@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
 using Crittr.Server.Models;
+using Crittr.Server.Services;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -48,6 +49,32 @@ public class AuthController : ControllerBase
         var result = await _signInManager.CheckPasswordSignInAsync(user, dto.Password, lockoutOnFailure: true);
         if (result.IsLockedOut) return StatusCode(StatusCodes.Status423Locked, "Account locked. Try again later.");
         if (!result.Succeeded) return Unauthorized("Invalid email or password.");
+
+        var token = GenerateJwtToken(user);
+        return Ok(new { token });
+    }
+
+    [EnableRateLimiting("login")]
+    [HttpPost("demo-login")]
+    public async Task<IActionResult> DemoLogin([FromServices] DemoCredentials demo)
+    {
+        if (!_config.GetValue<bool>("Demo:Enabled"))
+            return NotFound();
+
+        // Lazy-create the demo user so flipping the flag on prod works without manual setup.
+        var user = await _userManager.FindByEmailAsync(demo.DemoEmail);
+        if (user is null)
+        {
+            user = new AppUser
+            {
+                UserName = demo.DemoEmail,
+                Email = demo.DemoEmail,
+                EmailConfirmed = true
+            };
+            user.PasswordHash = _userManager.PasswordHasher.HashPassword(user, demo.Password);
+            var create = await _userManager.CreateAsync(user);
+            if (!create.Succeeded) return StatusCode(StatusCodes.Status500InternalServerError);
+        }
 
         var token = GenerateJwtToken(user);
         return Ok(new { token });
